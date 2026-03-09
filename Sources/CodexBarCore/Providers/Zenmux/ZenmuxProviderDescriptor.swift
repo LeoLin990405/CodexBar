@@ -22,7 +22,7 @@ public enum ZenmuxProviderDescriptor {
                 isPrimaryProvider: false,
                 usesAccountFallback: false,
                 browserCookieOrder: nil,
-                dashboardURL: "https://zenmux.ai/",
+                dashboardURL: "https://zenmux.ai/platform/subscription",
                 statusPageURL: nil),
             branding: ProviderBranding(
                 iconStyle: .zenmux,
