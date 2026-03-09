@@ -3,7 +3,7 @@ import Foundation
 import FoundationNetworking
 #endif
 
-public struct DoubaoUsageSnapshot: Sendable {
+public struct ZenmuxUsageSnapshot: Sendable {
     public let remainingRequests: Int
     public let limitRequests: Int
     public let resetTime: Date?
@@ -38,7 +38,7 @@ public struct DoubaoUsageSnapshot: Sendable {
             resetDescription: resetDescription)
 
         let identity = ProviderIdentitySnapshot(
-            providerID: .doubao,
+            providerID: .zenmux,
             accountEmail: nil,
             accountOrganization: nil,
             loginMethod: nil)
@@ -53,7 +53,7 @@ public struct DoubaoUsageSnapshot: Sendable {
     }
 }
 
-public enum DoubaoUsageError: LocalizedError, Sendable {
+public enum ZenmuxUsageError: LocalizedError, Sendable {
     case missingCredentials
     case networkError(String)
     case apiError(Int, String)
@@ -62,24 +62,25 @@ public enum DoubaoUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "Missing Doubao API key (ARK_API_KEY)."
+            "Missing Zenmux API key (ZENMUX_API_KEY)."
         case let .networkError(message):
-            "Doubao network error: \(message)"
+            "Zenmux network error: \(message)"
         case let .apiError(code, message):
-            "Doubao API error (\(code)): \(message)"
+            "Zenmux API error (\(code)): \(message)"
         case let .parseFailed(message):
-            "Failed to parse Doubao response: \(message)"
+            "Failed to parse Zenmux response: \(message)"
         }
     }
 }
 
-public struct DoubaoUsageFetcher: Sendable {
-    private static let log = CodexBarLog.logger(LogCategories.doubaoUsage)
-    private static let apiURL = URL(string: "https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions")!
+public struct ZenmuxUsageFetcher: Sendable {
+    private static let log = CodexBarLog.logger(LogCategories.zenmuxUsage)
 
-    public static func fetchUsage(apiKey: String) async throws -> DoubaoUsageSnapshot {
+    private static let apiURL = URL(string: "https://zenmux.ai/api/anthropic/v1/messages")!
+
+    public static func fetchUsage(apiKey: String) async throws -> ZenmuxUsageSnapshot {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw DoubaoUsageError.missingCredentials
+            throw ZenmuxUsageError.missingCredentials
         }
 
         var request = URLRequest(url: self.apiURL)
@@ -87,10 +88,11 @@ public struct DoubaoUsageFetcher: Sendable {
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
 
         let body: [String: Any] = [
-            "model": "doubao-seed-2.0-thinking",
+            "model": "anthropic/claude-sonnet-4-5",
             "max_tokens": 1,
             "messages": [
                 ["role": "user", "content": "hi"],
@@ -102,14 +104,14 @@ public struct DoubaoUsageFetcher: Sendable {
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw DoubaoUsageError.networkError("Invalid response")
+            throw ZenmuxUsageError.networkError("Invalid response")
         }
 
         // Accept both 200 (success) and 429 (rate limited) – both carry rate limit headers.
         guard httpResponse.statusCode == 200 || httpResponse.statusCode == 429 else {
             let summary = Self.apiErrorSummary(statusCode: httpResponse.statusCode, data: data)
-            Self.log.error("Doubao API returned \(httpResponse.statusCode): \(summary)")
-            throw DoubaoUsageError.apiError(httpResponse.statusCode, summary)
+            Self.log.error("Zenmux API returned \(httpResponse.statusCode): \(summary)")
+            throw ZenmuxUsageError.apiError(httpResponse.statusCode, summary)
         }
 
         let headers = httpResponse.allHeaderFields
@@ -119,14 +121,14 @@ public struct DoubaoUsageFetcher: Sendable {
 
         let resetTime: Date? = resetString.flatMap(Self.parseResetTime)
 
-        let snapshot = DoubaoUsageSnapshot(
+        let snapshot = ZenmuxUsageSnapshot(
             remainingRequests: remaining ?? 0,
             limitRequests: limit ?? 0,
             resetTime: resetTime,
             updatedAt: Date())
 
         Self.log.debug(
-            "Doubao usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests)")
+            "Zenmux usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests)")
 
         return snapshot
     }
@@ -138,6 +140,7 @@ public struct DoubaoUsageFetcher: Sendable {
         if let value = headers[name.lowercased()] as? String, let int = Int(value) {
             return int
         }
+        // Case-insensitive search
         for (key, val) in headers {
             if let keyStr = key as? String,
                keyStr.lowercased() == name.lowercased(),
@@ -150,10 +153,12 @@ public struct DoubaoUsageFetcher: Sendable {
         return nil
     }
 
+    /// Parse reset time from header value like "1d2h3m4s" or "30s" or ISO 8601.
     private static func parseResetTime(_ value: String) -> Date? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return nil }
 
+        // Try ISO 8601 first
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let date = isoFormatter.date(from: trimmed) { return date }
@@ -161,6 +166,7 @@ public struct DoubaoUsageFetcher: Sendable {
         isoFallback.formatOptions = [.withInternetDateTime]
         if let date = isoFallback.date(from: trimmed) { return date }
 
+        // Try duration format like "1d2h3m4s" or "30s"
         var seconds: TimeInterval = 0
         let pattern = /(\d+)([dhms])/
         for match in trimmed.matches(of: pattern) {
@@ -177,6 +183,7 @@ public struct DoubaoUsageFetcher: Sendable {
             return Date().addingTimeInterval(seconds)
         }
 
+        // Try plain integer as seconds
         if let secs = TimeInterval(trimmed) {
             return Date().addingTimeInterval(secs)
         }
@@ -197,14 +204,14 @@ public struct DoubaoUsageFetcher: Sendable {
             return "Unexpected response body (\(data.count) bytes)."
         }
 
-        if let error = json["error"] as? [String: Any],
-           let message = error["message"] as? String
-        {
+        if let message = json["message"] as? String {
             let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return Self.compactText(trimmed) }
         }
 
-        if let message = json["message"] as? String {
+        if let error = json["error"] as? [String: Any],
+           let message = error["message"] as? String
+        {
             let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return Self.compactText(trimmed) }
         }

@@ -69,6 +69,8 @@ enum ProviderChoice: String, AppEnum {
         case .warp: return nil // Warp not yet supported in widgets
         case .qwen: return nil // Qwen not yet supported in widgets
         case .doubao: return nil // Doubao not yet supported in widgets
+        case .zenmux: return nil // Zenmux not yet supported in widgets
+        case .aigocode: return nil // AigoCode not yet supported in widgets
         }
     }
 }

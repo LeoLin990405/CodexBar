@@ -11,6 +11,7 @@ public enum LogCategories {
     public static let claudeUsage = "claude-usage"
     public static let codexRPC = "codex-rpc"
     public static let configMigration = "config-migration"
+    public static let aigocodeUsage = "aigocode-usage"
     public static let doubaoUsage = "doubao-usage"
     public static let configStore = "config-store"
     public static let cookieCache = "cookie-cache"
@@ -63,4 +64,5 @@ public enum LogCategories {
     public static let zaiSettings = "zai-settings"
     public static let zaiTokenStore = "zai-token-store"
     public static let zaiUsage = "zai-usage"
+    public static let zenmuxUsage = "zenmux-usage"
 }
