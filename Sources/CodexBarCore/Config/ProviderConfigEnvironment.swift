@@ -37,6 +37,14 @@ public enum ProviderConfigEnvironment {
             if let key = DoubaoSettingsReader.apiKeyEnvironmentKeys.first {
                 env[key] = apiKey
             }
+        case .zenmux:
+            if let key = ZenmuxSettingsReader.apiKeyEnvironmentKeys.first {
+                env[key] = apiKey
+            }
+        case .aigocode:
+            if let key = AigoCodeSettingsReader.apiKeyEnvironmentKeys.first {
+                env[key] = apiKey
+            }
         default:
             break
         }

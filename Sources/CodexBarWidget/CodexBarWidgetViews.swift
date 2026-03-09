@@ -281,6 +281,8 @@ private struct ProviderSwitchChip: View {
         case .warp: "Warp"
         case .qwen: "Qwen"
         case .doubao: "Doubao"
+        case .zenmux: "Zenmux"
+        case .aigocode: "AigoCode"
         }
     }
 }
@@ -624,6 +626,10 @@ enum WidgetColors {
             Color(red: 97 / 255, green: 71 / 255, blue: 232 / 255) // Qwen purple
         case .doubao:
             Color(red: 50 / 255, green: 108 / 255, blue: 229 / 255) // Doubao blue
+        case .zenmux:
+            Color(red: 255 / 255, green: 140 / 255, blue: 0 / 255) // Zenmux orange-red
+        case .aigocode:
+            Color(red: 34 / 255, green: 197 / 255, blue: 94 / 255) // AigoCode green
         }
     }
 }

@@ -77,6 +77,8 @@ public enum ProviderDescriptorRegistry {
         .warp: WarpProviderDescriptor.descriptor,
         .qwen: QwenProviderDescriptor.descriptor,
         .doubao: DoubaoProviderDescriptor.descriptor,
+        .zenmux: ZenmuxProviderDescriptor.descriptor,
+        .aigocode: AigoCodeProviderDescriptor.descriptor,
     ]
     private static let bootstrap: Void = {
         for provider in UsageProvider.allCases {

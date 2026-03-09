@@ -69,6 +69,14 @@ public enum ProviderTokenResolver {
         self.doubaoResolution(environment: environment)?.token
     }
 
+    public static func zenmuxToken(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
+        self.zenmuxResolution(environment: environment)?.token
+    }
+
+    public static func aigocodeToken(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
+        self.aigocodeResolution(environment: environment)?.token
+    }
+
     public static func zaiResolution(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
@@ -159,6 +167,18 @@ public enum ProviderTokenResolver {
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
         self.resolveEnv(DoubaoSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func zenmuxResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(ZenmuxSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func aigocodeResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(AigoCodeSettingsReader.apiKey(environment: environment))
     }
 
     private static func cleaned(_ raw: String?) -> String? {
