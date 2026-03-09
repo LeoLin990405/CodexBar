@@ -70,7 +70,7 @@ extension KimiUsageSnapshot {
             providerID: .kimi,
             accountEmail: nil,
             accountOrganization: nil,
-            loginMethod: nil)
+            loginMethod: "Free")
 
         return UsageSnapshot(
             primary: weeklyWindow,

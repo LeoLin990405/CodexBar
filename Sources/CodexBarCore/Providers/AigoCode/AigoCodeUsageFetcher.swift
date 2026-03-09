@@ -11,6 +11,7 @@ public struct AigoCodeUsageSnapshot: Sendable {
     public let apiKeyValid: Bool
     public let totalTokens: Int?
     public let statusMessage: String?
+    public let apiKey: String?
 
     public init(
         remainingRequests: Int,
@@ -19,7 +20,8 @@ public struct AigoCodeUsageSnapshot: Sendable {
         updatedAt: Date,
         apiKeyValid: Bool = false,
         totalTokens: Int? = nil,
-        statusMessage: String? = nil)
+        statusMessage: String? = nil,
+        apiKey: String? = nil)
     {
         self.remainingRequests = remainingRequests
         self.limitRequests = limitRequests
@@ -28,6 +30,15 @@ public struct AigoCodeUsageSnapshot: Sendable {
         self.apiKeyValid = apiKeyValid
         self.totalTokens = totalTokens
         self.statusMessage = statusMessage
+        self.apiKey = apiKey
+    }
+
+    private static func maskedKey(_ key: String?) -> String? {
+        guard let key, !key.isEmpty else { return nil }
+        if key.count <= 8 { return "****" }
+        let prefix = String(key.prefix(6))
+        let suffix = String(key.suffix(4))
+        return "\(prefix)...\(suffix)"
     }
 
     public func toUsageSnapshot() -> UsageSnapshot {
@@ -57,9 +68,9 @@ public struct AigoCodeUsageSnapshot: Sendable {
 
         let identity = ProviderIdentitySnapshot(
             providerID: .aigocode,
-            accountEmail: nil,
+            accountEmail: Self.maskedKey(self.apiKey),
             accountOrganization: nil,
-            loginMethod: nil)
+            loginMethod: "API")
 
         return UsageSnapshot(
             primary: primary,
@@ -137,7 +148,8 @@ public struct AigoCodeUsageFetcher: Sendable {
                     updatedAt: Date(),
                     apiKeyValid: true,
                     totalTokens: nil,
-                    statusMessage: "Insufficient balance")
+                    statusMessage: "Insufficient balance",
+                    apiKey: apiKey)
             }
         }
 
@@ -169,7 +181,8 @@ public struct AigoCodeUsageFetcher: Sendable {
             resetTime: resetTime,
             updatedAt: Date(),
             apiKeyValid: httpResponse.statusCode == 200,
-            totalTokens: totalTokens)
+            totalTokens: totalTokens,
+            apiKey: apiKey)
 
         Self.log.debug(
             "AigoCode usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")
