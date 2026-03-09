@@ -1240,6 +1240,16 @@ extension UsageStore {
                 let hasAny = resolution != nil
                 let source = resolution?.source.rawValue ?? "none"
                 text = "WARP_API_KEY=\(hasAny ? "present" : "missing") source=\(source)"
+            case .qwen:
+                let resolution = ProviderTokenResolver.qwenResolution()
+                let hasAny = resolution != nil
+                let source = resolution?.source.rawValue ?? "none"
+                text = "DASHSCOPE_API_KEY=\(hasAny ? "present" : "missing") source=\(source)"
+            case .doubao:
+                let resolution = ProviderTokenResolver.doubaoResolution()
+                let hasAny = resolution != nil
+                let source = resolution?.source.rawValue ?? "none"
+                text = "ARK_API_KEY=\(hasAny ? "present" : "missing") source=\(source)"
             case .gemini, .antigravity, .opencode, .factory, .copilot, .vertexai, .kilo, .kiro, .kimi, .kimik2,
                  .jetbrains:
                 text = unimplementedDebugLogMessages[provider] ?? "Debug log not yet implemented"
