@@ -1,0 +1,49 @@
+name: Build CodexBar App
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["feat/qwen-doubao-providers"]
+
+jobs:
+  build-macos-app:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          for candidate in /Applications/Xcode_26.1.1.app /Applications/Xcode_26.1.app /Applications/Xcode.app; do
+            if [[ -d "$candidate" ]]; then
+              sudo xcode-select -s "${candidate}/Contents/Developer"
+              echo "DEVELOPER_DIR=${candidate}/Contents/Developer" >> "$GITHUB_ENV"
+              break
+            fi
+          done
+          xcodebuild -version
+          swift --version
+
+      - name: Resolve dependencies
+        run: swift package resolve
+
+      - name: Build release
+        run: swift build -c release 2>&1
+
+      - name: Package app
+        run: |
+          set -euo pipefail
+          BIN_DIR="$(swift build -c release --show-bin-path)"
+          echo "Binary directory: $BIN_DIR"
+          ls -la "$BIN_DIR"/
+
+          # Create a zip of the built products
+          cd "$BIN_DIR"
+          zip -r "$GITHUB_WORKSPACE/CodexBar-custom-build.zip" . -x "*.build/*" "*.o" "*.d"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CodexBar-custom-build
+          path: CodexBar-custom-build.zip
+          retention-days: 30
