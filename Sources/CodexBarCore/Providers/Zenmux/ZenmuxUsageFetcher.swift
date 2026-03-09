@@ -8,28 +8,40 @@ public struct ZenmuxUsageSnapshot: Sendable {
     public let limitRequests: Int
     public let resetTime: Date?
     public let updatedAt: Date
+    public let apiKeyValid: Bool
+    public let totalTokens: Int?
 
     public init(
         remainingRequests: Int,
         limitRequests: Int,
         resetTime: Date?,
-        updatedAt: Date)
+        updatedAt: Date,
+        apiKeyValid: Bool = false,
+        totalTokens: Int? = nil)
     {
         self.remainingRequests = remainingRequests
         self.limitRequests = limitRequests
         self.resetTime = resetTime
         self.updatedAt = updatedAt
+        self.apiKeyValid = apiKeyValid
+        self.totalTokens = totalTokens
     }
 
     public func toUsageSnapshot() -> UsageSnapshot {
-        let used = max(0, self.limitRequests - self.remainingRequests)
-        let usedPercent: Double = if self.limitRequests > 0 {
-            min(100, max(0, Double(used) / Double(self.limitRequests) * 100))
-        } else {
-            0
-        }
+        let usedPercent: Double
+        let resetDescription: String
 
-        let resetDescription = "\(used)/\(self.limitRequests) requests"
+        if self.limitRequests > 0 {
+            let used = max(0, self.limitRequests - self.remainingRequests)
+            usedPercent = min(100, max(0, Double(used) / Double(self.limitRequests) * 100))
+            resetDescription = "\(used)/\(self.limitRequests) requests"
+        } else if self.apiKeyValid {
+            usedPercent = 0
+            resetDescription = "Active — check dashboard for details"
+        } else {
+            usedPercent = 0
+            resetDescription = "No usage data"
+        }
 
         let primary = RateWindow(
             usedPercent: usedPercent,
@@ -76,7 +88,7 @@ public enum ZenmuxUsageError: LocalizedError, Sendable {
 public struct ZenmuxUsageFetcher: Sendable {
     private static let log = CodexBarLog.logger(LogCategories.zenmuxUsage)
 
-    private static let apiURL = URL(string: "https://zenmux.ai/api/anthropic/v1/messages")!
+    private static let apiURL = URL(string: "https://zenmux.ai/api/v1/chat/completions")!
 
     public static func fetchUsage(apiKey: String) async throws -> ZenmuxUsageSnapshot {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -88,11 +100,10 @@ public struct ZenmuxUsageFetcher: Sendable {
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
 
         let body: [String: Any] = [
-            "model": "anthropic/claude-sonnet-4-5",
+            "model": "kuaishou/kat-coder-pro-v1-free",
             "max_tokens": 1,
             "messages": [
                 ["role": "user", "content": "hi"],
@@ -121,14 +132,25 @@ public struct ZenmuxUsageFetcher: Sendable {
 
         let resetTime: Date? = resetString.flatMap(Self.parseResetTime)
 
+        // Parse token usage from response body when rate limit headers are absent
+        var totalTokens: Int?
+        if remaining == nil, limit == nil,
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let usage = json["usage"] as? [String: Any]
+        {
+            totalTokens = usage["total_tokens"] as? Int
+        }
+
         let snapshot = ZenmuxUsageSnapshot(
             remainingRequests: remaining ?? 0,
             limitRequests: limit ?? 0,
             resetTime: resetTime,
-            updatedAt: Date())
+            updatedAt: Date(),
+            apiKeyValid: httpResponse.statusCode == 200,
+            totalTokens: totalTokens)
 
         Self.log.debug(
-            "Zenmux usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests)")
+            "Zenmux usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")
 
         return snapshot
     }

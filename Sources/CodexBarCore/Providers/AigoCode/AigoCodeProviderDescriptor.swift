@@ -22,7 +22,7 @@ public enum AigoCodeProviderDescriptor {
                 isPrimaryProvider: false,
                 usesAccountFallback: false,
                 browserCookieOrder: nil,
-                dashboardURL: "https://www.aigocode.com/",
+                dashboardURL: "https://www.aigocode.com/dashboard/console",
                 statusPageURL: nil),
             branding: ProviderBranding(
                 iconStyle: .aigocode,

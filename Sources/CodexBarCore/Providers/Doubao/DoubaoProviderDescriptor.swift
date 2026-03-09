@@ -22,7 +22,7 @@ public enum DoubaoProviderDescriptor {
                 isPrimaryProvider: false,
                 usesAccountFallback: false,
                 browserCookieOrder: nil,
-                dashboardURL: "https://console.volcengine.com/ark/",
+                dashboardURL: "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&advancedActiveKey=subscribe",
                 statusPageURL: nil),
             branding: ProviderBranding(
                 iconStyle: .doubao,
