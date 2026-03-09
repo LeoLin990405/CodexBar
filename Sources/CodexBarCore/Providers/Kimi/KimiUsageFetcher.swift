@@ -75,7 +75,8 @@ public struct KimiUsageFetcher: Sendable {
         return KimiUsageSnapshot(
             weekly: codingUsage.detail,
             rateLimit: codingUsage.limits?.first?.detail,
-            updatedAt: now)
+            updatedAt: now,
+            authToken: authToken)
     }
 
     private static func decodeSessionInfo(from jwt: String) -> SessionInfo? {
