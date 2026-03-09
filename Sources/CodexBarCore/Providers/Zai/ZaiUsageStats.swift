@@ -342,7 +342,14 @@ public struct ZaiUsageFetcher: Sendable {
         }
 
         do {
-            return try Self.parseUsageSnapshot(from: data)
+            var snapshot = try Self.parseUsageSnapshot(from: data)
+            snapshot = ZaiUsageSnapshot(
+                tokenLimit: snapshot.tokenLimit,
+                timeLimit: snapshot.timeLimit,
+                planName: snapshot.planName,
+                updatedAt: snapshot.updatedAt,
+                apiKey: apiKey)
+            return snapshot
         } catch let error as DecodingError {
             Self.log.error("z.ai JSON decoding error: \(error.localizedDescription)")
             throw ZaiUsageError.parseFailed(error.localizedDescription)
@@ -395,8 +402,7 @@ public struct ZaiUsageFetcher: Sendable {
             tokenLimit: tokenLimit,
             timeLimit: timeLimit,
             planName: responseData.planName,
-            updatedAt: Date(),
-            apiKey: apiKey)
+            updatedAt: Date())
     }
 
     private static func quotaURL(baseURLString: String) -> URL? {
