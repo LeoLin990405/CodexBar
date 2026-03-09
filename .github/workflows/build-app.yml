@@ -30,16 +30,22 @@ jobs:
       - name: Build release
         run: swift build -c release 2>&1
 
-      - name: Package app
+      - name: Fix rpath and package
         run: |
           set -euo pipefail
           BIN_DIR="$(swift build -c release --show-bin-path)"
           echo "Binary directory: $BIN_DIR"
-          ls -la "$BIN_DIR"/
+
+          # Add @executable_path/../Frameworks rpath so Sparkle.framework loads from .app bundle
+          install_name_tool -add_rpath @executable_path/../Frameworks "$BIN_DIR/CodexBar" || true
+          install_name_tool -add_rpath @executable_path/../Frameworks "$BIN_DIR/CodexBarCLI" || true
 
           # Create a zip of the built products
           cd "$BIN_DIR"
-          zip -r "$GITHUB_WORKSPACE/CodexBar-custom-build.zip" . -x "*.build/*" "*.o" "*.d"
+          zip -r "$GITHUB_WORKSPACE/CodexBar-custom-build.zip" \
+            CodexBar CodexBarCLI CodexBarClaudeWatchdog CodexBarClaudeWebProbe \
+            CodexBar_CodexBar.bundle KeyboardShortcuts_KeyboardShortcuts.bundle \
+            Sparkle.framework
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

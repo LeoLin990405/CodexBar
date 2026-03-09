@@ -100,7 +100,7 @@ public struct QwenUsageFetcher: Sendable {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
 
         let body: [String: Any] = [
-            "model": "qwen-coder-plus-latest",
+            "model": "qwen3-coder-plus",
             "max_tokens": 1,
             "messages": [
                 ["role": "user", "content": "hi"],
