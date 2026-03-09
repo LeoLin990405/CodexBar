@@ -10,6 +10,7 @@ public struct AigoCodeUsageSnapshot: Sendable {
     public let updatedAt: Date
     public let apiKeyValid: Bool
     public let totalTokens: Int?
+    public let statusMessage: String?
 
     public init(
         remainingRequests: Int,
@@ -17,7 +18,8 @@ public struct AigoCodeUsageSnapshot: Sendable {
         resetTime: Date?,
         updatedAt: Date,
         apiKeyValid: Bool = false,
-        totalTokens: Int? = nil)
+        totalTokens: Int? = nil,
+        statusMessage: String? = nil)
     {
         self.remainingRequests = remainingRequests
         self.limitRequests = limitRequests
@@ -25,13 +27,17 @@ public struct AigoCodeUsageSnapshot: Sendable {
         self.updatedAt = updatedAt
         self.apiKeyValid = apiKeyValid
         self.totalTokens = totalTokens
+        self.statusMessage = statusMessage
     }
 
     public func toUsageSnapshot() -> UsageSnapshot {
         let usedPercent: Double
         let resetDescription: String
 
-        if self.limitRequests > 0 {
+        if let msg = self.statusMessage {
+            usedPercent = 100
+            resetDescription = msg
+        } else if self.limitRequests > 0 {
             let used = max(0, self.limitRequests - self.remainingRequests)
             usedPercent = min(100, max(0, Double(used) / Double(self.limitRequests) * 100))
             resetDescription = "\(used)/\(self.limitRequests) requests"
@@ -119,7 +125,23 @@ public struct AigoCodeUsageFetcher: Sendable {
             throw AigoCodeUsageError.networkError("Invalid response")
         }
 
-        // Accept both 200 (success) and 429 (rate limited) – both carry rate limit headers.
+        // 403 with INSUFFICIENT_BALANCE means the key is valid but account has no credits
+        if httpResponse.statusCode == 403 {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let code = json["code"] as? String, code == "INSUFFICIENT_BALANCE"
+            {
+                return AigoCodeUsageSnapshot(
+                    remainingRequests: 0,
+                    limitRequests: 0,
+                    resetTime: nil,
+                    updatedAt: Date(),
+                    apiKeyValid: true,
+                    totalTokens: nil,
+                    statusMessage: "Insufficient balance")
+            }
+        }
+
+        // Accept both 200 (success) and 429 (rate limited).
         guard httpResponse.statusCode == 200 || httpResponse.statusCode == 429 else {
             let summary = Self.apiErrorSummary(statusCode: httpResponse.statusCode, data: data)
             Self.log.error("AigoCode API returned \(httpResponse.statusCode): \(summary)")

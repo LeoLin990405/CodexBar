@@ -8,28 +8,40 @@ public struct QwenUsageSnapshot: Sendable {
     public let limitRequests: Int
     public let resetTime: Date?
     public let updatedAt: Date
+    public let apiKeyValid: Bool
+    public let totalTokens: Int?
 
     public init(
         remainingRequests: Int,
         limitRequests: Int,
         resetTime: Date?,
-        updatedAt: Date)
+        updatedAt: Date,
+        apiKeyValid: Bool = false,
+        totalTokens: Int? = nil)
     {
         self.remainingRequests = remainingRequests
         self.limitRequests = limitRequests
         self.resetTime = resetTime
         self.updatedAt = updatedAt
+        self.apiKeyValid = apiKeyValid
+        self.totalTokens = totalTokens
     }
 
     public func toUsageSnapshot() -> UsageSnapshot {
-        let used = max(0, self.limitRequests - self.remainingRequests)
-        let usedPercent: Double = if self.limitRequests > 0 {
-            min(100, max(0, Double(used) / Double(self.limitRequests) * 100))
-        } else {
-            0
-        }
+        let usedPercent: Double
+        let resetDescription: String
 
-        let resetDescription = "\(used)/\(self.limitRequests) requests"
+        if self.limitRequests > 0 {
+            let used = max(0, self.limitRequests - self.remainingRequests)
+            usedPercent = min(100, max(0, Double(used) / Double(self.limitRequests) * 100))
+            resetDescription = "\(used)/\(self.limitRequests) requests"
+        } else if self.apiKeyValid {
+            usedPercent = 0
+            resetDescription = "Active — check dashboard for details"
+        } else {
+            usedPercent = 0
+            resetDescription = "No usage data"
+        }
 
         let primary = RateWindow(
             usedPercent: usedPercent,
@@ -94,7 +106,7 @@ public struct QwenUsageFetcher: Sendable {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 15
+        request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -129,14 +141,24 @@ public struct QwenUsageFetcher: Sendable {
 
         let resetTime: Date? = resetString.flatMap(Self.parseResetTime)
 
+        var totalTokens: Int?
+        if remaining == nil, limit == nil,
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let usage = json["usage"] as? [String: Any]
+        {
+            totalTokens = usage["total_tokens"] as? Int
+        }
+
         let snapshot = QwenUsageSnapshot(
             remainingRequests: remaining ?? 0,
             limitRequests: limit ?? 0,
             resetTime: resetTime,
-            updatedAt: Date())
+            updatedAt: Date(),
+            apiKeyValid: httpResponse.statusCode == 200,
+            totalTokens: totalTokens)
 
         Self.log.debug(
-            "Qwen usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests)")
+            "Qwen usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")
 
         return snapshot
     }
