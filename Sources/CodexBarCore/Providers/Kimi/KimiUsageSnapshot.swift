@@ -4,11 +4,13 @@ public struct KimiUsageSnapshot: Sendable {
     public let weekly: KimiUsageDetail
     public let rateLimit: KimiUsageDetail?
     public let updatedAt: Date
+    public let authToken: String?
 
-    public init(weekly: KimiUsageDetail, rateLimit: KimiUsageDetail?, updatedAt: Date) {
+    public init(weekly: KimiUsageDetail, rateLimit: KimiUsageDetail?, updatedAt: Date, authToken: String? = nil) {
         self.weekly = weekly
         self.rateLimit = rateLimit
         self.updatedAt = updatedAt
+        self.authToken = authToken
     }
 
     private static func parseDate(_ dateString: String) -> Date? {
@@ -66,11 +68,21 @@ extension KimiUsageSnapshot {
                 resetDescription: "Rate: \(rateUsed)/\(rateLimitValue) per 5 hours")
         }
 
+        let maskedKey: String? = {
+            guard let key = self.authToken, !key.isEmpty else { return nil }
+            if key.count <= 8 { return "****" }
+            return "\(key.prefix(6))...\(key.suffix(4))"
+        }()
+        let plan: String? = {
+            guard let key = self.authToken else { return nil }
+            if key.hasPrefix("sk-kimi-") { return "API" }
+            return "Web"
+        }()
         let identity = ProviderIdentitySnapshot(
             providerID: .kimi,
-            accountEmail: nil,
+            accountEmail: maskedKey,
             accountOrganization: nil,
-            loginMethod: "Free")
+            loginMethod: plan)
 
         return UsageSnapshot(
             primary: weeklyWindow,
