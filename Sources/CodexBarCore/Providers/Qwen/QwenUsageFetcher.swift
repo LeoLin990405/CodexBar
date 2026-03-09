@@ -10,6 +10,7 @@ public struct QwenUsageSnapshot: Sendable {
     public let updatedAt: Date
     public let apiKeyValid: Bool
     public let totalTokens: Int?
+    public let apiKey: String?
 
     public init(
         remainingRequests: Int,
@@ -17,7 +18,8 @@ public struct QwenUsageSnapshot: Sendable {
         resetTime: Date?,
         updatedAt: Date,
         apiKeyValid: Bool = false,
-        totalTokens: Int? = nil)
+        totalTokens: Int? = nil,
+        apiKey: String? = nil)
     {
         self.remainingRequests = remainingRequests
         self.limitRequests = limitRequests
@@ -25,6 +27,15 @@ public struct QwenUsageSnapshot: Sendable {
         self.updatedAt = updatedAt
         self.apiKeyValid = apiKeyValid
         self.totalTokens = totalTokens
+        self.apiKey = apiKey
+    }
+
+    private static func maskedKey(_ key: String?) -> String? {
+        guard let key, !key.isEmpty else { return nil }
+        if key.count <= 8 { return "****" }
+        let prefix = String(key.prefix(6))
+        let suffix = String(key.suffix(4))
+        return "\(prefix)...\(suffix)"
     }
 
     public func toUsageSnapshot() -> UsageSnapshot {
@@ -49,11 +60,13 @@ public struct QwenUsageSnapshot: Sendable {
             resetsAt: self.resetTime,
             resetDescription: resetDescription)
 
+        let maskedKey = Self.maskedKey(self.apiKey)
+        let plan = (self.apiKey ?? "").hasPrefix("sk-sp-") ? "Coding Plan" : "API"
         let identity = ProviderIdentitySnapshot(
             providerID: .qwen,
-            accountEmail: nil,
+            accountEmail: maskedKey,
             accountOrganization: nil,
-            loginMethod: nil)
+            loginMethod: plan)
 
         return UsageSnapshot(
             primary: primary,
@@ -155,7 +168,8 @@ public struct QwenUsageFetcher: Sendable {
             resetTime: resetTime,
             updatedAt: Date(),
             apiKeyValid: httpResponse.statusCode == 200,
-            totalTokens: totalTokens)
+            totalTokens: totalTokens,
+            apiKey: apiKey)
 
         Self.log.debug(
             "Qwen usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")

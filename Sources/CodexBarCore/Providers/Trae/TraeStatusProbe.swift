@@ -23,11 +23,12 @@ public struct TraeStatusSnapshot: Sendable {
             resetsAt: nil,
             resetDescription: resetDescription)
 
+        let versionLabel = self.version.map { "v\($0)" }
         let identity = ProviderIdentitySnapshot(
             providerID: .trae,
-            accountEmail: nil,
+            accountEmail: versionLabel,
             accountOrganization: nil,
-            loginMethod: nil)
+            loginMethod: self.isRunning ? "Free" : nil)
 
         return UsageSnapshot(
             primary: primary,

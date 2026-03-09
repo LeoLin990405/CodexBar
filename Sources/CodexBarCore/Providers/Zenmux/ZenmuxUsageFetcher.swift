@@ -10,6 +10,7 @@ public struct ZenmuxUsageSnapshot: Sendable {
     public let updatedAt: Date
     public let apiKeyValid: Bool
     public let totalTokens: Int?
+    public let apiKey: String?
 
     public init(
         remainingRequests: Int,
@@ -17,7 +18,8 @@ public struct ZenmuxUsageSnapshot: Sendable {
         resetTime: Date?,
         updatedAt: Date,
         apiKeyValid: Bool = false,
-        totalTokens: Int? = nil)
+        totalTokens: Int? = nil,
+        apiKey: String? = nil)
     {
         self.remainingRequests = remainingRequests
         self.limitRequests = limitRequests
@@ -25,6 +27,15 @@ public struct ZenmuxUsageSnapshot: Sendable {
         self.updatedAt = updatedAt
         self.apiKeyValid = apiKeyValid
         self.totalTokens = totalTokens
+        self.apiKey = apiKey
+    }
+
+    private static func maskedKey(_ key: String?) -> String? {
+        guard let key, !key.isEmpty else { return nil }
+        if key.count <= 8 { return "****" }
+        let prefix = String(key.prefix(6))
+        let suffix = String(key.suffix(4))
+        return "\(prefix)...\(suffix)"
     }
 
     public func toUsageSnapshot() -> UsageSnapshot {
@@ -51,9 +62,9 @@ public struct ZenmuxUsageSnapshot: Sendable {
 
         let identity = ProviderIdentitySnapshot(
             providerID: .zenmux,
-            accountEmail: nil,
+            accountEmail: Self.maskedKey(self.apiKey),
             accountOrganization: nil,
-            loginMethod: nil)
+            loginMethod: "API")
 
         return UsageSnapshot(
             primary: primary,
@@ -147,7 +158,8 @@ public struct ZenmuxUsageFetcher: Sendable {
             resetTime: resetTime,
             updatedAt: Date(),
             apiKeyValid: httpResponse.statusCode == 200,
-            totalTokens: totalTokens)
+            totalTokens: totalTokens,
+            apiKey: apiKey)
 
         Self.log.debug(
             "Zenmux usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")

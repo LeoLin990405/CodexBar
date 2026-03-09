@@ -132,12 +132,20 @@ public struct ZaiUsageSnapshot: Sendable {
     public let timeLimit: ZaiLimitEntry?
     public let planName: String?
     public let updatedAt: Date
+    public let apiKey: String?
 
-    public init(tokenLimit: ZaiLimitEntry?, timeLimit: ZaiLimitEntry?, planName: String?, updatedAt: Date) {
+    public init(
+        tokenLimit: ZaiLimitEntry?,
+        timeLimit: ZaiLimitEntry?,
+        planName: String?,
+        updatedAt: Date,
+        apiKey: String? = nil)
+    {
         self.tokenLimit = tokenLimit
         self.timeLimit = timeLimit
         self.planName = planName
         self.updatedAt = updatedAt
+        self.apiKey = apiKey
     }
 
     /// Returns true if this snapshot contains valid z.ai data
@@ -160,9 +168,14 @@ extension ZaiUsageSnapshot {
 
         let planName = self.planName?.trimmingCharacters(in: .whitespacesAndNewlines)
         let loginMethod = (planName?.isEmpty ?? true) ? nil : planName
+        let maskedKey: String? = {
+            guard let key = self.apiKey, !key.isEmpty else { return nil }
+            if key.count <= 8 { return "****" }
+            return "\(key.prefix(6))...\(key.suffix(4))"
+        }()
         let identity = ProviderIdentitySnapshot(
             providerID: .zai,
-            accountEmail: nil,
+            accountEmail: maskedKey,
             accountOrganization: nil,
             loginMethod: loginMethod)
         return UsageSnapshot(
@@ -382,7 +395,8 @@ public struct ZaiUsageFetcher: Sendable {
             tokenLimit: tokenLimit,
             timeLimit: timeLimit,
             planName: responseData.planName,
-            updatedAt: Date())
+            updatedAt: Date(),
+            apiKey: apiKey)
     }
 
     private static func quotaURL(baseURLString: String) -> URL? {
