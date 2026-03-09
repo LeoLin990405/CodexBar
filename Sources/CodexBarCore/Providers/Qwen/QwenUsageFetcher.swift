@@ -150,7 +150,7 @@ public struct QwenUsageFetcher: Sendable {
         let headers = httpResponse.allHeaderFields
         let remaining = Self.intHeader(headers, "x-ratelimit-remaining-requests")
         let limit = Self.intHeader(headers, "x-ratelimit-limit-requests")
-        let resetString = headers["x-ratelimit-reset-requests"] as? String
+        let resetString = Self.stringHeader(headers, "x-ratelimit-reset-requests")
 
         let resetTime: Date? = resetString.flatMap(Self.parseResetTime)
 
@@ -175,6 +175,19 @@ public struct QwenUsageFetcher: Sendable {
             "Qwen usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")
 
         return snapshot
+    }
+
+    private static func stringHeader(_ headers: [AnyHashable: Any], _ name: String) -> String? {
+        if let value = headers[name] as? String { return value }
+        for (key, val) in headers {
+            if let keyStr = key as? String,
+               keyStr.caseInsensitiveCompare(name) == .orderedSame,
+               let valStr = val as? String
+            {
+                return valStr
+            }
+        }
+        return nil
     }
 
     private static func intHeader(_ headers: [AnyHashable: Any], _ name: String) -> Int? {
