@@ -45,6 +45,10 @@ public enum ProviderConfigEnvironment {
             if let key = AigoCodeSettingsReader.apiKeyEnvironmentKeys.first {
                 env[key] = apiKey
             }
+        case .trae:
+            if let key = TraeSettingsReader.apiKeyEnvironmentKeys.first {
+                env[key] = apiKey
+            }
         default:
             break
         }

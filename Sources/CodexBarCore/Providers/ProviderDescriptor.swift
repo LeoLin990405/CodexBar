@@ -79,6 +79,7 @@ public enum ProviderDescriptorRegistry {
         .doubao: DoubaoProviderDescriptor.descriptor,
         .zenmux: ZenmuxProviderDescriptor.descriptor,
         .aigocode: AigoCodeProviderDescriptor.descriptor,
+        .trae: TraeProviderDescriptor.descriptor,
     ]
     private static let bootstrap: Void = {
         for provider in UsageProvider.allCases {

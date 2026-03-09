@@ -77,6 +77,10 @@ public enum ProviderTokenResolver {
         self.aigocodeResolution(environment: environment)?.token
     }
 
+    public static func traeToken(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
+        self.traeResolution(environment: environment)?.token
+    }
+
     public static func zaiResolution(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
@@ -179,6 +183,12 @@ public enum ProviderTokenResolver {
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
         self.resolveEnv(AigoCodeSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func traeResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(TraeSettingsReader.apiKey(environment: environment))
     }
 
     private static func cleaned(_ raw: String?) -> String? {

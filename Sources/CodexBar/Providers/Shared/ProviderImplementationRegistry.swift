@@ -39,6 +39,7 @@ enum ProviderImplementationRegistry {
         case .doubao: DoubaoProviderImplementation()
         case .zenmux: ZenmuxProviderImplementation()
         case .aigocode: AigoCodeProviderImplementation()
+        case .trae: TraeProviderImplementation()
         }
     }
 
