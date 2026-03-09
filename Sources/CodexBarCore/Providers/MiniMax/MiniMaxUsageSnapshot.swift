@@ -9,6 +9,7 @@ public struct MiniMaxUsageSnapshot: Sendable {
     public let usedPercent: Double?
     public let resetsAt: Date?
     public let updatedAt: Date
+    public let apiKey: String?
 
     public init(
         planName: String?,
@@ -18,7 +19,8 @@ public struct MiniMaxUsageSnapshot: Sendable {
         windowMinutes: Int?,
         usedPercent: Double?,
         resetsAt: Date?,
-        updatedAt: Date)
+        updatedAt: Date,
+        apiKey: String? = nil)
     {
         self.planName = planName
         self.availablePrompts = availablePrompts
@@ -28,6 +30,7 @@ public struct MiniMaxUsageSnapshot: Sendable {
         self.usedPercent = usedPercent
         self.resetsAt = resetsAt
         self.updatedAt = updatedAt
+        self.apiKey = apiKey
     }
 }
 
@@ -43,9 +46,14 @@ extension MiniMaxUsageSnapshot {
 
         let planName = self.planName?.trimmingCharacters(in: .whitespacesAndNewlines)
         let loginMethod = (planName?.isEmpty ?? true) ? nil : planName
+        let maskedKey: String? = {
+            guard let key = self.apiKey, !key.isEmpty else { return nil }
+            if key.count <= 8 { return "****" }
+            return "\(key.prefix(6))...\(key.suffix(4))"
+        }()
         let identity = ProviderIdentitySnapshot(
             providerID: .minimax,
-            accountEmail: nil,
+            accountEmail: maskedKey,
             accountOrganization: nil,
             loginMethod: loginMethod)
 
