@@ -38,7 +38,7 @@ public struct QwenUsageSnapshot: Sendable {
         return "\(prefix)...\(suffix)"
     }
 
-    public func toUsageSnapshot() -> UsageSnapshot {
+    public func toUsageSnapshot(accumulated: LocalUsageTracker.AccumulatedUsage? = nil) -> UsageSnapshot {
         let usedPercent: Double
         let resetDescription: String
 
@@ -60,6 +60,19 @@ public struct QwenUsageSnapshot: Sendable {
             resetsAt: self.resetTime,
             resetDescription: resetDescription)
 
+        // Secondary: accumulated monthly usage from local tracking
+        var secondary: RateWindow?
+        if let acc = accumulated, acc.monthlyRequests > 0 || acc.monthlyLimit > 0 {
+            let monthPercent: Double = acc.monthlyLimit > 0
+                ? min(100, max(0, Double(acc.monthlyRequests) / Double(acc.monthlyLimit) * 100))
+                : 0
+            secondary = RateWindow(
+                usedPercent: monthPercent,
+                windowMinutes: 43200, // 30 days
+                resetsAt: nil,
+                resetDescription: "30d: \(acc.monthlyRequests) reqs (7d: \(acc.weeklyRequests))")
+        }
+
         let maskedKey = Self.maskedKey(self.apiKey)
         let plan = (self.apiKey ?? "").hasPrefix("sk-sp-") ? "Coding Plan" : "API"
         let identity = ProviderIdentitySnapshot(
@@ -70,7 +83,7 @@ public struct QwenUsageSnapshot: Sendable {
 
         return UsageSnapshot(
             primary: primary,
-            secondary: nil,
+            secondary: secondary,
             tertiary: nil,
             providerCost: nil,
             updatedAt: self.updatedAt,
