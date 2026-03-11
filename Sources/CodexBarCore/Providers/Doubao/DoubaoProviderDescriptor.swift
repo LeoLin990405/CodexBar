@@ -11,7 +11,7 @@ public enum DoubaoProviderDescriptor {
                 id: .doubao,
                 displayName: "Doubao",
                 sessionLabel: "Requests",
-                weeklyLabel: "Rate limit",
+                weeklyLabel: "Monthly",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
@@ -54,8 +54,12 @@ struct DoubaoAPIFetchStrategy: ProviderFetchStrategy {
             throw DoubaoUsageError.missingCredentials
         }
         let usage = try await DoubaoUsageFetcher.fetchUsage(apiKey: apiKey)
+        let accumulated = await LocalUsageTracker.shared.record(
+            provider: .doubao,
+            remaining: usage.remainingRequests,
+            limit: usage.limitRequests)
         return self.makeResult(
-            usage: usage.toUsageSnapshot(),
+            usage: usage.toUsageSnapshot(accumulated: accumulated),
             sourceLabel: "api")
     }
 

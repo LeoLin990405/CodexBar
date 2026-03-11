@@ -11,7 +11,7 @@ public enum QwenProviderDescriptor {
                 id: .qwen,
                 displayName: "Qwen",
                 sessionLabel: "Requests",
-                weeklyLabel: "Rate limit",
+                weeklyLabel: "Monthly",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
@@ -54,8 +54,12 @@ struct QwenAPIFetchStrategy: ProviderFetchStrategy {
             throw QwenUsageError.missingCredentials
         }
         let usage = try await QwenUsageFetcher.fetchUsage(apiKey: apiKey)
+        let accumulated = await LocalUsageTracker.shared.record(
+            provider: .qwen,
+            remaining: usage.remainingRequests,
+            limit: usage.limitRequests)
         return self.makeResult(
-            usage: usage.toUsageSnapshot(),
+            usage: usage.toUsageSnapshot(accumulated: accumulated),
             sourceLabel: "api")
     }
 
