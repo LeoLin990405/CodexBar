@@ -107,7 +107,7 @@ public struct DoubaoUsageFetcher: Sendable {
 
         var request = URLRequest(url: self.apiURL)
         request.httpMethod = "POST"
-        request.timeoutInterval = 15
+        request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
