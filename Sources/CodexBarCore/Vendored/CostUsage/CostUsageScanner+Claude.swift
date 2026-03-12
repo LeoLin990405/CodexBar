@@ -359,11 +359,11 @@ extension CostUsageScanner {
             return
         }
 
-        let rootAttrs = (try? FileManager.default.attributesOfItem(atPath: canonicalRootPath)) ?? [:]
-        let rootMtime = (rootAttrs[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
-        let rootMtimeMs = Int64(rootMtime * 1000)
-        let cachedRootMtime = rootCandidates.compactMap { state.rootCache[$0] }.first
-        let canSkipEnumeration = cachedRootMtime == rootMtimeMs && rootMtimeMs > 0
+        // Root directory mtime only reflects direct-child changes on macOS, not nested file changes.
+        // Claude stores logs in subdirectories (~/.claude/projects/<hash>/<session>.jsonl), so the
+        // root mtime never changes when new data is written. Always enumerate the full tree; the
+        // per-file mtime/size check in processClaudeFile prevents redundant parsing.
+        let canSkipEnumeration = false
 
         if canSkipEnumeration {
             let cachedPaths = state.cache.files.keys.filter { path in

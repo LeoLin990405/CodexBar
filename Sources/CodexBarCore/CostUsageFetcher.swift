@@ -40,8 +40,10 @@ public struct CostUsageFetcher: Sendable {
         } else if provider == .claude {
             options.claudeLogProviderFilter = .excludeVertexAI
         }
+        // Always set TTL to 0: the scanner-level TTL is redundant with per-file mtime/size
+        // caching in processClaudeFile, and a non-zero TTL causes stale data after the first scan.
+        options.refreshMinIntervalSeconds = 0
         if forceRefresh {
-            options.refreshMinIntervalSeconds = 0
             options.forceRescan = true
         }
         var daily = CostUsageScanner.loadDailyReport(
