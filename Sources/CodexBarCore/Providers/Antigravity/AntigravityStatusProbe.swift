@@ -54,13 +54,13 @@ public struct AntigravityStatusSnapshot: Sendable {
 
     private static func selectModels(_ models: [AntigravityModelQuota]) -> [AntigravityModelQuota] {
         var ordered: [AntigravityModelQuota] = []
-        if let claude = models.first(where: { Self.isClaudeWithoutThinking($0.label) }) {
-            ordered.append(claude)
-        }
-        if let pro = models.first(where: { Self.isGeminiProLow($0.label) }),
-           !ordered.contains(where: { $0.label == pro.label })
-        {
+        if let pro = models.first(where: { Self.isGeminiProLow($0.label) }) {
             ordered.append(pro)
+        }
+        if let claude = models.first(where: { Self.isClaudeWithoutThinking($0.label) }),
+           !ordered.contains(where: { $0.label == claude.label })
+        {
+            ordered.append(claude)
         }
         if let flash = models.first(where: { Self.isGeminiFlash($0.label) }),
            !ordered.contains(where: { $0.label == flash.label })
@@ -108,7 +108,7 @@ public enum AntigravityStatusProbeError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .notRunning:
-            "Antigravity language server not detected. Launch Antigravity and retry."
+            "Antigravity language server not detected. Launch Antigravity and retry. If behind a proxy, ensure Antigravity can reach its servers (set http_proxy/https_proxy or enable system proxy)."
         case .missingCSRFToken:
             "Antigravity CSRF token not found. Restart Antigravity and retry."
         case let .portDetectionFailed(message):

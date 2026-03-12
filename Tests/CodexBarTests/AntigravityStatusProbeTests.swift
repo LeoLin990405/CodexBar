@@ -49,8 +49,9 @@ struct AntigravityStatusProbeTests {
         guard let primary = usage.primary else {
             return
         }
-        #expect(primary.remainingPercent.rounded() == 50)
-        #expect(usage.secondary?.remainingPercent.rounded() == 80)
+        // Gemini Pro is primary, Claude is secondary, Gemini Flash is tertiary
+        #expect(primary.remainingPercent.rounded() == 80)
+        #expect(usage.secondary?.remainingPercent.rounded() == 50)
         #expect(usage.tertiary?.remainingPercent.rounded() == 20)
     }
 }
