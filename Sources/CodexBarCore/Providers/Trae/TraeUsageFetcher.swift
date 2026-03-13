@@ -35,6 +35,14 @@ public struct TraeUsageFetcher: Sendable {
         var request = self.makeRequest(url: self.checkLoginURL, session: session)
         request.httpBody = "{}".data(using: .utf8)
 
+        // Debug: log cookie names being sent (not values for security)
+        let cookieNames = session.cookieHeader.split(separator: ";").compactMap { part -> String? in
+            let trimmed = part.trimmingCharacters(in: .whitespaces)
+            return trimmed.split(separator: "=").first.map(String.init)
+        }
+        Self.log.debug("Trae CheckLogin sending \(cookieNames.count) cookies: \(cookieNames.joined(separator: ", "))")
+        Self.log.debug("Trae Cookie header length: \(session.cookieHeader.count) chars")
+
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TraeAPIError.networkError("Invalid response")
