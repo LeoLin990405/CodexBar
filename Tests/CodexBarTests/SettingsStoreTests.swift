@@ -746,6 +746,11 @@ struct SettingsStoreTests {
             .synthetic,
             .warp,
             .openrouter,
+            .qwen,
+            .doubao,
+            .zenmux,
+            .aigocode,
+            .trae,
         ])
 
         // Move one provider; ensure it's persisted across instances.
