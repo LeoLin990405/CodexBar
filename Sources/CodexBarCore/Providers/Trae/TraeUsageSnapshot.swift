@@ -2,50 +2,48 @@ import Foundation
 
 public struct TraeUsageSnapshot: Sendable {
     let checkLogin: TraeCheckLoginResult
-    let userInfo: TraeUserInfoResult
+    let profile: TraeProfileResult
+    let stats: TraeStatsResult?
     public let updatedAt: Date
 
-    init(checkLogin: TraeCheckLoginResult, userInfo: TraeUserInfoResult, updatedAt: Date) {
+    init(checkLogin: TraeCheckLoginResult, profile: TraeProfileResult,
+         stats: TraeStatsResult?, updatedAt: Date)
+    {
         self.checkLogin = checkLogin
-        self.userInfo = userInfo
+        self.profile = profile
+        self.stats = stats
         self.updatedAt = updatedAt
-    }
-
-    private static func parseDate(_ dateString: String?) -> Date? {
-        guard let dateString, !dateString.isEmpty else { return nil }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: dateString) { return date }
-        let fallback = ISO8601DateFormatter()
-        fallback.formatOptions = [.withInternetDateTime]
-        return fallback.date(from: dateString)
     }
 }
 
 extension TraeUsageSnapshot {
     public func toUsageSnapshot() -> UsageSnapshot {
-        // Build primary usage window from usage or quota info
         let primary: RateWindow
-        if let usage = self.userInfo.usage {
-            let used = usage.used ?? 0
-            let total = usage.total ?? 0
-            let usedPercent = total > 0 ? Double(used) / Double(total) * 100 : 0
+
+        if let stats {
+            // Sum 7-day AI interaction counts
+            let total7d = (stats.codeAiAcceptCnt7d ?? 0) + (stats.codeCompCnt7d ?? 0)
+
+            // Build model breakdown string
+            let modelBreakdown = stats.codeCompDiffModelCnt7d?
+                .sorted { $0.value > $1.value }
+                .map { "\($0.key): \($0.value)" }
+                .joined(separator: ", ")
+
+            let description: String
+            if let modelBreakdown, !modelBreakdown.isEmpty {
+                description = "\(total7d) AI actions (7d) — \(modelBreakdown)"
+            } else {
+                description = "\(total7d) AI actions (7d)"
+            }
+
+            // Trae has no hard usage cap, so show activity level instead of percent
             primary = RateWindow(
-                usedPercent: usedPercent,
-                windowMinutes: nil,
-                resetsAt: Self.parseDate(usage.resetTime),
-                resetDescription: "\(used)/\(total) requests")
-        } else if let quota = self.userInfo.quota {
-            let used = quota.used ?? 0
-            let total = quota.total ?? 0
-            let usedPercent = total > 0 ? Double(used) / Double(total) * 100 : 0
-            primary = RateWindow(
-                usedPercent: usedPercent,
-                windowMinutes: nil,
-                resetsAt: Self.parseDate(quota.resetTime),
-                resetDescription: "\(used)/\(total) quota")
+                usedPercent: 0,
+                windowMinutes: 7 * 24 * 60,
+                resetsAt: nil,
+                resetDescription: description)
         } else {
-            // No usage data from GetUserInfo — report as active with login info
             primary = RateWindow(
                 usedPercent: 0,
                 windowMinutes: nil,
@@ -53,13 +51,15 @@ extension TraeUsageSnapshot {
                 resetDescription: "Active — logged in")
         }
 
-        let planName = self.userInfo.plan
-        let accountName = self.userInfo.email ?? self.userInfo.userName ?? self.checkLogin.userID
+        let accountName = self.profile.screenName
+            ?? self.checkLogin.userID
+        let regionInfo = self.checkLogin.region ?? self.profile.aiRegion
+
         let identity = ProviderIdentitySnapshot(
             providerID: .trae,
             accountEmail: accountName,
-            accountOrganization: nil,
-            loginMethod: planName ?? "Web")
+            accountOrganization: regionInfo,
+            loginMethod: self.profile.lastLoginType ?? "Web")
 
         return UsageSnapshot(
             primary: primary,
