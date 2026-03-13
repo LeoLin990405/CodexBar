@@ -88,11 +88,36 @@ public struct DoubaoUsageFetcher: Sendable {
     private static let log = CodexBarLog.logger(LogCategories.doubaoUsage)
     private static let apiURL = URL(string: "https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions")!
 
+    /// Models to probe, ordered by likelihood. We try multiple models because
+    /// different key types may not have access to every model.
+    private static let probeModels = [
+        "doubao-seed-2.0-code",
+        "doubao-1.5-pro-32k",
+        "doubao-lite-32k",
+    ]
+
     public static func fetchUsage(apiKey: String) async throws -> DoubaoUsageSnapshot {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw DoubaoUsageError.missingCredentials
         }
 
+        var lastError: Error?
+        for model in self.probeModels {
+            do {
+                return try await self.probe(apiKey: apiKey, model: model)
+            } catch let error as DoubaoUsageError {
+                if case let .apiError(code, _) = error, code == 404 || code == 403 {
+                    Self.log.debug("Doubao probe model \(model) unavailable (\(code)), trying next")
+                    lastError = error
+                    continue
+                }
+                throw error
+            }
+        }
+        throw lastError ?? DoubaoUsageError.apiError(0, "All probe models failed")
+    }
+
+    private static func probe(apiKey: String, model: String) async throws -> DoubaoUsageSnapshot {
         var request = URLRequest(url: self.apiURL)
         request.httpMethod = "POST"
         request.timeoutInterval = 15
@@ -101,7 +126,7 @@ public struct DoubaoUsageFetcher: Sendable {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
 
         let body: [String: Any] = [
-            "model": "doubao-seed-2.0-code",
+            "model": model,
             "max_tokens": 1,
             "messages": [
                 ["role": "user", "content": "hi"],
@@ -126,7 +151,7 @@ public struct DoubaoUsageFetcher: Sendable {
         let headers = httpResponse.allHeaderFields
         let remaining = Self.intHeader(headers, "x-ratelimit-remaining-requests")
         let limit = Self.intHeader(headers, "x-ratelimit-limit-requests")
-        let resetString = headers["x-ratelimit-reset-requests"] as? String
+        let resetString = Self.stringHeader(headers, "x-ratelimit-reset-requests")
 
         let resetTime: Date? = resetString.flatMap(Self.parseResetTime)
 
@@ -138,18 +163,35 @@ public struct DoubaoUsageFetcher: Sendable {
             totalTokens = usage["total_tokens"] as? Int
         }
 
+        // 429 means the key is valid but rate-limited; treat it as valid so the UI
+        // shows "Active" instead of "No usage data" when headers are absent.
+        let keyValid = httpResponse.statusCode == 200 || httpResponse.statusCode == 429
+
         let snapshot = DoubaoUsageSnapshot(
             remainingRequests: remaining ?? 0,
             limitRequests: limit ?? 0,
             resetTime: resetTime,
             updatedAt: Date(),
-            apiKeyValid: httpResponse.statusCode == 200,
+            apiKeyValid: keyValid,
             totalTokens: totalTokens)
 
         Self.log.debug(
             "Doubao usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")
 
         return snapshot
+    }
+
+    private static func stringHeader(_ headers: [AnyHashable: Any], _ name: String) -> String? {
+        if let value = headers[name] as? String { return value }
+        for (key, val) in headers {
+            if let keyStr = key as? String,
+               keyStr.caseInsensitiveCompare(name) == .orderedSame,
+               let valStr = val as? String
+            {
+                return valStr
+            }
+        }
+        return nil
     }
 
     private static func intHeader(_ headers: [AnyHashable: Any], _ name: String) -> Int? {
