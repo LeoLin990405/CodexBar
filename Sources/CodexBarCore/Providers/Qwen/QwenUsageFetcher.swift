@@ -10,16 +10,13 @@ public struct QwenUsageSnapshot: Sendable {
     public let updatedAt: Date
     public let apiKeyValid: Bool
     public let totalTokens: Int?
-    public let apiKey: String?
-
     public init(
         remainingRequests: Int,
         limitRequests: Int,
         resetTime: Date?,
         updatedAt: Date,
         apiKeyValid: Bool = false,
-        totalTokens: Int? = nil,
-        apiKey: String? = nil)
+        totalTokens: Int? = nil)
     {
         self.remainingRequests = remainingRequests
         self.limitRequests = limitRequests
@@ -27,18 +24,9 @@ public struct QwenUsageSnapshot: Sendable {
         self.updatedAt = updatedAt
         self.apiKeyValid = apiKeyValid
         self.totalTokens = totalTokens
-        self.apiKey = apiKey
     }
 
-    private static func maskedKey(_ key: String?) -> String? {
-        guard let key, !key.isEmpty else { return nil }
-        if key.count <= 8 { return "****" }
-        let prefix = String(key.prefix(6))
-        let suffix = String(key.suffix(4))
-        return "\(prefix)...\(suffix)"
-    }
-
-    public func toUsageSnapshot(accumulated: LocalUsageTracker.AccumulatedUsage? = nil) -> UsageSnapshot {
+    public func toUsageSnapshot() -> UsageSnapshot {
         let usedPercent: Double
         let resetDescription: String
 
@@ -60,30 +48,15 @@ public struct QwenUsageSnapshot: Sendable {
             resetsAt: self.resetTime,
             resetDescription: resetDescription)
 
-        // Secondary: accumulated monthly usage from local tracking
-        var secondary: RateWindow?
-        if let acc = accumulated, acc.monthlyRequests > 0 || acc.monthlyLimit > 0 {
-            let monthPercent: Double = acc.monthlyLimit > 0
-                ? min(100, max(0, Double(acc.monthlyRequests) / Double(acc.monthlyLimit) * 100))
-                : 0
-            secondary = RateWindow(
-                usedPercent: monthPercent,
-                windowMinutes: 43200, // 30 days
-                resetsAt: nil,
-                resetDescription: "30d: \(acc.monthlyRequests) reqs (7d: \(acc.weeklyRequests))")
-        }
-
-        let maskedKey = Self.maskedKey(self.apiKey)
-        let plan = (self.apiKey ?? "").hasPrefix("sk-sp-") ? "Coding Plan" : "API"
         let identity = ProviderIdentitySnapshot(
             providerID: .qwen,
-            accountEmail: maskedKey,
+            accountEmail: nil,
             accountOrganization: nil,
-            loginMethod: plan)
+            loginMethod: nil)
 
         return UsageSnapshot(
             primary: primary,
-            secondary: secondary,
+            secondary: nil,
             tertiary: nil,
             providerCost: nil,
             updatedAt: self.updatedAt,
@@ -123,11 +96,37 @@ public struct QwenUsageFetcher: Sendable {
         }
     }
 
+    /// Models to probe, ordered by likelihood. We try multiple models because
+    /// different key types / regions may not have access to every model.
+    private static let probeModels = [
+        "qwen3-coder-plus",
+        "qwen-turbo",
+        "qwen-plus",
+    ]
+
     public static func fetchUsage(apiKey: String) async throws -> QwenUsageSnapshot {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw QwenUsageError.missingCredentials
         }
 
+        var lastError: Error?
+        for model in self.probeModels {
+            do {
+                return try await self.probe(apiKey: apiKey, model: model)
+            } catch let error as QwenUsageError {
+                // Model not found / not entitled → try next model
+                if case let .apiError(code, _) = error, code == 404 || code == 403 {
+                    Self.log.debug("Qwen probe model \(model) unavailable (\(code)), trying next")
+                    lastError = error
+                    continue
+                }
+                throw error
+            }
+        }
+        throw lastError ?? QwenUsageError.apiError(0, "All probe models failed")
+    }
+
+    private static func probe(apiKey: String, model: String) async throws -> QwenUsageSnapshot {
         let url = self.apiURL(for: apiKey)
 
         var request = URLRequest(url: url)
@@ -138,7 +137,7 @@ public struct QwenUsageFetcher: Sendable {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
 
         let body: [String: Any] = [
-            "model": "qwen3-coder-plus",
+            "model": model,
             "max_tokens": 1,
             "messages": [
                 ["role": "user", "content": "hi"],
@@ -175,14 +174,17 @@ public struct QwenUsageFetcher: Sendable {
             totalTokens = usage["total_tokens"] as? Int
         }
 
+        // 429 means the key is valid but rate-limited; treat it as valid so the UI
+        // shows "Active" instead of "No usage data" when headers are absent.
+        let keyValid = httpResponse.statusCode == 200 || httpResponse.statusCode == 429
+
         let snapshot = QwenUsageSnapshot(
             remainingRequests: remaining ?? 0,
             limitRequests: limit ?? 0,
             resetTime: resetTime,
             updatedAt: Date(),
-            apiKeyValid: httpResponse.statusCode == 200,
-            totalTokens: totalTokens,
-            apiKey: apiKey)
+            apiKeyValid: keyValid,
+            totalTokens: totalTokens)
 
         Self.log.debug(
             "Qwen usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")
