@@ -93,8 +93,9 @@ struct AigoCodeWebDashboardFetchStrategy: ProviderFetchStrategy {
     }
 
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        let fetcher = AigoCodeDashboardFetcher()
-        let snapshot = try await fetcher.fetchDashboard(timeout: context.webTimeout)
+        let snapshot = try await MainActor.run {
+            AigoCodeDashboardFetcher()
+        }.fetchDashboard(timeout: context.webTimeout)
         return self.makeResult(
             usage: snapshot.toUsageSnapshot(),
             sourceLabel: "webDashboard")
