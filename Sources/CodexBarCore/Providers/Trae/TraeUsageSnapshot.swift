@@ -1,10 +1,10 @@
 import Foundation
 
 public struct TraeUsageSnapshot: Sendable {
-    public let userInfo: TraeUserInfoResponse
+    let userInfo: TraeUserInfoResponse
     public let updatedAt: Date
 
-    public init(userInfo: TraeUserInfoResponse, updatedAt: Date) {
+    init(userInfo: TraeUserInfoResponse, updatedAt: Date) {
         self.userInfo = userInfo
         self.updatedAt = updatedAt
     }
