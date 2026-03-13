@@ -35,6 +35,7 @@ public struct AigoCodeDashboardFetcher {
 
     public func fetchDashboard(
         websiteDataStore: WKWebsiteDataStore = .default(),
+        supabaseTokenJSON: String? = nil,
         timeout: TimeInterval = 45) async throws -> AigoCodeDashboardSnapshot
     {
         let deadline = Date().addingTimeInterval(max(1, timeout))
@@ -49,6 +50,21 @@ public struct AigoCodeDashboardFetcher {
         defer {
             webView.stopLoading()
             webView.loadHTMLString("", baseURL: nil)
+        }
+
+        // If we have a Supabase token from Chrome, inject it into localStorage first.
+        // We load a blank page on the AigoCode origin, set the token, then navigate.
+        if let supabaseTokenJSON {
+            Self.log.debug("Injecting Supabase session into localStorage")
+            _ = webView.load(URLRequest(url: URL(string: "https://www.aigocode.com/favicon.ico")!))
+            try? await Task.sleep(for: .milliseconds(2000))
+
+            let escaped = supabaseTokenJSON
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "'", with: "\\'")
+            let injectJS = "localStorage.setItem('\(AigoCodeLocalStorageImporter.supabaseTokenKey)', '\(escaped)'); 'ok';"
+            let result = try? await webView.evaluateJavaScript(injectJS)
+            Self.log.debug("localStorage injection result: \(String(describing: result))")
         }
 
         _ = webView.load(URLRequest(url: Self.dashboardURL))

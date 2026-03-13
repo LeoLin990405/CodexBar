@@ -1,123 +1,215 @@
 #if os(macOS)
 import Foundation
 import SweetCookieKit
-import WebKit
 
-/// Imports AigoCode session cookies from browsers (Chrome, Safari, etc.)
-/// and injects them into a non-persistent WKWebsiteDataStore for dashboard scraping.
-public enum AigoCodeCookieImporter {
+/// Imports the AigoCode Supabase session from Chrome's localStorage (LevelDB).
+///
+/// AigoCode uses Supabase Auth which stores JWT tokens in localStorage under the key
+/// `sb-myptlcacxbuuxldgouqt-auth-token`, **not** in cookies. We read Chrome's LevelDB
+/// files to extract the session JSON so it can be injected into a WKWebView.
+public enum AigoCodeLocalStorageImporter {
     private static let log = CodexBarLog.logger(LogCategories.aigocodeWeb)
-    private static let cookieClient = BrowserCookieClient()
-    private static let cookieDomains = ["aigocode.com", "www.aigocode.com"]
-    private static let cookieImportOrder: BrowserCookieImportOrder =
-        ProviderDefaults.metadata[.aigocode]?.browserCookieOrder ?? Browser.defaultImportOrder
 
-    /// Attempts to extract AigoCode session cookies from installed browsers
-    /// and returns a configured WKWebsiteDataStore ready for dashboard scraping.
-    @MainActor
-    public static func importCookiesIntoDataStore(
-        browserDetection: BrowserDetection = BrowserDetection(),
-        logger: ((String) -> Void)? = nil) throws -> WKWebsiteDataStore
-    {
-        let cookies = try self.importCookies(browserDetection: browserDetection, logger: logger)
-        let store = WKWebsiteDataStore.nonPersistent()
+    /// The Supabase localStorage key for AigoCode's project.
+    static let supabaseTokenKey = "sb-myptlcacxbuuxldgouqt-auth-token"
 
-        // Inject cookies synchronously via the cookie store
-        let cookieStore = store.httpCookieStore
-        for cookie in cookies {
-            cookieStore.setCookie(cookie, completionHandler: nil)
-        }
+    /// The origin where the token is stored.
+    static let origin = "https://www.aigocode.com"
 
-        return store
+    /// Extracted Supabase session from browser localStorage.
+    public struct SessionInfo: Sendable {
+        /// The raw JSON string stored under the Supabase token key.
+        public let tokenJSON: String
+        /// Which browser/profile the token was found in.
+        public let sourceLabel: String
     }
 
-    /// Extracts AigoCode-related HTTPCookies from the first browser that has them.
-    public static func importCookies(
+    /// Attempts to extract the Supabase session from Chrome's localStorage.
+    public static func importSession(
         browserDetection: BrowserDetection = BrowserDetection(),
-        logger: ((String) -> Void)? = nil) throws -> [HTTPCookie]
+        logger: ((String) -> Void)? = nil) -> SessionInfo?
     {
-        let candidates = self.cookieImportOrder.cookieImportCandidates(using: browserDetection)
+        let log: (String) -> Void = { msg in
+            logger?("[aigocode-storage] \(msg)")
+            self.log.debug(msg)
+        }
 
-        for browserSource in candidates {
-            do {
-                let cookies = try self.importCookies(from: browserSource, logger: logger)
-                if !cookies.isEmpty {
-                    return cookies
-                }
-            } catch {
-                BrowserCookieAccessGate.recordIfNeeded(error)
-                self.emit(
-                    "\(browserSource.displayName) cookie import failed: \(error.localizedDescription)",
-                    logger: logger)
+        let candidates = self.chromeLocalStorageCandidates(browserDetection: browserDetection)
+        log("Found \(candidates.count) Chrome profile candidate(s)")
+
+        for candidate in candidates {
+            if let tokenJSON = self.readSupabaseToken(from: candidate.levelDBURL) {
+                log("Found Supabase session in \(candidate.label)")
+                return SessionInfo(tokenJSON: tokenJSON, sourceLabel: candidate.label)
             }
         }
 
-        throw AigoCodeCookieImportError.noCookies
+        log("No Supabase session found in any browser profile")
+        return nil
     }
 
-    /// Checks whether any browser has AigoCode session cookies.
+    /// Quick check for session availability.
     public static func hasSession(
-        browserDetection: BrowserDetection = BrowserDetection(),
-        logger: ((String) -> Void)? = nil) -> Bool
+        browserDetection: BrowserDetection = BrowserDetection()) -> Bool
     {
-        do {
-            let cookies = try self.importCookies(browserDetection: browserDetection, logger: logger)
-            return !cookies.isEmpty
-        } catch {
-            return false
-        }
+        self.importSession(browserDetection: browserDetection) != nil
     }
 
-    // MARK: - Private
+    // MARK: - Chrome LevelDB Discovery
 
-    private static func importCookies(
-        from browserSource: Browser,
-        logger: ((String) -> Void)? = nil) throws -> [HTTPCookie]
+    private struct LocalStorageCandidate {
+        let label: String
+        let levelDBURL: URL
+    }
+
+    private static func chromeLocalStorageCandidates(
+        browserDetection: BrowserDetection) -> [LocalStorageCandidate]
     {
-        let query = BrowserCookieQuery(domains: self.cookieDomains)
-        let log: (String) -> Void = { msg in self.emit(msg, logger: logger) }
-        let sources = try Self.cookieClient.records(
-            matching: query,
-            in: browserSource,
-            logger: log)
+        let browsers: [Browser] = [
+            .chrome,
+            .chromeBeta,
+            .chromeCanary,
+            .arc,
+            .arcBeta,
+            .arcCanary,
+            .chromium,
+        ]
 
-        var allCookies: [HTTPCookie] = []
-        for source in sources {
-            let httpCookies = BrowserCookieClient.makeHTTPCookies(source.records, origin: query.origin)
-            guard !httpCookies.isEmpty else { continue }
+        let installedBrowsers = browsers.browsersWithProfileData(using: browserDetection)
+        let roots = ChromiumProfileLocator
+            .roots(for: installedBrowsers, homeDirectories: BrowserCookieClient.defaultHomeDirectories())
+            .map { (url: $0.url, labelPrefix: $0.labelPrefix) }
 
-            // Check for Supabase auth cookies (sb-*-auth-token*)
-            let hasAuth = httpCookies.contains { cookie in
-                cookie.name.hasPrefix("sb-") && cookie.name.contains("auth-token")
-            }
-
-            if hasAuth {
-                log("Found Supabase auth cookies in \(source.label) (\(httpCookies.count) cookies)")
-                allCookies.append(contentsOf: httpCookies)
-            }
+        var candidates: [LocalStorageCandidate] = []
+        for root in roots {
+            candidates.append(contentsOf: self.profileCandidates(root: root.url, labelPrefix: root.labelPrefix))
         }
-
-        if allCookies.isEmpty {
-            log("No Supabase auth cookies found in \(browserSource.displayName)")
-        }
-
-        return allCookies
+        return candidates
     }
 
-    private static func emit(_ message: String, logger: ((String) -> Void)?) {
-        logger?("[aigocode-cookie] \(message)")
-        self.log.debug(message)
-    }
-}
+    private static func profileCandidates(root: URL, labelPrefix: String) -> [LocalStorageCandidate] {
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: root,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles])
+        else { return [] }
 
-enum AigoCodeCookieImportError: LocalizedError {
-    case noCookies
-
-    var errorDescription: String? {
-        switch self {
-        case .noCookies:
-            "No AigoCode session cookies found in browsers. Log in to aigocode.com in Chrome or Safari."
+        let profileDirs = entries.filter { url in
+            guard let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory), isDir else {
+                return false
+            }
+            let name = url.lastPathComponent
+            return name == "Default" || name.hasPrefix("Profile ") || name.hasPrefix("user-")
         }
+        .sorted { $0.lastPathComponent < $1.lastPathComponent }
+
+        return profileDirs.compactMap { dir in
+            let levelDBURL = dir.appendingPathComponent("Local Storage").appendingPathComponent("leveldb")
+            guard FileManager.default.fileExists(atPath: levelDBURL.path) else { return nil }
+            let label = "\(labelPrefix) \(dir.lastPathComponent)"
+            return LocalStorageCandidate(label: label, levelDBURL: levelDBURL)
+        }
+    }
+
+    // MARK: - Token Extraction
+
+    private static func readSupabaseToken(from levelDBURL: URL) -> String? {
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: levelDBURL,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: [.skipsHiddenFiles])
+        else { return nil }
+
+        // Read newest files first (more likely to have current token)
+        let files = entries.filter { url in
+            let ext = url.pathExtension.lowercased()
+            return ext == "ldb" || ext == "log"
+        }
+        .sorted { lhs, rhs in
+            let left = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+            let right = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+            return (left ?? .distantPast) > (right ?? .distantPast)
+        }
+
+        for file in files {
+            guard let data = try? Data(contentsOf: file, options: [.mappedIfSafe]) else { continue }
+            if let token = self.extractSupabaseToken(from: data) {
+                return token
+            }
+        }
+        return nil
+    }
+
+    private static func extractSupabaseToken(from data: Data) -> String? {
+        // The LevelDB files contain binary data with embedded strings.
+        // We look for the Supabase token key, then extract the JSON value that follows it.
+        guard let contents = String(data: data, encoding: .utf8) ??
+            String(data: data, encoding: .isoLatin1)
+        else { return nil }
+
+        guard contents.contains(self.supabaseTokenKey) else { return nil }
+
+        // Find the JSON object that follows the key.
+        // Pattern: the key appears, followed by a JSON object starting with {"access_t
+        guard let keyRange = contents.range(of: self.supabaseTokenKey) else { return nil }
+
+        // Search for the JSON start after the key
+        let afterKey = contents[keyRange.upperBound...]
+        guard let jsonStart = afterKey.range(of: "{\"access_t") ??
+              afterKey.range(of: "{\"expires") ??
+              afterKey.range(of: "{\"provider_") else { return nil }
+
+        // Extract the JSON by finding matching braces
+        let jsonSubstring = afterKey[jsonStart.lowerBound...]
+        if let json = self.extractJSONObject(from: String(jsonSubstring)) {
+            return json
+        }
+
+        return nil
+    }
+
+    /// Extract a balanced JSON object from the start of a string.
+    private static func extractJSONObject(from string: String) -> String? {
+        guard string.hasPrefix("{") else { return nil }
+        var depth = 0
+        var inString = false
+        var escaped = false
+        var endIndex = string.startIndex
+
+        for (i, char) in string.enumerated() {
+            let idx = string.index(string.startIndex, offsetBy: i)
+            if escaped {
+                escaped = false
+                continue
+            }
+            if char == "\\" && inString {
+                escaped = true
+                continue
+            }
+            if char == "\"" {
+                inString = !inString
+                continue
+            }
+            if inString { continue }
+            if char == "{" { depth += 1 }
+            if char == "}" {
+                depth -= 1
+                if depth == 0 {
+                    endIndex = string.index(after: idx)
+                    let result = String(string[string.startIndex..<endIndex])
+                    // Validate it's actually JSON
+                    if let data = result.data(using: .utf8),
+                       (try? JSONSerialization.jsonObject(with: data)) != nil
+                    {
+                        return result
+                    }
+                    return nil
+                }
+            }
+            // Bail if we're reading too much (malformed data)
+            if i > 50000 { return nil }
+        }
+        return nil
     }
 }
 #endif
