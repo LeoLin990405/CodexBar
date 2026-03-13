@@ -26,7 +26,9 @@ public struct DoubaoUsageSnapshot: Sendable {
         self.totalTokens = totalTokens
     }
 
-    public func toUsageSnapshot() -> UsageSnapshot {
+    public func toUsageSnapshot(
+        accumulated: LocalUsageTracker.AccumulatedUsage? = nil) -> UsageSnapshot
+    {
         let usedPercent: Double
         let resetDescription: String
 
@@ -48,6 +50,16 @@ public struct DoubaoUsageSnapshot: Sendable {
             resetsAt: self.resetTime,
             resetDescription: resetDescription)
 
+        var secondary: RateWindow?
+        if let acc = accumulated, acc.weeklyLimit > 0 {
+            let weekPercent = min(100, max(0, Double(acc.weeklyRequests) / Double(acc.weeklyLimit) * 100))
+            secondary = RateWindow(
+                usedPercent: weekPercent,
+                windowMinutes: 7 * 24 * 60,
+                resetsAt: nil,
+                resetDescription: "\(acc.weeklyRequests)/\(acc.weeklyLimit) weekly")
+        }
+
         let identity = ProviderIdentitySnapshot(
             providerID: .doubao,
             accountEmail: nil,
@@ -56,7 +68,7 @@ public struct DoubaoUsageSnapshot: Sendable {
 
         return UsageSnapshot(
             primary: primary,
-            secondary: nil,
+            secondary: secondary,
             tertiary: nil,
             providerCost: nil,
             updatedAt: self.updatedAt,
