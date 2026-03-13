@@ -57,7 +57,8 @@ struct KimiWebFetchStrategy: ProviderFetchStrategy {
 
         #if os(macOS)
         if context.settings?.kimi?.cookieSource != .off {
-            return KimiCookieImporter.hasSession()
+            if KimiCookieImporter.hasSession() { return true }
+            if KimiLocalStorageImporter.hasSession() { return true }
         }
         #endif
 
@@ -90,6 +91,7 @@ struct KimiWebFetchStrategy: ProviderFetchStrategy {
         // Try browser cookie import when auto mode is enabled
         #if os(macOS)
         if context.settings?.kimi?.cookieSource != .off {
+            // Try cookies first (legacy kimi-auth cookie)
             do {
                 let session = try KimiCookieImporter.importSession()
                 if let token = session.authToken {
@@ -97,6 +99,11 @@ struct KimiWebFetchStrategy: ProviderFetchStrategy {
                 }
             } catch {
                 // No browser cookies found
+            }
+
+            // Try localStorage (current: access_token JWT)
+            if let lsSession = KimiLocalStorageImporter.importSession() {
+                return lsSession.accessToken
             }
         }
         #endif
