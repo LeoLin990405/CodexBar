@@ -12,6 +12,7 @@ public enum LogCategories {
     public static let codexRPC = "codex-rpc"
     public static let configMigration = "config-migration"
     public static let aigocodeUsage = "aigocode-usage"
+    public static let aigocodeWeb = "aigocode-web"
     public static let doubaoUsage = "doubao-usage"
     public static let configStore = "config-store"
     public static let cookieCache = "cookie-cache"
