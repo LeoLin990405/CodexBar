@@ -21,7 +21,7 @@ public enum AigoCodeProviderDescriptor {
                 defaultEnabled: false,
                 isPrimaryProvider: false,
                 usesAccountFallback: false,
-                browserCookieOrder: ProviderBrowserCookieDefaults.defaultImportOrder,
+                browserCookieOrder: nil,
                 dashboardURL: "https://www.aigocode.com/dashboard/console",
                 statusPageURL: nil),
             branding: ProviderBranding(
@@ -79,8 +79,6 @@ struct AigoCodeAPIFetchStrategy: ProviderFetchStrategy {
 }
 
 #if os(macOS)
-import WebKit
-
 /// Fetches AigoCode usage by rendering the dashboard in an offscreen WKWebView.
 /// This works without an API key — the user just needs to be logged in via the WebKit session.
 struct AigoCodeWebDashboardFetchStrategy: ProviderFetchStrategy {
@@ -95,22 +93,20 @@ struct AigoCodeWebDashboardFetchStrategy: ProviderFetchStrategy {
     }
 
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        // Try to import cookies from Chrome/Safari into a non-persistent data store.
-        // This allows scraping even when the user isn't logged in via Safari/WebKit.
-        let dataStore: WKWebsiteDataStore
-        do {
-            dataStore = try await MainActor.run {
-                try AigoCodeCookieImporter.importCookiesIntoDataStore()
-            }
-            Self.log.debug("Imported browser cookies for AigoCode dashboard")
-        } catch {
-            Self.log.debug("No browser cookies available, falling back to default store: \(error.localizedDescription)")
-            dataStore = await MainActor.run { WKWebsiteDataStore.default() }
+        // Try to import the Supabase session from Chrome's localStorage.
+        // AigoCode uses Supabase Auth which stores JWT tokens in localStorage, not cookies.
+        let session = AigoCodeLocalStorageImporter.importSession()
+        if let session {
+            Self.log.debug("Found Supabase session in \(session.sourceLabel)")
+        } else {
+            Self.log.debug("No Supabase session found in browser localStorage")
         }
 
         let snapshot = try await MainActor.run {
             AigoCodeDashboardFetcher()
-        }.fetchDashboard(websiteDataStore: dataStore, timeout: context.webTimeout)
+        }.fetchDashboard(
+            supabaseTokenJSON: session?.tokenJSON,
+            timeout: context.webTimeout)
         return self.makeResult(
             usage: snapshot.toUsageSnapshot(),
             sourceLabel: "webDashboard")
