@@ -30,6 +30,9 @@ jobs:
       - name: Build release
         run: swift build -c release 2>&1
 
+      - name: Run tests
+        run: swift test --no-parallel
+
       - name: Fix rpath and package
         run: |
           set -euo pipefail
