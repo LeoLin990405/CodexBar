@@ -6,11 +6,101 @@ import FoundationNetworking
 
 public struct TraeUsageFetcher: Sendable {
     private static let log = CodexBarLog.logger(LogCategories.traeWeb)
+    private static let checkLoginURL =
+        URL(string: "https://ug-normal.us.trae.ai/cloudide/api/v3/trae/CheckLogin")!
     private static let userInfoURL =
         URL(string: "https://ug-normal.us.trae.ai/cloudide/api/v3/trae/GetUserInfo")!
 
     public static func fetchUsage(session: TraeSessionInfo, now: Date = Date()) async throws -> TraeUsageSnapshot {
-        var request = URLRequest(url: self.userInfoURL)
+        // Step 1: Check login status and get region info
+        let loginResult = try await self.checkLogin(session: session)
+        guard loginResult.isLogin else {
+            throw TraeAPIError.invalidSession
+        }
+
+        Self.log.debug("Trae login valid: userID=\(loginResult.userID ?? "?") region=\(loginResult.region ?? "?")")
+
+        // Step 2: Fetch user info from the correct regional host
+        let userInfoHost = loginResult.host ?? "ug-normal.us.trae.ai"
+        let userInfoURL = URL(string: "https://\(userInfoHost)/cloudide/api/v3/trae/GetUserInfo")
+            ?? self.userInfoURL
+
+        let userInfo = try await self.getUserInfo(url: userInfoURL, session: session)
+        return TraeUsageSnapshot(checkLogin: loginResult, userInfo: userInfo, updatedAt: now)
+    }
+
+    // MARK: - CheckLogin
+
+    private static func checkLogin(session: TraeSessionInfo) async throws -> TraeCheckLoginResult {
+        var request = self.makeRequest(url: self.checkLoginURL, session: session)
+        request.httpBody = "{}".data(using: .utf8)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TraeAPIError.networkError("Invalid response")
+        }
+
+        let responseBody = String(data: data, encoding: .utf8) ?? "<binary>"
+        Self.log.debug("Trae CheckLogin response (\(httpResponse.statusCode)): \(responseBody)")
+
+        guard httpResponse.statusCode == 200 else {
+            if httpResponse.statusCode == 401 {
+                throw TraeAPIError.invalidSession
+            }
+            throw TraeAPIError.apiError("CheckLogin HTTP \(httpResponse.statusCode)")
+        }
+
+        let volcResponse = try JSONDecoder().decode(TraeVolcResponse<TraeCheckLoginResult>.self, from: data)
+        if let error = volcResponse.responseMetadata.error {
+            throw TraeAPIError.apiError("CheckLogin: \(error.message ?? error.code)")
+        }
+        guard let result = volcResponse.result else {
+            throw TraeAPIError.parseFailed("CheckLogin returned no Result")
+        }
+        return result
+    }
+
+    // MARK: - GetUserInfo
+
+    private static func getUserInfo(url: URL, session: TraeSessionInfo) async throws -> TraeUserInfoResult {
+        var request = self.makeRequest(url: url, session: session)
+        request.httpBody = "{}".data(using: .utf8)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TraeAPIError.networkError("Invalid response")
+        }
+
+        let responseBody = String(data: data, encoding: .utf8) ?? "<binary>"
+        Self.log.debug("Trae GetUserInfo response (\(httpResponse.statusCode)): \(responseBody)")
+
+        guard httpResponse.statusCode == 200 else {
+            if httpResponse.statusCode == 401 {
+                throw TraeAPIError.invalidSession
+            }
+            throw TraeAPIError.apiError("GetUserInfo HTTP \(httpResponse.statusCode)")
+        }
+
+        // Try structured decode; if it fails, try to extract minimal info from raw JSON
+        do {
+            let volcResponse = try JSONDecoder().decode(TraeVolcResponse<TraeUserInfoResult>.self, from: data)
+            if let error = volcResponse.responseMetadata.error {
+                throw TraeAPIError.apiError("GetUserInfo: \(error.message ?? error.code)")
+            }
+            return volcResponse.result ?? TraeUserInfoResult()
+        } catch let error as TraeAPIError {
+            throw error
+        } catch {
+            Self.log.warning("GetUserInfo decode failed: \(error). Response: \(responseBody.prefix(500))")
+            // Return empty result — we still have CheckLogin data
+            return TraeUserInfoResult()
+        }
+    }
+
+    // MARK: - Request Builder
+
+    private static func makeRequest(url: URL, session: TraeSessionInfo) -> URLRequest {
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -21,70 +111,13 @@ public struct TraeUsageFetcher: Sendable {
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
 
-        // Add CSRF token if available
         if let csrfToken = session.csrfToken {
             request.setValue(csrfToken, forHTTPHeaderField: "x-csrf-token")
         }
         if let cloudideSession = session.cloudideSession {
             request.setValue(cloudideSession, forHTTPHeaderField: "X-Cloudide-Session")
         }
-
-        request.httpBody = "{}".data(using: .utf8)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw TraeAPIError.networkError("Invalid response")
-        }
-
-        let responseBody = String(data: data, encoding: .utf8) ?? "<binary data>"
-        Self.log.debug("Trae GetUserInfo response (\(httpResponse.statusCode)): \(responseBody)")
-
-        guard httpResponse.statusCode == 200 else {
-            if httpResponse.statusCode == 401 {
-                throw TraeAPIError.invalidSession
-            }
-            throw TraeAPIError.apiError("HTTP \(httpResponse.statusCode): \(responseBody)")
-        }
-
-        // Parse the response — try structured decode first, fall back to raw JSON
-        do {
-            let userInfoResponse = try JSONDecoder().decode(TraeUserInfoResponse.self, from: data)
-
-            guard userInfoResponse.code == 0 else {
-                throw TraeAPIError.apiError("API error code \(userInfoResponse.code): \(userInfoResponse.msg ?? "")")
-            }
-
-            return TraeUsageSnapshot(userInfo: userInfoResponse, updatedAt: now)
-        } catch let decodingError as DecodingError {
-            // If structured decode fails, try to extract what we can from raw JSON
-            Self.log.warning("Structured decode failed: \(decodingError). Trying raw JSON parse.")
-            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                throw TraeAPIError.parseFailed("Response is not valid JSON: \(responseBody.prefix(500))")
-            }
-
-            // Build a minimal response from whatever fields exist
-            let code = json["code"] as? Int ?? json["status_code"] as? Int ?? 0
-            let msg = json["msg"] as? String ?? json["message"] as? String
-            let dataObj = json["data"] as? [String: Any]
-
-            let response = TraeUserInfoResponse(
-                code: code,
-                msg: msg,
-                data: dataObj != nil ? TraeUserInfoData(
-                    userID: dataObj?["user_id"] as? String ?? dataObj?["userId"] as? String,
-                    name: dataObj?["name"] as? String ?? dataObj?["userName"] as? String,
-                    email: dataObj?["email"] as? String,
-                    avatar: dataObj?["avatar"] as? String,
-                    plan: nil,
-                    usage: nil,
-                    quota: nil) : nil)
-
-            guard code == 0 else {
-                throw TraeAPIError.apiError("API error code \(code): \(msg ?? responseBody.prefix(200).description)")
-            }
-
-            return TraeUsageSnapshot(userInfo: response, updatedAt: now)
-        }
+        return request
     }
 }
 
@@ -113,89 +146,168 @@ public struct TraeSessionInfo: Sendable {
     #endif
 }
 
-// MARK: - API Response Models
+// MARK: - ByteDance Volc API Response Format
 
-struct TraeUserInfoResponse: Codable, Sendable {
-    let code: Int
-    let msg: String?
-    let data: TraeUserInfoData?
+/// Generic ByteDance Volc Engine API response wrapper.
+struct TraeVolcResponse<T: Codable & Sendable>: Codable, Sendable {
+    let responseMetadata: TraeVolcResponseMetadata
+    let result: T?
 
-    init(code: Int, msg: String?, data: TraeUserInfoData?) {
-        self.code = code
-        self.msg = msg
-        self.data = data
+    enum CodingKeys: String, CodingKey {
+        case responseMetadata = "ResponseMetadata"
+        case result = "Result"
     }
 }
 
-struct TraeUserInfoData: Codable, Sendable {
-    let userID: String?
-    let name: String?
-    let email: String?
-    let avatar: String?
-    let plan: TraePlanInfo?
-    let usage: TraeUsageInfo?
-    let quota: TraeQuotaInfo?
+struct TraeVolcResponseMetadata: Codable, Sendable {
+    let requestId: String?
+    let action: String?
+    let version: String?
+    let service: String?
+    let region: String?
+    let error: TraeVolcError?
 
-    init(userID: String?, name: String?, email: String?, avatar: String?,
-         plan: TraePlanInfo?, usage: TraeUsageInfo?, quota: TraeQuotaInfo?)
+    enum CodingKeys: String, CodingKey {
+        case requestId = "RequestId"
+        case action = "Action"
+        case version = "Version"
+        case service = "Service"
+        case region = "Region"
+        case error = "Error"
+    }
+}
+
+struct TraeVolcError: Codable, Sendable {
+    let code: String
+    let standardCode: String?
+    let message: String?
+
+    enum CodingKeys: String, CodingKey {
+        case code = "Code"
+        case standardCode = "StandardCode"
+        case message = "Message"
+    }
+}
+
+// MARK: - CheckLogin Result
+
+struct TraeCheckLoginResult: Codable, Sendable {
+    let isLogin: Bool
+    let expiredAt: Int?
+    let region: String?
+    let host: String?
+    let userID: String?
+    let aiRegion: String?
+    let aiHost: String?
+    let aiPayHost: String?
+    let nickNameEditStatus: String?
+    let passwordChanged: Bool?
+
+    init(isLogin: Bool = false, expiredAt: Int? = nil, region: String? = nil,
+         host: String? = nil, userID: String? = nil, aiRegion: String? = nil,
+         aiHost: String? = nil, aiPayHost: String? = nil,
+         nickNameEditStatus: String? = nil, passwordChanged: Bool? = nil)
     {
+        self.isLogin = isLogin
+        self.expiredAt = expiredAt
+        self.region = region
+        self.host = host
         self.userID = userID
-        self.name = name
+        self.aiRegion = aiRegion
+        self.aiHost = aiHost
+        self.aiPayHost = aiPayHost
+        self.nickNameEditStatus = nickNameEditStatus
+        self.passwordChanged = passwordChanged
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case isLogin = "IsLogin"
+        case expiredAt = "ExpiredAt"
+        case region = "Region"
+        case host = "Host"
+        case userID = "UserID"
+        case aiRegion = "AIRegion"
+        case aiHost = "AIHost"
+        case aiPayHost = "AIPayHost"
+        case nickNameEditStatus = "NickNameEditStatus"
+        case passwordChanged = "PasswordChanged"
+    }
+}
+
+// MARK: - GetUserInfo Result
+
+/// The actual fields in GetUserInfo are unknown until we see a successful response.
+/// This struct is designed to be resilient — all fields optional, decoded flexibly.
+struct TraeUserInfoResult: Codable, Sendable {
+    let userName: String?
+    let email: String?
+    let avatarURL: String?
+    let plan: String?
+    let planExpireTime: String?
+    let usage: TraeUsageDetail?
+    let quota: TraeQuotaDetail?
+
+    init(userName: String? = nil, email: String? = nil, avatarURL: String? = nil,
+         plan: String? = nil, planExpireTime: String? = nil,
+         usage: TraeUsageDetail? = nil, quota: TraeQuotaDetail? = nil)
+    {
+        self.userName = userName
         self.email = email
-        self.avatar = avatar
+        self.avatarURL = avatarURL
         self.plan = plan
+        self.planExpireTime = planExpireTime
         self.usage = usage
         self.quota = quota
     }
 
     enum CodingKeys: String, CodingKey {
-        case userID = "user_id"
-        case name
-        case email
-        case avatar
-        case plan
-        case usage
-        case quota
+        case userName = "UserName"
+        case email = "Email"
+        case avatarURL = "AvatarUrl"
+        case plan = "Plan"
+        case planExpireTime = "PlanExpireTime"
+        case usage = "Usage"
+        case quota = "Quota"
+    }
+
+    /// Flexible decoder: ignores unknown keys and missing keys.
+    init(from decoder: Decoder) throws {
+        let container = try? decoder.container(keyedBy: CodingKeys.self)
+        self.userName = try? container?.decodeIfPresent(String.self, forKey: .userName)
+        self.email = try? container?.decodeIfPresent(String.self, forKey: .email)
+        self.avatarURL = try? container?.decodeIfPresent(String.self, forKey: .avatarURL)
+        self.plan = try? container?.decodeIfPresent(String.self, forKey: .plan)
+        self.planExpireTime = try? container?.decodeIfPresent(String.self, forKey: .planExpireTime)
+        self.usage = try? container?.decodeIfPresent(TraeUsageDetail.self, forKey: .usage)
+        self.quota = try? container?.decodeIfPresent(TraeQuotaDetail.self, forKey: .quota)
     }
 }
 
-struct TraePlanInfo: Codable, Sendable {
-    let type: String?
-    let name: String?
-    let expireTime: String?
-
-    enum CodingKeys: String, CodingKey {
-        case type
-        case name
-        case expireTime = "expire_time"
-    }
-}
-
-struct TraeUsageInfo: Codable, Sendable {
+struct TraeUsageDetail: Codable, Sendable {
     let used: Int?
     let total: Int?
     let remaining: Int?
     let resetTime: String?
 
     enum CodingKeys: String, CodingKey {
-        case used
-        case total
-        case remaining
-        case resetTime = "reset_time"
+        case used = "Used"
+        case total = "Total"
+        case remaining = "Remaining"
+        case resetTime = "ResetTime"
     }
 }
 
-struct TraeQuotaInfo: Codable, Sendable {
+struct TraeQuotaDetail: Codable, Sendable {
     let used: Int?
     let total: Int?
     let remaining: Int?
     let resetTime: String?
 
     enum CodingKeys: String, CodingKey {
-        case used
-        case total
-        case remaining
-        case resetTime = "reset_time"
+        case used = "Used"
+        case total = "Total"
+        case remaining = "Remaining"
+        case resetTime = "ResetTime"
     }
 }
 

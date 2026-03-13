@@ -1,10 +1,12 @@
 import Foundation
 
 public struct TraeUsageSnapshot: Sendable {
-    let userInfo: TraeUserInfoResponse
+    let checkLogin: TraeCheckLoginResult
+    let userInfo: TraeUserInfoResult
     public let updatedAt: Date
 
-    init(userInfo: TraeUserInfoResponse, updatedAt: Date) {
+    init(checkLogin: TraeCheckLoginResult, userInfo: TraeUserInfoResult, updatedAt: Date) {
+        self.checkLogin = checkLogin
         self.userInfo = userInfo
         self.updatedAt = updatedAt
     }
@@ -22,11 +24,9 @@ public struct TraeUsageSnapshot: Sendable {
 
 extension TraeUsageSnapshot {
     public func toUsageSnapshot() -> UsageSnapshot {
-        let data = self.userInfo.data
-
-        // Build primary usage window from quota or usage info
+        // Build primary usage window from usage or quota info
         let primary: RateWindow
-        if let usage = data?.usage {
+        if let usage = self.userInfo.usage {
             let used = usage.used ?? 0
             let total = usage.total ?? 0
             let usedPercent = total > 0 ? Double(used) / Double(total) * 100 : 0
@@ -35,7 +35,7 @@ extension TraeUsageSnapshot {
                 windowMinutes: nil,
                 resetsAt: Self.parseDate(usage.resetTime),
                 resetDescription: "\(used)/\(total) requests")
-        } else if let quota = data?.quota {
+        } else if let quota = self.userInfo.quota {
             let used = quota.used ?? 0
             let total = quota.total ?? 0
             let usedPercent = total > 0 ? Double(used) / Double(total) * 100 : 0
@@ -45,18 +45,19 @@ extension TraeUsageSnapshot {
                 resetsAt: Self.parseDate(quota.resetTime),
                 resetDescription: "\(used)/\(total) quota")
         } else {
-            // No usage data available — report as active
+            // No usage data from GetUserInfo — report as active with login info
             primary = RateWindow(
                 usedPercent: 0,
                 windowMinutes: nil,
                 resetsAt: nil,
-                resetDescription: "Active")
+                resetDescription: "Active — logged in")
         }
 
-        let planName = data?.plan?.name ?? data?.plan?.type
+        let planName = self.userInfo.plan
+        let accountName = self.userInfo.email ?? self.userInfo.userName ?? self.checkLogin.userID
         let identity = ProviderIdentitySnapshot(
             providerID: .trae,
-            accountEmail: data?.email ?? data?.name,
+            accountEmail: accountName,
             accountOrganization: nil,
             loginMethod: planName ?? "Web")
 
