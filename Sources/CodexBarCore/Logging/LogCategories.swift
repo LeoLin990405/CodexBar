@@ -65,6 +65,8 @@ public enum LogCategories {
     public static let zaiSettings = "zai-settings"
     public static let zaiTokenStore = "zai-token-store"
     public static let zaiUsage = "zai-usage"
+    public static let traeCookie = "trae-cookie"
     public static let traeUsage = "trae-usage"
+    public static let traeWeb = "trae-web"
     public static let zenmuxUsage = "zenmux-usage"
 }
