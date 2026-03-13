@@ -18,8 +18,8 @@ struct AigoCodeProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "aigocode-api-token",
                 title: "API key",
-                subtitle: "Stored in ~/.codexbar/config.json. Get your API key from the AigoCode "
-                    + "dashboard.",
+                subtitle: "Optional when using web dashboard mode. "
+                    + "Stored in ~/.codexbar/config.json.",
                 kind: .secure,
                 placeholder: "sk-...",
                 binding: context.stringBinding(\.aigocodeAPIToken),
@@ -30,7 +30,7 @@ struct AigoCodeProviderImplementation: ProviderImplementation {
                         style: .link,
                         isVisible: nil,
                         perform: {
-                            if let url = URL(string: "https://www.aigocode.com/") {
+                            if let url = URL(string: "https://www.aigocode.com/dashboard/console") {
                                 NSWorkspace.shared.open(url)
                             }
                         }),
