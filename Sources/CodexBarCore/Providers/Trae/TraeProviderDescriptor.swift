@@ -10,19 +10,19 @@ public enum TraeProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .trae,
                 displayName: "Trae",
-                sessionLabel: "Status",
-                weeklyLabel: "Usage",
+                sessionLabel: "Usage",
+                weeklyLabel: "Quota",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Trae status",
+                toggleTitle: "Show Trae usage",
                 cliName: "trae",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
                 usesAccountFallback: false,
                 browserCookieOrder: nil,
-                dashboardURL: "https://www.trae.ai",
+                dashboardURL: "https://www.trae.ai/account-setting#usage",
                 statusPageURL: nil),
             branding: ProviderBranding(
                 iconStyle: .trae,
@@ -32,8 +32,10 @@ public enum TraeProviderDescriptor {
                 supportsTokenCost: false,
                 noDataMessage: { "Trae cost summary is not available." }),
             fetchPlan: ProviderFetchPlan(
-                sourceModes: [.auto],
-                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [TraeLocalFetchStrategy()] })),
+                sourceModes: [.auto, .web],
+                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in
+                    [TraeWebFetchStrategy(), TraeLocalFetchStrategy()]
+                })),
             cli: ProviderCLIConfig(
                 name: "trae",
                 aliases: [],
@@ -60,3 +62,53 @@ struct TraeLocalFetchStrategy: ProviderFetchStrategy {
         false
     }
 }
+
+#if os(macOS)
+struct TraeWebFetchStrategy: ProviderFetchStrategy {
+    let id: String = "trae.web"
+    let kind: ProviderFetchKind = .web
+    private static let log = CodexBarLog.logger(LogCategories.traeWeb)
+
+    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
+        if context.sourceMode == .web { return true }
+        if context.sourceMode == .auto {
+            return TraeCookieImporter.hasSession()
+        }
+        return false
+    }
+
+    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
+        let cookieSession = try TraeCookieImporter.importSession()
+        Self.log.debug("Found Trae session in \(cookieSession.sourceLabel)")
+
+        let session = TraeSessionInfo(from: cookieSession)
+        let snapshot = try await TraeUsageFetcher.fetchUsage(session: session)
+        return self.makeResult(
+            usage: snapshot.toUsageSnapshot(),
+            sourceLabel: "web (\(cookieSession.sourceLabel))")
+    }
+
+    func shouldFallback(on error: Error, context: ProviderFetchContext) -> Bool {
+        if context.sourceMode == .web { return false }
+        // In auto mode, fall back to local probe on cookie/API errors
+        return true
+    }
+}
+#else
+struct TraeWebFetchStrategy: ProviderFetchStrategy {
+    let id: String = "trae.web"
+    let kind: ProviderFetchKind = .web
+
+    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
+        false
+    }
+
+    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
+        throw TraeAPIError.networkError("Web strategy not available on this platform")
+    }
+
+    func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {
+        true
+    }
+}
+#endif
