@@ -155,7 +155,7 @@ public struct StepFunUsageFetcher: Sendable {
     private static let rateLimitURL =
         URL(string: "https://platform.stepfun.com/api/step.openapi.devcenter.Dashboard/QueryStepPlanRateLimit")!
 
-    public static func fetchUsage(apiKey: String, oasisToken: String? = nil) async throws -> StepFunUsageSnapshot {
+    public static func fetchUsage(apiKey: String, oasisToken: String? = nil, oasisWebid: String? = nil) async throws -> StepFunUsageSnapshot {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw StepFunUsageError.missingCredentials
         }
@@ -173,15 +173,16 @@ public struct StepFunUsageFetcher: Sendable {
         var weeklyResetTime: Date?
 
         if let token = oasisToken {
+            let webid = oasisWebid
             // Fetch plan status
-            if let planStatus = try? await self.fetchPlanStatus(oasisToken: token) {
+            if let planStatus = try? await self.fetchPlanStatus(oasisToken: token, webid: webid) {
                 planName = planStatus.name
                 planExpiredAt = planStatus.expiredAt
                 planAutoRenew = planStatus.autoRenew
             }
 
             // Fetch rate limits
-            if let rateLimit = try? await self.fetchRateLimit(oasisToken: token) {
+            if let rateLimit = try? await self.fetchRateLimit(oasisToken: token, webid: webid) {
                 fiveHourLeftRate = rateLimit.fiveHourLeftRate
                 fiveHourResetTime = rateLimit.fiveHourResetTime
                 weeklyLeftRate = rateLimit.weeklyLeftRate
@@ -251,13 +252,13 @@ public struct StepFunUsageFetcher: Sendable {
         let autoRenew: Bool
     }
 
-    private static func fetchPlanStatus(oasisToken: String) async throws -> PlanStatus {
+    private static func fetchPlanStatus(oasisToken: String, webid: String?) async throws -> PlanStatus {
         var request = URLRequest(url: self.planStatusURL)
         request.httpMethod = "POST"
         request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("1", forHTTPHeaderField: "connect-protocol-version")
-        Self.setOasisHeaders(request: &request, oasisToken: oasisToken)
+        Self.setOasisHeaders(request: &request, oasisToken: oasisToken, webid: webid)
         request.httpBody = "{}".data(using: .utf8)
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -290,13 +291,13 @@ public struct StepFunUsageFetcher: Sendable {
         let weeklyResetTime: Date?
     }
 
-    private static func fetchRateLimit(oasisToken: String) async throws -> RateLimit {
+    private static func fetchRateLimit(oasisToken: String, webid: String?) async throws -> RateLimit {
         var request = URLRequest(url: self.rateLimitURL)
         request.httpMethod = "POST"
         request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("1", forHTTPHeaderField: "connect-protocol-version")
-        Self.setOasisHeaders(request: &request, oasisToken: oasisToken)
+        Self.setOasisHeaders(request: &request, oasisToken: oasisToken, webid: webid)
         request.httpBody = "{}".data(using: .utf8)
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -330,12 +331,19 @@ public struct StepFunUsageFetcher: Sendable {
 
     // MARK: - Helpers
 
-    private static func setOasisHeaders(request: inout URLRequest, oasisToken: String) {
+    private static func setOasisHeaders(request: inout URLRequest, oasisToken: String, webid: String?) {
         // The Oasis-Token cookie contains access_token...refresh_token
         let parts = oasisToken.components(separatedBy: "...")
         let accessToken = parts.first ?? oasisToken
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("Oasis-Token=\(oasisToken)", forHTTPHeaderField: "Cookie")
+
+        // Build cookie header with both Oasis-Token and Oasis-Webid to avoid "embezzled" error
+        var cookieParts = ["Oasis-Token=\(oasisToken)"]
+        if let webid = webid {
+            cookieParts.append("Oasis-Webid=\(webid)")
+        }
+        request.setValue(cookieParts.joined(separator: "; "), forHTTPHeaderField: "Cookie")
+
         request.setValue("https://platform.stepfun.com", forHTTPHeaderField: "Origin")
         request.setValue("https://platform.stepfun.com/plan-subscribe", forHTTPHeaderField: "Referer")
         let ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +

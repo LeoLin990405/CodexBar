@@ -23,6 +23,11 @@ public enum StepFunCookieImporter {
         public var oasisToken: String? {
             self.cookies.first(where: { $0.name == "Oasis-Token" })?.value
         }
+
+        /// The Oasis-Webid cookie value (device fingerprint)
+        public var oasisWebid: String? {
+            self.cookies.first(where: { $0.name == "Oasis-Webid" })?.value
+        }
     }
 
     public static func importSessions(
