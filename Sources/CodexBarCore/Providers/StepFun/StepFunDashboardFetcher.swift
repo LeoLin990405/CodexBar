@@ -179,5 +179,22 @@ public struct StepFunDashboardFetcher {
 
         return ScrapeResult(isLoginPage: false, bodyText: bodyText, snapshot: snapshot)
     }
+
+    /// Bridge for calling from non-MainActor contexts (e.g. ProviderFetchStrategy).
+    public nonisolated static func fetchFromMainActor(
+        timeout: TimeInterval = 30) async throws -> DashboardSnapshot
+    {
+        try await withCheckedThrowingContinuation { continuation in
+            Task { @MainActor in
+                do {
+                    let fetcher = StepFunDashboardFetcher()
+                    let snapshot = try await fetcher.fetchDashboard(timeout: timeout)
+                    continuation.resume(returning: snapshot)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
 }
 #endif
