@@ -1262,6 +1262,8 @@ extension UsageStore {
                 text = "AIGOCODE_API_KEY=\(hasAny ? "present" : "missing") source=\(source)"
             case .trae:
                 text = "Trae: local probe (no API key needed)"
+            case .stepfun:
+                text = "StepFun: local probe (no API key needed)"
             case .gemini, .antigravity, .opencode, .factory, .copilot, .vertexai, .kilo, .kiro, .kimi, .kimik2,
                  .jetbrains:
                 text = unimplementedDebugLogMessages[provider] ?? "Debug log not yet implemented"
