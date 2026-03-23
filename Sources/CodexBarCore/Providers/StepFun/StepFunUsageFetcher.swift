@@ -54,7 +54,7 @@ public struct StepFunUsageSnapshot: Sendable {
     }
 
     public func toUsageSnapshot() -> UsageSnapshot {
-        // Primary: 5-hour rate limit (most relevant for active coding)
+        // Primary: 5-hour rate limit if available, otherwise balance
         let primary: RateWindow
         if let rate = self.fiveHourLeftRate {
             let usedPercent = max(0, min(100, (1.0 - rate) * 100))
@@ -65,16 +65,18 @@ public struct StepFunUsageSnapshot: Sendable {
                 resetsAt: self.fiveHourResetTime,
                 resetDescription: "5h remaining: \(pctStr)")
         } else {
-            // Fallback to balance display
+            // Balance display: show as "active" with balance info, low usedPercent
             let balanceStr = String(format: "¥%.2f", self.balance)
+            let voucherStr = self.voucherBalance > 0
+                ? String(format: " (voucher: ¥%.2f)", self.voucherBalance) : ""
             primary = RateWindow(
-                usedPercent: self.balance > 0 ? max(0, min(100, 100 - self.balance)) : 100,
+                usedPercent: self.balance > 0 ? 0 : 100,
                 windowMinutes: nil,
                 resetsAt: nil,
-                resetDescription: "Balance: \(balanceStr)")
+                resetDescription: "Balance: \(balanceStr)\(voucherStr)")
         }
 
-        // Secondary: weekly rate limit
+        // Secondary: weekly rate limit if available, otherwise nil
         var secondary: RateWindow?
         if let weekRate = self.weeklyLeftRate {
             let weekUsed = max(0, min(100, (1.0 - weekRate) * 100))
