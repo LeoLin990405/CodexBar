@@ -69,6 +69,10 @@ public enum ProviderTokenResolver {
         self.doubaoResolution(environment: environment)?.token
     }
 
+    public static func stepfunToken(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
+        self.stepfunResolution(environment: environment)?.token
+    }
+
     public static func zenmuxToken(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
         self.zenmuxResolution(environment: environment)?.token
     }
@@ -171,6 +175,12 @@ public enum ProviderTokenResolver {
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
         self.resolveEnv(DoubaoSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func stepfunResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(StepFunSettingsReader.apiKey(environment: environment))
     }
 
     public static func zenmuxResolution(

@@ -69,4 +69,5 @@ public enum LogCategories {
     public static let traeUsage = "trae-usage"
     public static let traeWeb = "trae-web"
     public static let zenmuxUsage = "zenmux-usage"
+    public static let stepfunUsage = "stepfun-usage"
 }
