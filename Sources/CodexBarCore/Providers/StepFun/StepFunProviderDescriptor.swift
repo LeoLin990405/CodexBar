@@ -64,10 +64,7 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
         #if os(macOS)
         if context.settings?.stepfun?.cookieSource != .off {
             do {
-                dashboardSnapshot = try await MainActor.run {
-                    let fetcher = StepFunDashboardFetcher()
-                    return try await fetcher.fetchDashboard(timeout: 20)
-                }
+                dashboardSnapshot = try await StepFunDashboardFetcher.fetchFromMainActor(timeout: 20)
                 Self.log.debug("Got StepFun plan data from WKWebView dashboard")
             } catch {
                 Self.log.debug("StepFun dashboard fetch failed: \(error.localizedDescription)")
