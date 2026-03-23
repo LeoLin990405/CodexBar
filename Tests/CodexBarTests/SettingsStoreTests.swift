@@ -751,6 +751,7 @@ struct SettingsStoreTests {
             .zenmux,
             .aigocode,
             .trae,
+            .stepfun,
         ])
 
         // Move one provider; ensure it's persisted across instances.
