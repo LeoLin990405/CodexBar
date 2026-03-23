@@ -10,8 +10,8 @@ public enum StepFunProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .stepfun,
                 displayName: "StepFun",
-                sessionLabel: "Balance",
-                weeklyLabel: "Account",
+                sessionLabel: "5h Rate",
+                weeklyLabel: "Weekly",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
@@ -21,7 +21,7 @@ public enum StepFunProviderDescriptor {
                 defaultEnabled: false,
                 isPrimaryProvider: false,
                 usesAccountFallback: false,
-                browserCookieOrder: nil,
+                browserCookieOrder: ProviderBrowserCookieDefaults.defaultImportOrder,
                 dashboardURL: "https://platform.stepfun.com/plan-subscribe",
                 statusPageURL: nil),
             branding: ProviderBranding(
@@ -32,8 +32,8 @@ public enum StepFunProviderDescriptor {
                 supportsTokenCost: false,
                 noDataMessage: { "StepFun cost summary is not available." }),
             fetchPlan: ProviderFetchPlan(
-                sourceModes: [.auto, .api],
-                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [StepFunAPIFetchStrategy()] })),
+                sourceModes: [.auto, .api, .web],
+                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [StepFunWebFetchStrategy()] })),
             cli: ProviderCLIConfig(
                 name: "stepfun",
                 aliases: ["step", "stepfun-ai"],
@@ -41,29 +41,53 @@ public enum StepFunProviderDescriptor {
     }
 }
 
-struct StepFunAPIFetchStrategy: ProviderFetchStrategy {
-    let id: String = "stepfun.api"
-    let kind: ProviderFetchKind = .apiToken
+struct StepFunWebFetchStrategy: ProviderFetchStrategy {
+    let id: String = "stepfun.web"
+    let kind: ProviderFetchKind = .web
+    private static let log = CodexBarLog.logger(LogCategories.stepfunUsage)
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {
-        Self.resolveToken(environment: context.env) != nil
+        // API key is always required for balance
+        guard Self.resolveAPIKey(environment: context.env) != nil else {
+            return false
+        }
+        return true
     }
 
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        guard let apiKey = Self.resolveToken(environment: context.env) else {
+        guard let apiKey = Self.resolveAPIKey(environment: context.env) else {
             throw StepFunUsageError.missingCredentials
         }
-        let usage = try await StepFunUsageFetcher.fetchUsage(apiKey: apiKey)
+
+        // Try to get Oasis-Token from browser cookies for plan/rate data
+        var oasisToken: String?
+        #if os(macOS)
+        if context.settings?.stepfun?.cookieSource != .off {
+            do {
+                let session = try StepFunCookieImporter.importSession()
+                oasisToken = session.oasisToken
+                if oasisToken != nil {
+                    Self.log.debug("Got Oasis-Token from browser cookie")
+                }
+            } catch {
+                Self.log.debug("No StepFun browser cookies: \(error.localizedDescription)")
+            }
+        }
+        #endif
+
+        let snapshot = try await StepFunUsageFetcher.fetchUsage(
+            apiKey: apiKey, oasisToken: oasisToken)
         return self.makeResult(
-            usage: usage.toUsageSnapshot(),
-            sourceLabel: "api")
+            usage: snapshot.toUsageSnapshot(),
+            sourceLabel: oasisToken != nil ? "web+api" : "api")
     }
 
-    func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {
-        false
+    func shouldFallback(on error: Error, context _: ProviderFetchContext) -> Bool {
+        if case StepFunUsageError.missingCredentials = error { return false }
+        return true
     }
 
-    private static func resolveToken(environment: [String: String]) -> String? {
+    private static func resolveAPIKey(environment: [String: String]) -> String? {
         ProviderTokenResolver.stepfunToken(environment: environment)
     }
 }
