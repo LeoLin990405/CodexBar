@@ -49,6 +49,10 @@ public enum ProviderConfigEnvironment {
             if let key = TraeSettingsReader.apiKeyEnvironmentKeys.first {
                 env[key] = apiKey
             }
+        case .stepfun:
+            if let key = StepFunSettingsReader.apiKeyEnvironmentKeys.first {
+                env[key] = apiKey
+            }
         default:
             break
         }

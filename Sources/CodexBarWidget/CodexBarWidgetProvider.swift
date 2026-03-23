@@ -72,6 +72,7 @@ enum ProviderChoice: String, AppEnum {
         case .zenmux: return nil // Zenmux not yet supported in widgets
         case .aigocode: return nil // AigoCode not yet supported in widgets
         case .trae: return nil // Trae not yet supported in widgets
+        case .stepfun: return nil // StepFun not yet supported in widgets
         }
     }
 }
