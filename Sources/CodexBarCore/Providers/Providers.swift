@@ -30,6 +30,7 @@ public enum UsageProvider: String, CaseIterable, Sendable, Codable {
     case zenmux
     case aigocode
     case trae
+    case stepfun
 }
 
 // swiftformat:enable sortDeclarations
@@ -62,6 +63,7 @@ public enum IconStyle: Sendable, CaseIterable {
     case zenmux
     case aigocode
     case trae
+    case stepfun
     case combined
 }
 
