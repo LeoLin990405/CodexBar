@@ -59,29 +59,36 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
             throw StepFunUsageError.missingCredentials
         }
 
-        // Try to get Oasis-Token + Oasis-Webid from browser cookies for plan/rate data
-        var oasisToken: String?
-        var oasisWebid: String?
+        // Try WKWebView dashboard scraping for plan/rate limit data (like AigoCode)
+        var dashboardSnapshot: StepFunDashboardFetcher.DashboardSnapshot?
         #if os(macOS)
         if context.settings?.stepfun?.cookieSource != .off {
             do {
-                let session = try StepFunCookieImporter.importSession()
-                oasisToken = session.oasisToken
-                oasisWebid = session.oasisWebid
-                if oasisToken != nil {
-                    Self.log.debug("Got Oasis-Token from browser cookie (webid=\(oasisWebid != nil))")
-                }
+                let fetcher = StepFunDashboardFetcher()
+                dashboardSnapshot = try await fetcher.fetchDashboard(timeout: 20)
+                Self.log.debug("Got StepFun plan data from WKWebView dashboard")
             } catch {
-                Self.log.debug("No StepFun browser cookies: \(error.localizedDescription)")
+                Self.log.debug("StepFun dashboard fetch failed: \(error.localizedDescription)")
             }
         }
         #endif
 
+        var dashData: StepFunUsageFetcher.DashboardData?
+        if let ds = dashboardSnapshot {
+            dashData = StepFunUsageFetcher.DashboardData(
+                planName: ds.planName,
+                planExpiry: ds.planExpiry,
+                fiveHourLeftPercent: ds.fiveHourLeftPercent,
+                fiveHourResetTime: ds.fiveHourResetTime,
+                weeklyLeftPercent: ds.weeklyLeftPercent,
+                weeklyResetTime: ds.weeklyResetTime)
+        }
+
         let snapshot = try await StepFunUsageFetcher.fetchUsage(
-            apiKey: apiKey, oasisToken: oasisToken, oasisWebid: oasisWebid)
+            apiKey: apiKey, dashboardData: dashData)
         return self.makeResult(
             usage: snapshot.toUsageSnapshot(),
-            sourceLabel: oasisToken != nil ? "web+api" : "api")
+            sourceLabel: dashboardSnapshot != nil ? "web+api" : "api")
     }
 
     func shouldFallback(on error: Error, context _: ProviderFetchContext) -> Bool {

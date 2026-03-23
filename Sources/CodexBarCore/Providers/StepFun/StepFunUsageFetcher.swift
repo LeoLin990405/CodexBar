@@ -152,12 +152,27 @@ public enum StepFunUsageError: LocalizedError, Sendable {
 public struct StepFunUsageFetcher: Sendable {
     private static let log = CodexBarLog.logger(LogCategories.stepfunUsage)
     private static let accountsURL = URL(string: "https://api.stepfun.com/v1/accounts")!
-    private static let planStatusURL =
-        URL(string: "https://platform.stepfun.com/api/step.openapi.devcenter.Dashboard/GetStepPlanStatus")!
-    private static let rateLimitURL =
-        URL(string: "https://platform.stepfun.com/api/step.openapi.devcenter.Dashboard/QueryStepPlanRateLimit")!
 
-    public static func fetchUsage(apiKey: String, oasisToken: String? = nil, oasisWebid: String? = nil) async throws -> StepFunUsageSnapshot {
+    public static func fetchUsage(
+        apiKey: String,
+        dashboardData: DashboardData? = nil) async throws -> StepFunUsageSnapshot
+    {
+        try await self._fetchUsage(apiKey: apiKey, dashboardSnapshot: dashboardData)
+    }
+
+    public struct DashboardData: Sendable {
+        public let planName: String?
+        public let planExpiry: String?
+        public let fiveHourLeftPercent: Double?
+        public let fiveHourResetTime: String?
+        public let weeklyLeftPercent: Double?
+        public let weeklyResetTime: String?
+    }
+
+    private static func _fetchUsage(
+        apiKey: String,
+        dashboardSnapshot: DashboardData?) async throws -> StepFunUsageSnapshot
+    {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw StepFunUsageError.missingCredentials
         }
@@ -165,30 +180,38 @@ public struct StepFunUsageFetcher: Sendable {
         // 1. Fetch API balance (always works with API key)
         let (balance, cashBalance, voucherBalance, accountType) = try await self.fetchAccountBalance(apiKey: apiKey)
 
-        // 2. Try to fetch Step Plan status + rate limits (needs oasis token from browser)
+        // 2. Map dashboard snapshot to our model
         var planName: String?
         var planExpiredAt: Date?
-        var planAutoRenew = false
+        let planAutoRenew = false
         var fiveHourLeftRate: Double?
         var fiveHourResetTime: Date?
         var weeklyLeftRate: Double?
         var weeklyResetTime: Date?
 
-        if let token = oasisToken {
-            let webid = oasisWebid
-            // Fetch plan status
-            if let planStatus = try? await self.fetchPlanStatus(oasisToken: token, webid: webid) {
-                planName = planStatus.name
-                planExpiredAt = planStatus.expiredAt
-                planAutoRenew = planStatus.autoRenew
+        if let dash = dashboardSnapshot {
+            planName = dash.planName
+            if let expStr = dash.planExpiry {
+                // Parse "2026年04月22日"
+                let fmt = DateFormatter()
+                fmt.dateFormat = "yyyy年MM月dd日"
+                planExpiredAt = fmt.date(from: expStr)
             }
-
-            // Fetch rate limits
-            if let rateLimit = try? await self.fetchRateLimit(oasisToken: token, webid: webid) {
-                fiveHourLeftRate = rateLimit.fiveHourLeftRate
-                fiveHourResetTime = rateLimit.fiveHourResetTime
-                weeklyLeftRate = rateLimit.weeklyLeftRate
-                weeklyResetTime = rateLimit.weeklyResetTime
+            if let pct = dash.fiveHourLeftPercent {
+                fiveHourLeftRate = pct / 100.0
+            }
+            if let pct = dash.weeklyLeftPercent {
+                weeklyLeftRate = pct / 100.0
+            }
+            if let resetStr = dash.fiveHourResetTime {
+                let fmt = DateFormatter()
+                fmt.dateFormat = "yyyy-MM-dd HH:mm:ss"
+                fiveHourResetTime = fmt.date(from: resetStr)
+            }
+            if let resetStr = dash.weeklyResetTime {
+                let fmt = DateFormatter()
+                fmt.dateFormat = "yyyy-MM-dd HH:mm:ss"
+                weeklyResetTime = fmt.date(from: resetStr)
             }
         }
 
@@ -246,112 +269,7 @@ public struct StepFunUsageFetcher: Sendable {
         return (balance, cashBalance, voucherBalance, accountType)
     }
 
-    // MARK: - Step Plan Status
-
-    private struct PlanStatus {
-        let name: String
-        let expiredAt: Date?
-        let autoRenew: Bool
-    }
-
-    private static func fetchPlanStatus(oasisToken: String, webid: String?) async throws -> PlanStatus {
-        var request = URLRequest(url: self.planStatusURL)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 30
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("1", forHTTPHeaderField: "connect-protocol-version")
-        Self.setOasisHeaders(request: &request, oasisToken: oasisToken, webid: webid)
-        request.httpBody = "{}".data(using: .utf8)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw StepFunUsageError.apiError(0, "Plan status request failed")
-        }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let subscription = json["subscription"] as? [String: Any]
-        else {
-            throw StepFunUsageError.parseFailed("Missing subscription data")
-        }
-
-        let name = (subscription["name"] as? String) ?? "Unknown"
-        let autoRenew = (subscription["auto_renew"] as? Bool) ?? false
-        var expiredAt: Date?
-        if let expStr = subscription["expired_at"] as? String, let expTS = TimeInterval(expStr) {
-            expiredAt = Date(timeIntervalSince1970: expTS)
-        }
-
-        return PlanStatus(name: name, expiredAt: expiredAt, autoRenew: autoRenew)
-    }
-
-    // MARK: - Rate Limits
-
-    private struct RateLimit {
-        let fiveHourLeftRate: Double
-        let fiveHourResetTime: Date?
-        let weeklyLeftRate: Double
-        let weeklyResetTime: Date?
-    }
-
-    private static func fetchRateLimit(oasisToken: String, webid: String?) async throws -> RateLimit {
-        var request = URLRequest(url: self.rateLimitURL)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 30
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("1", forHTTPHeaderField: "connect-protocol-version")
-        Self.setOasisHeaders(request: &request, oasisToken: oasisToken, webid: webid)
-        request.httpBody = "{}".data(using: .utf8)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw StepFunUsageError.apiError(0, "Rate limit request failed")
-        }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw StepFunUsageError.parseFailed("Invalid rate limit response")
-        }
-
-        let fiveHourRate = (json["five_hour_usage_left_rate"] as? Double) ?? 0
-        let weeklyRate = (json["weekly_usage_left_rate"] as? Double) ?? 0
-
-        var fiveHourReset: Date?
-        if let ts = json["five_hour_usage_reset_time"] as? String, let tsNum = TimeInterval(ts) {
-            fiveHourReset = Date(timeIntervalSince1970: tsNum)
-        }
-
-        var weeklyReset: Date?
-        if let ts = json["weekly_usage_reset_time"] as? String, let tsNum = TimeInterval(ts) {
-            weeklyReset = Date(timeIntervalSince1970: tsNum)
-        }
-
-        return RateLimit(
-            fiveHourLeftRate: fiveHourRate,
-            fiveHourResetTime: fiveHourReset,
-            weeklyLeftRate: weeklyRate,
-            weeklyResetTime: weeklyReset)
-    }
-
     // MARK: - Helpers
-
-    private static func setOasisHeaders(request: inout URLRequest, oasisToken: String, webid: String?) {
-        // The Oasis-Token cookie contains access_token...refresh_token
-        let parts = oasisToken.components(separatedBy: "...")
-        let accessToken = parts.first ?? oasisToken
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
-        // Build cookie header with both Oasis-Token and Oasis-Webid to avoid "embezzled" error
-        var cookieParts = ["Oasis-Token=\(oasisToken)"]
-        if let webid = webid {
-            cookieParts.append("Oasis-Webid=\(webid)")
-        }
-        request.setValue(cookieParts.joined(separator: "; "), forHTTPHeaderField: "Cookie")
-
-        request.setValue("https://platform.stepfun.com", forHTTPHeaderField: "Origin")
-        request.setValue("https://platform.stepfun.com/plan-subscribe", forHTTPHeaderField: "Referer")
-        let ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
-        request.setValue(ua, forHTTPHeaderField: "User-Agent")
-    }
 
     private static func errorSummary(data: Data) -> String {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
