@@ -1,6 +1,6 @@
-@testable import CodexBarCore
 import Foundation
 import Testing
+@testable import CodexBarCore
 
 /// Regression tests for multi-level symlink resolution when locating
 /// Gemini CLI's oauth2.js file.
@@ -16,9 +16,9 @@ import Testing
 struct GeminiOAuthSymlinkTests {
     /// Sample oauth2.js content used by all tests.
     private static let sampleOAuth2JS = """
-        const OAUTH_CLIENT_ID = 'test-client-id.apps.googleusercontent.com';
-        const OAUTH_CLIENT_SECRET = 'test-client-secret';
-        """
+    const OAUTH_CLIENT_ID = 'test-client-id.apps.googleusercontent.com';
+    const OAUTH_CLIENT_SECRET = 'test-client-secret';
+    """
 
     // MARK: - Helpers
 

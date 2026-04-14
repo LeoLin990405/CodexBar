@@ -60,8 +60,8 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
         }
 
         // Try WKWebView dashboard scraping for plan/rate limit data (like AigoCode)
-        var dashboardSnapshot: StepFunDashboardFetcher.DashboardSnapshot?
         #if os(macOS)
+        var dashboardSnapshot: StepFunDashboardFetcher.DashboardSnapshot?
         if context.settings?.stepfun?.cookieSource != .off {
             do {
                 dashboardSnapshot = try await StepFunDashboardFetcher.fetchFromMainActor(timeout: 20)
@@ -73,6 +73,7 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
         #endif
 
         var dashData: StepFunUsageFetcher.DashboardData?
+        #if os(macOS)
         if let ds = dashboardSnapshot {
             dashData = StepFunUsageFetcher.DashboardData(
                 planName: ds.planName,
@@ -82,12 +83,17 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
                 weeklyLeftPercent: ds.weeklyLeftPercent,
                 weeklyResetTime: ds.weeklyResetTime)
         }
+        #endif
 
         let snapshot = try await StepFunUsageFetcher.fetchUsage(
             apiKey: apiKey, dashboardData: dashData)
+        #if os(macOS)
         return self.makeResult(
             usage: snapshot.toUsageSnapshot(),
             sourceLabel: dashboardSnapshot != nil ? "web+api" : "api")
+        #else
+        return self.makeResult(usage: snapshot.toUsageSnapshot(), sourceLabel: "api")
+        #endif
     }
 
     func shouldFallback(on error: Error, context _: ProviderFetchContext) -> Bool {

@@ -28,11 +28,10 @@ public struct TraeUsageFetcher: Sendable {
         Self.log.debug("Trae login valid: userID=\(loginResult.userID ?? "?") region=\(loginResult.region ?? "?")")
 
         // Determine the regional host for subsequent API calls
-        let regionalBase: URL
-        if let host = loginResult.host, let url = URL(string: host) {
-            regionalBase = url
+        let regionalBase: URL = if let host = loginResult.host, let url = URL(string: host) {
+            url
         } else {
-            regionalBase = URL(string: self.globalBase)!
+            URL(string: self.globalBase)!
         }
 
         // Step 2: Fetch user profile and usage stats in parallel
@@ -78,8 +77,8 @@ public struct TraeUsageFetcher: Sendable {
     // MARK: - GetUserInfo (profile data)
 
     private static func getUserInfo(
-        base: URL, session: TraeSessionInfo
-    ) async throws -> TraeProfileResult {
+        base: URL, session: TraeSessionInfo) async throws -> TraeProfileResult
+    {
         let url = self.apiURL(base, path: "cloudide/api/v3/trae/GetUserInfo")
         var request = self.makeRequest(url: url, session: session)
         request.httpBody = "{}".data(using: .utf8)
@@ -103,8 +102,8 @@ public struct TraeUsageFetcher: Sendable {
     // MARK: - GetUserStasticData (usage statistics)
 
     private static func getUserStats(
-        base: URL, session: TraeSessionInfo
-    ) async throws -> TraeStatsResult {
+        base: URL, session: TraeSessionInfo) async throws -> TraeStatsResult
+    {
         let url = self.apiURL(base, path: "cloudide/api/v3/trae/GetUserStasticData")
         var request = self.makeRequest(url: url, session: session)
 
@@ -242,10 +241,17 @@ struct TraeCheckLoginResult: Codable, Sendable {
     let nickNameEditStatus: String?
     let passwordChanged: Bool?
 
-    init(isLogin: Bool = false, expiredAt: Int? = nil, region: String? = nil,
-         host: String? = nil, userID: String? = nil, aiRegion: String? = nil,
-         aiHost: String? = nil, aiPayHost: String? = nil,
-         nickNameEditStatus: String? = nil, passwordChanged: Bool? = nil)
+    init(
+        isLogin: Bool = false,
+        expiredAt: Int? = nil,
+        region: String? = nil,
+        host: String? = nil,
+        userID: String? = nil,
+        aiRegion: String? = nil,
+        aiHost: String? = nil,
+        aiPayHost: String? = nil,
+        nickNameEditStatus: String? = nil,
+        passwordChanged: Bool? = nil)
     {
         self.isLogin = isLogin
         self.expiredAt = expiredAt
@@ -285,9 +291,15 @@ struct TraeProfileResult: Codable, Sendable {
     let lastLoginTime: String?
     let lastLoginType: String?
 
-    init(screenName: String? = nil, userID: String? = nil, avatarURL: String? = nil,
-         region: String? = nil, aiRegion: String? = nil, registerTime: String? = nil,
-         lastLoginTime: String? = nil, lastLoginType: String? = nil)
+    init(
+        screenName: String? = nil,
+        userID: String? = nil,
+        avatarURL: String? = nil,
+        region: String? = nil,
+        aiRegion: String? = nil,
+        registerTime: String? = nil,
+        lastLoginTime: String? = nil,
+        lastLoginType: String? = nil)
     {
         self.screenName = screenName
         self.userID = userID
@@ -384,11 +396,11 @@ public enum TraeAPIError: LocalizedError, Sendable {
         switch self {
         case .invalidSession:
             "Trae session expired. Please log in to trae.ai in your browser."
-        case .networkError(let msg):
+        case let .networkError(msg):
             "Trae network error: \(msg)"
-        case .parseFailed(let msg):
+        case let .parseFailed(msg):
             "Trae response parse failed: \(msg)"
-        case .apiError(let msg):
+        case let .apiError(msg):
             "Trae API error: \(msg)"
         }
     }
