@@ -50,7 +50,7 @@ public struct TraeUsageFetcher: Sendable {
     private static func checkLogin(session: TraeSessionInfo) async throws -> TraeCheckLoginResult {
         let url = self.apiURL(self.globalBase, path: "cloudide/api/v3/trae/CheckLogin")
         var request = self.makeRequest(url: url, session: session)
-        request.httpBody = "{}".data(using: .utf8)
+        request.httpBody = "{}".data(using: .utf8) // swiftlint:disable:this non_optional_string_data_conversion
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -81,7 +81,7 @@ public struct TraeUsageFetcher: Sendable {
     {
         let url = self.apiURL(base, path: "cloudide/api/v3/trae/GetUserInfo")
         var request = self.makeRequest(url: url, session: session)
-        request.httpBody = "{}".data(using: .utf8)
+        request.httpBody = "{}".data(using: .utf8) // swiftlint:disable:this non_optional_string_data_conversion
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {

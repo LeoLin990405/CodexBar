@@ -108,7 +108,7 @@ public enum AntigravityStatusProbeError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .notRunning:
-            "Antigravity language server not detected. Launch Antigravity and retry. If behind a proxy, ensure Antigravity can reach its servers (set http_proxy/https_proxy or enable system proxy)."
+            "Antigravity language server not detected. Launch Antigravity and retry. If behind a proxy, ensure Antigravity can reach its servers (set http_proxy/https_proxy or enable system proxy)." // swiftlint:disable:this line_length
         case .missingCSRFToken:
             "Antigravity CSRF token not found. Restart Antigravity and retry."
         case let .portDetectionFailed(message):

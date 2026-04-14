@@ -1,6 +1,7 @@
 import Foundation
 
 public enum ProviderConfigEnvironment {
+    // swiftlint:disable:next cyclomatic_complexity
     public static func applyAPIKeyOverride(
         base: [String: String],
         provider: UsageProvider,

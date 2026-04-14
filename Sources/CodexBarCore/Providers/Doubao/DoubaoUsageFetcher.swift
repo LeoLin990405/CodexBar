@@ -188,7 +188,7 @@ public struct DoubaoUsageFetcher: Sendable {
             totalTokens: totalTokens)
 
         Self.log.debug(
-            "Doubao usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")
+            "Doubao usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)") // swiftlint:disable:this line_length
 
         return snapshot
     }
