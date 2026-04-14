@@ -190,7 +190,7 @@ struct MiMoProviderTests {
         let usage = snapshot.toUsageSnapshot()
 
         #expect(usage.primary != nil)
-        #expect(usage.primary?.usedPercent == 5.05)
+        #expect(abs((usage.primary?.usedPercent ?? 0) - 5.05) < 0.0001)
         #expect(usage.primary?.resetDescription == "10,100,158 / 200,000,000 Credits")
         #expect(usage.primary?.resetsAt == resetDate)
         #expect(usage.loginMethod(for: .mimo) == "Standard")
