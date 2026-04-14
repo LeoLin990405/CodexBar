@@ -185,7 +185,7 @@ public struct AigoCodeUsageFetcher: Sendable {
             apiKey: apiKey)
 
         Self.log.debug(
-            "AigoCode usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")
+            "AigoCode usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)") // swiftlint:disable:this line_length
 
         return snapshot
     }

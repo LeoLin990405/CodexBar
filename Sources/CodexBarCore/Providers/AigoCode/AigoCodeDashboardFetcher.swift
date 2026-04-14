@@ -62,7 +62,8 @@ public struct AigoCodeDashboardFetcher {
             let escaped = supabaseTokenJSON
                 .replacingOccurrences(of: "\\", with: "\\\\")
                 .replacingOccurrences(of: "'", with: "\\'")
-            let injectJS = "localStorage.setItem('\(AigoCodeLocalStorageImporter.supabaseTokenKey)', '\(escaped)'); 'ok';"
+            let injectJS =
+                "localStorage.setItem('\(AigoCodeLocalStorageImporter.supabaseTokenKey)', '\(escaped)'); 'ok';" // swiftlint:disable:this line_length
             let result = try? await webView.evaluateJavaScript(injectJS)
             Self.log.debug("localStorage injection result: \(String(describing: result))")
         }
@@ -88,7 +89,7 @@ public struct AigoCodeDashboardFetcher {
             // Check if we have subscription usage data
             if let snapshot = scrape.snapshot {
                 Self.log.debug(
-                    "Dashboard parsed: subscription=\(snapshot.subscriptionUsedDollars)/\(snapshot.subscriptionTotalDollars) " +
+                    "Dashboard parsed: subscription=\(snapshot.subscriptionUsedDollars)/\(snapshot.subscriptionTotalDollars) " + // swiftlint:disable:this line_length
                         "weekly=\(snapshot.weeklyUsedDollars)/\(snapshot.weeklyTotalDollars)")
                 return snapshot
             }

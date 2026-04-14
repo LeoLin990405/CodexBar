@@ -199,7 +199,7 @@ public struct QwenUsageFetcher: Sendable {
             totalTokens: totalTokens)
 
         Self.log.debug(
-            "Qwen usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")
+            "Qwen usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)") // swiftlint:disable:this line_length
 
         return snapshot
     }

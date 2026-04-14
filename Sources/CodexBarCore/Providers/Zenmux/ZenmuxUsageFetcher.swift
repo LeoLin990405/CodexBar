@@ -162,7 +162,7 @@ public struct ZenmuxUsageFetcher: Sendable {
             apiKey: apiKey)
 
         Self.log.debug(
-            "Zenmux usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")
+            "Zenmux usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)") // swiftlint:disable:this line_length
 
         return snapshot
     }

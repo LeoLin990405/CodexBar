@@ -298,7 +298,7 @@ struct MiMoProviderTests {
         {"code":0,"message":"","data":{"planCode":"standard","currentPeriodEnd":"2026-05-04 23:59:59","expired":false}}
         """
         let usageJSON = """
-        {"code":0,"message":"","data":{"monthUsage":{"percent":0.0505,"items":[{"name":"month_total_token","used":10100158,"limit":200000000,"percent":0.0505}]}}}
+        {"code":0,"message":"","data":{"monthUsage":{"percent":0.0505,"items":[{"name":"month_total_token","used":10100158,"limit":200000000,"percent":0.0505}]}}} // swiftlint:disable:this line_length
         """
 
         let snapshot = try MiMoUsageFetcher.parseCombinedSnapshot(

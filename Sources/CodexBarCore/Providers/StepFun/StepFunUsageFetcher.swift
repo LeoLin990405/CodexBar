@@ -215,7 +215,7 @@ public struct StepFunUsageFetcher: Sendable {
         }
 
         Self.log.debug(
-            "StepFun balance=\(balance) plan=\(planName ?? "none") 5h=\(fiveHourLeftRate ?? -1) weekly=\(weeklyLeftRate ?? -1)")
+            "StepFun balance=\(balance) plan=\(planName ?? "none") 5h=\(fiveHourLeftRate ?? -1) weekly=\(weeklyLeftRate ?? -1)") // swiftlint:disable:this line_length
 
         return StepFunUsageSnapshot(
             balance: balance,

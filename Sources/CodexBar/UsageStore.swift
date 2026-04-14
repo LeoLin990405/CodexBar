@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import AppKit
 import CodexBarCore
 import Foundation
@@ -1140,6 +1141,7 @@ extension UsageStore {
         await AugmentStatusProbe.latestDumps()
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
     func debugLog(for provider: UsageProvider) async -> String {
         if let cached = self.probeLogs[provider], !cached.isEmpty {
             return cached
