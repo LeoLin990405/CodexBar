@@ -106,11 +106,10 @@ public struct StepFunUsageSnapshot: Sendable {
                 resetDescription: desc)
         }
 
-        let org: String?
-        if let planName = self.planName {
-            org = "\(planName) Plan"
+        let org: String? = if let planName = self.planName {
+            "\(planName) Plan"
         } else {
-            org = self.accountType == "prepaid" ? "Prepaid" : "Postpaid"
+            self.accountType == "prepaid" ? "Prepaid" : "Postpaid"
         }
 
         let identity = ProviderIdentitySnapshot(

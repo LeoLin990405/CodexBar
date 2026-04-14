@@ -5,15 +5,6 @@ public struct TraeUsageSnapshot: Sendable {
     let profile: TraeProfileResult
     let stats: TraeStatsResult?
     public let updatedAt: Date
-
-    init(checkLogin: TraeCheckLoginResult, profile: TraeProfileResult,
-         stats: TraeStatsResult?, updatedAt: Date)
-    {
-        self.checkLogin = checkLogin
-        self.profile = profile
-        self.stats = stats
-        self.updatedAt = updatedAt
-    }
 }
 
 extension TraeUsageSnapshot {
@@ -30,11 +21,10 @@ extension TraeUsageSnapshot {
                 .map { "\($0.key): \($0.value)" }
                 .joined(separator: ", ")
 
-            let description: String
-            if let modelBreakdown, !modelBreakdown.isEmpty {
-                description = "\(total7d) AI actions (7d) — \(modelBreakdown)"
+            let description = if let modelBreakdown, !modelBreakdown.isEmpty {
+                "\(total7d) AI actions (7d) — \(modelBreakdown)"
             } else {
-                description = "\(total7d) AI actions (7d)"
+                "\(total7d) AI actions (7d)"
             }
 
             // Trae has no hard usage cap, so show activity level instead of percent

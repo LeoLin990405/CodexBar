@@ -30,6 +30,7 @@ enum MiMoCookieHeader {
         }.joined(separator: "; ")
     }
 
+    #if os(macOS)
     static func header(from cookies: [HTTPCookie]) -> String? {
         let requestURL = URL(string: "https://platform.xiaomimimo.com/api/v1/balance")!
         var byName: [String: HTTPCookie] = [:]
@@ -90,6 +91,7 @@ enum MiMoCookieHeader {
         let expiry = cookie.expiresDate ?? .distantPast
         return (pathLength, domainLength, expiry)
     }
+    #endif
 }
 
 #if os(macOS)

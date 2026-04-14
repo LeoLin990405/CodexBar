@@ -61,7 +61,7 @@ public struct StepFunDashboardFetcher {
         _ = webView.load(URLRequest(url: Self.dashboardURL))
         Self.log.debug("Loading StepFun dashboard…")
 
-        var lastBody: String = ""
+        var lastBody = ""
         while Date() < deadline {
             try? await Task.sleep(for: .milliseconds(2000))
 
@@ -77,8 +77,8 @@ public struct StepFunDashboardFetcher {
             if let snapshot = scrape.snapshot {
                 Self.log.debug(
                     "Dashboard parsed: plan=\(snapshot.planName ?? "nil") " +
-                    "5h=\(snapshot.fiveHourLeftPercent ?? -1)% " +
-                    "weekly=\(snapshot.weeklyLeftPercent ?? -1)%")
+                        "5h=\(snapshot.fiveHourLeftPercent ?? -1)% " +
+                        "weekly=\(snapshot.weeklyLeftPercent ?? -1)%")
                 return snapshot
             }
         }

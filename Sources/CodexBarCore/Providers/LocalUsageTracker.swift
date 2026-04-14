@@ -128,7 +128,7 @@ public actor LocalUsageTracker {
     }
 
     private static func readFromDisk() -> [String: [Sample]] {
-        guard let data = try? Data(contentsOf: Self.fileURL()),
+        guard let data = try? Data(contentsOf: fileURL()),
               let decoded = try? JSONDecoder.iso8601Decoder.decode([String: [Sample]].self, from: data)
         else {
             return [:]
@@ -153,8 +153,8 @@ public actor LocalUsageTracker {
     }
 }
 
-private extension JSONDecoder {
-    static let iso8601Decoder: JSONDecoder = {
+extension JSONDecoder {
+    fileprivate static let iso8601Decoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return decoder

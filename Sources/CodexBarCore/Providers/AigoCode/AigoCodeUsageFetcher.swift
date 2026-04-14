@@ -256,7 +256,7 @@ public struct AigoCodeUsageFetcher: Sendable {
                 .trimmingCharacters(in: .whitespacesAndNewlines),
                 !text.isEmpty
             {
-                return Self.compactText(text)
+                return self.compactText(text)
             }
             return "Unexpected response body (\(data.count) bytes)."
         }

@@ -71,7 +71,7 @@ public struct AigoCodeDashboardFetcher {
         Self.log.debug("Loading AigoCode dashboard…")
 
         // Poll until we find usage data or hit the deadline
-        var lastBody: String = ""
+        var lastBody = ""
         while Date() < deadline {
             try? await Task.sleep(for: .milliseconds(1500))
 
@@ -89,7 +89,7 @@ public struct AigoCodeDashboardFetcher {
             if let snapshot = scrape.snapshot {
                 Self.log.debug(
                     "Dashboard parsed: subscription=\(snapshot.subscriptionUsedDollars)/\(snapshot.subscriptionTotalDollars) " +
-                    "weekly=\(snapshot.weeklyUsedDollars)/\(snapshot.weeklyTotalDollars)")
+                        "weekly=\(snapshot.weeklyUsedDollars)/\(snapshot.weeklyTotalDollars)")
                 return snapshot
             }
         }
