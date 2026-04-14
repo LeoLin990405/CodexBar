@@ -7,7 +7,7 @@ public struct TraeUsageSnapshot: Sendable {
     let entitlements: TraeEntitlementList?
     public let updatedAt: Date
 
-    public init(
+    init(
         checkLogin: TraeCheckLoginResult,
         profile: TraeProfileResult,
         stats: TraeStatsResult?,
