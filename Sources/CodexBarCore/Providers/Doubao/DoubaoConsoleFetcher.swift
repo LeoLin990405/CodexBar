@@ -78,10 +78,10 @@ public enum DoubaoConsoleFetcher {
             do {
                 let query = BrowserCookieQuery(domains: Self.cookieDomains)
                 let records = try cookieClient.records(matching: query, in: browserSource, logger: log)
-                for record in records {
-                    let cookies = BrowserCookieClient.makeHTTPCookies([record], origin: query.origin)
+                for group in records {
+                    let cookies = BrowserCookieClient.makeHTTPCookies(group.records, origin: query.origin)
                     guard !cookies.isEmpty else { continue }
-                    sessions.append(SessionInfo(cookies: cookies, sourceLabel: record.label))
+                    sessions.append(SessionInfo(cookies: cookies, sourceLabel: group.label))
                 }
             } catch {
                 log("\(browserSource.displayName) cookie import failed: \(error.localizedDescription)")
