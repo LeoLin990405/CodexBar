@@ -1264,6 +1264,8 @@ extension UsageStore {
                 text = "Trae: local probe (no API key needed)"
             case .stepfun:
                 text = "StepFun: local probe (no API key needed)"
+            case .mimo:
+                text = "MiMo: local probe (cookie-based)"
             case .gemini, .antigravity, .opencode, .factory, .copilot, .vertexai, .kilo, .kiro, .kimi, .kimik2,
                  .jetbrains:
                 text = unimplementedDebugLogMessages[provider] ?? "Debug log not yet implemented"

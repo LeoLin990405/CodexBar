@@ -41,6 +41,7 @@ enum ProviderImplementationRegistry {
         case .aigocode: AigoCodeProviderImplementation()
         case .trae: TraeProviderImplementation()
         case .stepfun: StepFunProviderImplementation()
+        case .mimo: MiMoProviderImplementation()
         }
     }
 

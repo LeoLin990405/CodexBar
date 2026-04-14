@@ -15,6 +15,7 @@ public struct ProviderSettingsSnapshot: Sendable {
         kilo: KiloProviderSettings? = nil,
         kimi: KimiProviderSettings? = nil,
         stepfun: StepFunProviderSettings? = nil,
+        mimo: MiMoProviderSettings? = nil,
         augment: AugmentProviderSettings? = nil,
         amp: AmpProviderSettings? = nil,
         ollama: OllamaProviderSettings? = nil,
@@ -34,6 +35,7 @@ public struct ProviderSettingsSnapshot: Sendable {
             kilo: kilo,
             kimi: kimi,
             stepfun: stepfun,
+            mimo: mimo,
             augment: augment,
             amp: amp,
             ollama: ollama,
@@ -163,6 +165,16 @@ public struct ProviderSettingsSnapshot: Sendable {
         }
     }
 
+    public struct MiMoProviderSettings: Sendable {
+        public let cookieSource: ProviderCookieSource
+        public let manualCookieHeader: String?
+
+        public init(cookieSource: ProviderCookieSource, manualCookieHeader: String?) {
+            self.cookieSource = cookieSource
+            self.manualCookieHeader = manualCookieHeader
+        }
+    }
+
     public struct AugmentProviderSettings: Sendable {
         public let cookieSource: ProviderCookieSource
         public let manualCookieHeader: String?
@@ -214,6 +226,7 @@ public struct ProviderSettingsSnapshot: Sendable {
     public let kilo: KiloProviderSettings?
     public let kimi: KimiProviderSettings?
     public let stepfun: StepFunProviderSettings?
+    public let mimo: MiMoProviderSettings?
     public let augment: AugmentProviderSettings?
     public let amp: AmpProviderSettings?
     public let ollama: OllamaProviderSettings?
@@ -237,6 +250,7 @@ public struct ProviderSettingsSnapshot: Sendable {
         kilo: KiloProviderSettings?,
         kimi: KimiProviderSettings?,
         stepfun: StepFunProviderSettings?,
+        mimo: MiMoProviderSettings?,
         augment: AugmentProviderSettings?,
         amp: AmpProviderSettings?,
         ollama: OllamaProviderSettings?,
@@ -255,6 +269,7 @@ public struct ProviderSettingsSnapshot: Sendable {
         self.kilo = kilo
         self.kimi = kimi
         self.stepfun = stepfun
+        self.mimo = mimo
         self.augment = augment
         self.amp = amp
         self.ollama = ollama
@@ -274,6 +289,7 @@ public enum ProviderSettingsSnapshotContribution: Sendable {
     case kilo(ProviderSettingsSnapshot.KiloProviderSettings)
     case kimi(ProviderSettingsSnapshot.KimiProviderSettings)
     case stepfun(ProviderSettingsSnapshot.StepFunProviderSettings)
+    case mimo(ProviderSettingsSnapshot.MiMoProviderSettings)
     case augment(ProviderSettingsSnapshot.AugmentProviderSettings)
     case amp(ProviderSettingsSnapshot.AmpProviderSettings)
     case ollama(ProviderSettingsSnapshot.OllamaProviderSettings)
@@ -294,6 +310,7 @@ public struct ProviderSettingsSnapshotBuilder: Sendable {
     public var kilo: ProviderSettingsSnapshot.KiloProviderSettings?
     public var kimi: ProviderSettingsSnapshot.KimiProviderSettings?
     public var stepfun: ProviderSettingsSnapshot.StepFunProviderSettings?
+    public var mimo: ProviderSettingsSnapshot.MiMoProviderSettings?
     public var augment: ProviderSettingsSnapshot.AugmentProviderSettings?
     public var amp: ProviderSettingsSnapshot.AmpProviderSettings?
     public var ollama: ProviderSettingsSnapshot.OllamaProviderSettings?
@@ -317,6 +334,7 @@ public struct ProviderSettingsSnapshotBuilder: Sendable {
         case let .kilo(value): self.kilo = value
         case let .kimi(value): self.kimi = value
         case let .stepfun(value): self.stepfun = value
+        case let .mimo(value): self.mimo = value
         case let .augment(value): self.augment = value
         case let .amp(value): self.amp = value
         case let .ollama(value): self.ollama = value
@@ -339,6 +357,7 @@ public struct ProviderSettingsSnapshotBuilder: Sendable {
             kilo: self.kilo,
             kimi: self.kimi,
             stepfun: self.stepfun,
+            mimo: self.mimo,
             augment: self.augment,
             amp: self.amp,
             ollama: self.ollama,

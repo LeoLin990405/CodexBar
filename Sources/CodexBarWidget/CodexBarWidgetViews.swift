@@ -285,6 +285,7 @@ private struct ProviderSwitchChip: View {
         case .aigocode: "AigoCode"
         case .trae: "Trae"
         case .stepfun: "StepFun"
+        case .mimo: "MiMo"
         }
     }
 }
@@ -636,6 +637,8 @@ enum WidgetColors {
             Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255) // Trae blue
         case .stepfun:
             Color(red: 0 / 255, green: 168 / 255, blue: 107 / 255) // StepFun green
+        case .mimo:
+            Color(red: 255 / 255, green: 103 / 255, blue: 0 / 255) // MiMo Xiaomi orange
         }
     }
 }

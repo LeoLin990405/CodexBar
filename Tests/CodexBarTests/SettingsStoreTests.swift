@@ -752,6 +752,7 @@ struct SettingsStoreTests {
             .aigocode,
             .trae,
             .stepfun,
+            .mimo,
         ])
 
         // Move one provider; ensure it's persisted across instances.

@@ -81,6 +81,7 @@ public enum ProviderDescriptorRegistry {
         .aigocode: AigoCodeProviderDescriptor.descriptor,
         .trae: TraeProviderDescriptor.descriptor,
         .stepfun: StepFunProviderDescriptor.descriptor,
+        .mimo: MiMoProviderDescriptor.descriptor,
     ]
     private static let bootstrap: Void = {
         for provider in UsageProvider.allCases {
