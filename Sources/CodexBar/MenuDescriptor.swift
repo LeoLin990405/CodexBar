@@ -247,7 +247,14 @@ struct MenuDescriptor {
                 entries.append(.text("Activity: \(detail)", .secondary))
             }
         } else if let loginMethodText, !loginMethodText.isEmpty {
-            entries.append(.text("Plan: \(AccountFormatter.plan(loginMethodText))", .secondary))
+            let formatted = AccountFormatter.plan(loginMethodText)
+            // Balance-style providers (openrouter, mimo) already emit "Balance: $X.XX";
+            // don't double-prefix with "Plan: " in that case.
+            if provider == .openrouter || provider == .mimo, formatted.hasPrefix("Balance:") {
+                entries.append(.text(formatted, .secondary))
+            } else {
+                entries.append(.text("Plan: \(formatted)", .secondary))
+            }
         }
 
         if metadata.usesAccountFallback {
