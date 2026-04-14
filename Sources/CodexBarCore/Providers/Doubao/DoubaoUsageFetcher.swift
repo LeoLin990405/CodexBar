@@ -10,13 +10,17 @@ public struct DoubaoUsageSnapshot: Sendable {
     public let updatedAt: Date
     public let apiKeyValid: Bool
     public let totalTokens: Int?
+    /// Coding Plan quota levels from console.volcengine.com GetCodingPlanUsage,
+    /// keyed by level ("session", "weekly", "monthly"). Percent is 0.0..1.0+.
+    public let codingPlanQuotas: [DoubaoConsoleFetcher.QuotaLevel]
     public init(
         remainingRequests: Int,
         limitRequests: Int,
         resetTime: Date?,
         updatedAt: Date,
         apiKeyValid: Bool = false,
-        totalTokens: Int? = nil)
+        totalTokens: Int? = nil,
+        codingPlanQuotas: [DoubaoConsoleFetcher.QuotaLevel] = [])
     {
         self.remainingRequests = remainingRequests
         self.limitRequests = limitRequests
@@ -24,11 +28,36 @@ public struct DoubaoUsageSnapshot: Sendable {
         self.updatedAt = updatedAt
         self.apiKeyValid = apiKeyValid
         self.totalTokens = totalTokens
+        self.codingPlanQuotas = codingPlanQuotas
     }
 
     public func toUsageSnapshot(
         accumulated: LocalUsageTracker.AccumulatedUsage? = nil) -> UsageSnapshot
     {
+        // Prefer Coding Plan console quotas when available — they carry real
+        // session / weekly / monthly percentages.
+        if let session = self.quota(level: "session") {
+            let primary = Self.makeWindow(from: session, fallbackMinutes: nil)
+            let secondary = self.quota(level: "weekly").map {
+                Self.makeWindow(from: $0, fallbackMinutes: 7 * 24 * 60)
+            }
+            let tertiary = self.quota(level: "monthly").map {
+                Self.makeWindow(from: $0, fallbackMinutes: 30 * 24 * 60)
+            }
+            let identity = ProviderIdentitySnapshot(
+                providerID: .doubao,
+                accountEmail: nil,
+                accountOrganization: nil,
+                loginMethod: nil)
+            return UsageSnapshot(
+                primary: primary,
+                secondary: secondary,
+                tertiary: tertiary,
+                providerCost: nil,
+                updatedAt: self.updatedAt,
+                identity: identity)
+        }
+
         let usedPercent: Double
         let resetDescription: String
 
@@ -73,6 +102,33 @@ public struct DoubaoUsageSnapshot: Sendable {
             providerCost: nil,
             updatedAt: self.updatedAt,
             identity: identity)
+    }
+
+    public func quota(level: String) -> DoubaoConsoleFetcher.QuotaLevel? {
+        self.codingPlanQuotas.first { $0.level == level }
+    }
+
+    private static func makeWindow(
+        from quota: DoubaoConsoleFetcher.QuotaLevel,
+        fallbackMinutes: Int?) -> RateWindow
+    {
+        let pct = min(100, max(0, quota.percent * 100))
+        let label = Self.levelLabel(quota.level)
+        let description = String(format: "%@: %.1f%% used", label, pct)
+        return RateWindow(
+            usedPercent: pct,
+            windowMinutes: fallbackMinutes,
+            resetsAt: quota.resetAt,
+            resetDescription: description)
+    }
+
+    private static func levelLabel(_ level: String) -> String {
+        switch level {
+        case "session": "5h"
+        case "weekly": "Week"
+        case "monthly": "Month"
+        default: level.capitalized
+        }
     }
 }
 
