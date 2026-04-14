@@ -356,7 +356,7 @@ struct MiMoProviderTests {
         #expect(snapshot.currency == "USD")
     }
 
-    @Test(.disabled("Requires ProviderDetailView.planRow() balance-label special case from PR 651 not ported"))
+    @Test
     @MainActor
     func `provider detail plan row formats mimo as balance`() {
         let row = ProviderDetailView.planRow(provider: .mimo, planText: "Balance: $25.51")
@@ -365,9 +365,7 @@ struct MiMoProviderTests {
         #expect(row?.value == "$25.51")
     }
 
-    @Test(
-        .disabled("Requires MenuDescriptor balance-provider rendering change from PR 651 not ported"),
-        arguments: [UsageProvider.openrouter, .mimo])
+    @Test(arguments: [UsageProvider.openrouter, .mimo])
     @MainActor
     func `menu descriptor renders balance providers without duplicate prefix`(provider: UsageProvider) throws {
         let suite = "MiMoProviderTests-menu-balance-\(provider.rawValue)"
