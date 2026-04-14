@@ -158,7 +158,7 @@ struct TokenAccountCLIContext {
                 jetbrains: ProviderSettingsSnapshot.JetBrainsProviderSettings(
                     ideBasePath: nil))
         case .gemini, .antigravity, .copilot, .kiro, .vertexai, .kimik2, .synthetic, .openrouter, .warp,
-             .qwen, .doubao, .zenmux, .aigocode, .trae, .stepfun:
+             .qwen, .doubao, .zenmux, .aigocode, .trae, .stepfun, .mimo:
             return nil
         }
     }
