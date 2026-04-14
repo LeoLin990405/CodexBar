@@ -34,15 +34,69 @@ public struct TraeUsageFetcher: Sendable {
             URL(string: self.globalBase)!
         }
 
-        // Step 2: Fetch user profile and usage stats in parallel
+        // Step 2: Fetch user profile, usage stats, and dollar-usage entitlement in parallel
         async let profileResult = self.getUserInfo(base: regionalBase, session: session)
         async let statsResult = self.getUserStats(base: regionalBase, session: session)
+        async let entitlementResult = self.fetchEntitlements(session: session)
 
         let profile = try await profileResult
         let stats = try? await statsResult // stats failure is non-fatal
+        let entitlements = try? await entitlementResult // dollar usage failure is non-fatal
 
         return TraeUsageSnapshot(
-            checkLogin: loginResult, profile: profile, stats: stats, updatedAt: now)
+            checkLogin: loginResult,
+            profile: profile,
+            stats: stats,
+            entitlements: entitlements,
+            updatedAt: now)
+    }
+
+    // MARK: - Dollar Usage (entitlement flow)
+
+    /// Fetches the JWT required for api-sg-central.trae.ai pay endpoints.
+    /// Session cookies (sid_guard, sessionid, X-Cloudide-Session) authenticate
+    /// this request; the returned JWT is used as `Authorization: Cloud-IDE-JWT <token>`.
+    private static func fetchJWT(session: TraeSessionInfo) async throws -> String {
+        let url = URL(string: "https://api-sg-central.trae.ai/cloudide/api/v3/common/GetUserToken")!
+        var request = self.makeRequest(url: url, session: session)
+        request.httpBody = Data() // POST with empty body
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw TraeAPIError.apiError("GetUserToken HTTP error")
+        }
+        let envelope = try JSONDecoder().decode(
+            TraeVolcResponse<TraeUserTokenResult>.self, from: data)
+        if let error = envelope.responseMetadata.error {
+            throw TraeAPIError.apiError("GetUserToken: \(error.message ?? error.code)")
+        }
+        guard let token = envelope.result?.token, !token.isEmpty else {
+            throw TraeAPIError.parseFailed("GetUserToken returned no token")
+        }
+        return token
+    }
+
+    private static func fetchEntitlements(
+        session: TraeSessionInfo) async throws -> TraeEntitlementList
+    {
+        let jwt = try await self.fetchJWT(session: session)
+        let url = URL(string:
+            "https://api-sg-central.trae.ai/trae/api/v1/pay/user_current_entitlement_list")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = Data("{}".utf8)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("https://www.trae.ai", forHTTPHeaderField: "Origin")
+        request.setValue("https://www.trae.ai/", forHTTPHeaderField: "Referer")
+        request.setValue(session.cookieHeader, forHTTPHeaderField: "Cookie")
+        request.setValue("Cloud-IDE-JWT \(jwt)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw TraeAPIError.apiError("user_current_entitlement_list HTTP error")
+        }
+        return try JSONDecoder().decode(TraeEntitlementList.self, from: data)
     }
 
     // MARK: - CheckLogin
@@ -403,5 +457,83 @@ public enum TraeAPIError: LocalizedError, Sendable {
         case let .apiError(msg):
             "Trae API error: \(msg)"
         }
+    }
+}
+
+// MARK: - Dollar usage (entitlement) models
+
+struct TraeUserTokenResult: Codable, Sendable {
+    let token: String?
+
+    enum CodingKeys: String, CodingKey {
+        case token = "Token"
+    }
+}
+
+public struct TraeEntitlementList: Codable, Sendable {
+    public let isDollarUsageBilling: Bool?
+    public let userEntitlementPackList: [TraeEntitlementPack]?
+
+    enum CodingKeys: String, CodingKey {
+        case isDollarUsageBilling = "is_dollar_usage_billing"
+        case userEntitlementPackList = "user_entitlement_pack_list"
+    }
+}
+
+public struct TraeEntitlementPack: Codable, Sendable {
+    public let displayDesc: String?
+    public let entitlementBaseInfo: TraeEntitlementBaseInfo?
+    public let usage: TraeEntitlementUsage?
+    public let nextBillingTime: TimeInterval?
+    public let expireTime: TimeInterval?
+
+    enum CodingKeys: String, CodingKey {
+        case displayDesc = "display_desc"
+        case entitlementBaseInfo = "entitlement_base_info"
+        case usage
+        case nextBillingTime = "next_billing_time"
+        case expireTime = "expire_time"
+    }
+}
+
+public struct TraeEntitlementBaseInfo: Codable, Sendable {
+    public let endTime: TimeInterval?
+    public let productExtra: TraeProductExtra?
+
+    enum CodingKeys: String, CodingKey {
+        case endTime = "end_time"
+        case productExtra = "product_extra"
+    }
+}
+
+public struct TraeProductExtra: Codable, Sendable {
+    public let packageExtra: TraePackageExtra?
+
+    enum CodingKeys: String, CodingKey {
+        case packageExtra = "package_extra"
+    }
+}
+
+public struct TraePackageExtra: Codable, Sendable {
+    public let quota: TraePackageQuota?
+}
+
+public struct TraePackageQuota: Codable, Sendable {
+    public let basicUsageLimit: Double?
+    public let bonusUsageLimit: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case basicUsageLimit = "basic_usage_limit"
+        case bonusUsageLimit = "bonus_usage_limit"
+    }
+}
+
+public struct TraeEntitlementUsage: Codable, Sendable {
+    public let basicUsageAmount: Double?
+    public let bonusUsageAmount: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case basicUsageAmount = "basic_usage_amount"
+        case bonusUsageAmount = "bonus_usage_amount"
     }
 }
