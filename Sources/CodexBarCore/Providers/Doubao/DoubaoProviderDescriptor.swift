@@ -53,6 +53,29 @@ struct DoubaoAPIFetchStrategy: ProviderFetchStrategy {
         guard let apiKey = Self.resolveToken(environment: context.env) else {
             throw DoubaoUsageError.missingCredentials
         }
+
+        // Try Volcengine console GetCodingPlanUsage first — it carries real
+        // session/weekly/monthly quotas. Fall back to chat-completion probe
+        // when cookies are missing / expired.
+        #if os(macOS)
+        do {
+            let consoleResult = try await DoubaoConsoleFetcher.fetch(
+                browserDetection: BrowserDetection(cacheTTL: 0))
+            let snapshot = DoubaoUsageSnapshot(
+                remainingRequests: 0,
+                limitRequests: 0,
+                resetTime: consoleResult.quotas.first?.resetAt,
+                updatedAt: consoleResult.updatedAt,
+                apiKeyValid: true,
+                codingPlanQuotas: consoleResult.quotas)
+            return self.makeResult(
+                usage: snapshot.toUsageSnapshot(),
+                sourceLabel: "console")
+        } catch {
+            Self.consoleLog.debug("Doubao console fetch failed, falling back: \(error)")
+        }
+        #endif
+
         let usage = try await DoubaoUsageFetcher.fetchUsage(apiKey: apiKey)
         let accumulated = await LocalUsageTracker.shared.record(
             provider: .doubao,
@@ -62,6 +85,10 @@ struct DoubaoAPIFetchStrategy: ProviderFetchStrategy {
             usage: usage.toUsageSnapshot(accumulated: accumulated),
             sourceLabel: "api")
     }
+
+    #if os(macOS)
+    private static let consoleLog = CodexBarLog.logger(LogCategories.doubaoUsage)
+    #endif
 
     func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {
         false
