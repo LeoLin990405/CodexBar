@@ -880,7 +880,8 @@ extension UsageStore {
                     let source = resolution?.source.rawValue ?? "none"
                     return "WARP_API_KEY=\(hasAny ? "present" : "missing") source=\(source)"
                 case .gemini, .antigravity, .opencode, .opencodego, .factory, .copilot, .vertexai, .kilo, .kiro, .kimi,
-                     .kimik2, .jetbrains, .perplexity, .abacus:
+                     .kimik2, .jetbrains, .perplexity, .abacus,
+                     .qwen, .doubao, .stepfun, .trae, .mimo, .zenmux, .aigocode:
                     return unimplementedDebugLogMessages[provider] ?? "Debug log not yet implemented"
                 }
             }

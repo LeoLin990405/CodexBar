@@ -39,6 +39,13 @@ enum ProviderImplementationRegistry {
         case .warp: WarpProviderImplementation()
         case .perplexity: PerplexityProviderImplementation()
         case .abacus: AbacusProviderImplementation()
+        case .qwen: QwenProviderImplementation()
+        case .doubao: DoubaoProviderImplementation()
+        case .stepfun: StepFunProviderImplementation()
+        case .trae: TraeProviderImplementation()
+        case .mimo: MiMoProviderImplementation()
+        case .zenmux: ZenmuxProviderImplementation()
+        case .aigocode: AigoCodeProviderImplementation()
         }
     }
 

@@ -286,7 +286,14 @@ struct MenuDescriptor {
                 entries.append(.text("Activity: \(detail)", .secondary))
             }
         } else if let loginMethodText, !loginMethodText.isEmpty {
-            entries.append(.text("Plan: \(AccountFormatter.plan(loginMethodText))", .secondary))
+            let balancePrefix = "Balance:"
+            if loginMethodText.hasPrefix(balancePrefix) {
+                let balanceValue = loginMethodText.dropFirst(balancePrefix.count)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                entries.append(.text("Balance: \(balanceValue)", .secondary))
+            } else {
+                entries.append(.text("Plan: \(AccountFormatter.plan(loginMethodText))", .secondary))
+            }
         }
 
         if metadata.usesAccountFallback {
