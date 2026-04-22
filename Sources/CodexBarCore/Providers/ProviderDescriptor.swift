@@ -79,6 +79,13 @@ public enum ProviderDescriptorRegistry {
         .warp: WarpProviderDescriptor.descriptor,
         .perplexity: PerplexityProviderDescriptor.descriptor,
         .abacus: AbacusProviderDescriptor.descriptor,
+        .qwen: QwenProviderDescriptor.descriptor,
+        .doubao: DoubaoProviderDescriptor.descriptor,
+        .stepfun: StepFunProviderDescriptor.descriptor,
+        .trae: TraeProviderDescriptor.descriptor,
+        .mimo: MiMoProviderDescriptor.descriptor,
+        .zenmux: ZenmuxProviderDescriptor.descriptor,
+        .aigocode: AigoCodeProviderDescriptor.descriptor,
     ]
     private static let bootstrap: Void = {
         for provider in UsageProvider.allCases {

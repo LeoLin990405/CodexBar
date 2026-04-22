@@ -29,6 +29,13 @@ public enum UsageProvider: String, CaseIterable, Sendable, Codable {
     case openrouter
     case perplexity
     case abacus
+    case qwen
+    case doubao
+    case stepfun
+    case trae
+    case mimo
+    case zenmux
+    case aigocode
 }
 
 // swiftformat:enable sortDeclarations
@@ -60,6 +67,13 @@ public enum IconStyle: Sendable, CaseIterable {
     case openrouter
     case perplexity
     case abacus
+    case qwen
+    case doubao
+    case stepfun
+    case trae
+    case mimo
+    case zenmux
+    case aigocode
     case combined
 }
 
@@ -80,11 +94,8 @@ public struct ProviderMetadata: Sendable {
     public let browserCookieOrder: BrowserCookieImportOrder?
     public let dashboardURL: String?
     public let subscriptionDashboardURL: String?
-    /// Statuspage.io base URL for incident polling (append /api/v2/status.json).
     public let statusPageURL: String?
-    /// Browser-only status link (no API polling); used when statusPageURL is nil.
     public let statusLinkURL: String?
-    /// Google Workspace product ID for status polling (appsstatus dashboard).
     public let statusWorkspaceProductID: String?
 
     public init(
@@ -145,7 +156,6 @@ public enum ProviderBrowserCookieDefaults {
         #endif
     }
 
-    /// Safari first for Cursor: active sessions often live only there, and Chromium profiles may carry stale tokens.
     public static var cursorCookieImportOrder: BrowserCookieImportOrder? {
         #if os(macOS)
         [.safari] + Browser.defaultImportOrder.filter { $0 != .safari }
@@ -154,8 +164,6 @@ public enum ProviderBrowserCookieDefaults {
         #endif
     }
 
-    /// Preserve the legacy Codex prompt behavior: prefer Safari/Chrome/Firefox before
-    /// probing additional Chromium variants that may trigger Safe Storage prompts.
     public static var codexCookieImportOrder: BrowserCookieImportOrder? {
         #if os(macOS)
         let preferredPrefix: [Browser] = [.safari, .chrome, .firefox]

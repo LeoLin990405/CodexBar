@@ -192,6 +192,90 @@ public enum ProviderTokenResolver {
         return value.isEmpty ? nil : value
     }
 
+    public static func qwenToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.qwenResolution(environment: environment)?.token
+    }
+
+    public static func doubaoToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.doubaoResolution(environment: environment)?.token
+    }
+
+    public static func stepfunToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.stepfunResolution(environment: environment)?.token
+    }
+
+    public static func traeToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.traeResolution(environment: environment)?.token
+    }
+
+    public static func mimoToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.mimoResolution(environment: environment)?.token
+    }
+
+    public static func zenmuxToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.zenmuxResolution(environment: environment)?.token
+    }
+
+    public static func aigocodeToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.aigocodeResolution(environment: environment)?.token
+    }
+
+    public static func qwenResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(QwenSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func doubaoResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(DoubaoSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func stepfunResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(StepFunSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func traeResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(TraeSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func mimoResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(MiMoSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func zenmuxResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(ZenmuxSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func aigocodeResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(AigoCodeSettingsReader.apiKey(environment: environment))
+    }
+
     private static func resolveEnv(_ token: String?) -> ProviderTokenResolution? {
         guard let token else { return nil }
         return ProviderTokenResolution(token: token, source: .environment)

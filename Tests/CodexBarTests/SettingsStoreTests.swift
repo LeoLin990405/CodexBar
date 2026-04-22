@@ -6,6 +6,7 @@ import Testing
 
 @Suite(.serialized)
 @MainActor
+// swiftlint:disable:next type_body_length
 struct SettingsStoreTests {
     private final class ObservationFlag: @unchecked Sendable {
         private let lock = NSLock()
@@ -912,6 +913,13 @@ struct SettingsStoreTests {
             .openrouter,
             .perplexity,
             .abacus,
+            .qwen,
+            .doubao,
+            .stepfun,
+            .trae,
+            .mimo,
+            .zenmux,
+            .aigocode,
         ])
 
         // Move one provider; ensure it's persisted across instances.

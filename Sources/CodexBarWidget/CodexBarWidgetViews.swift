@@ -283,6 +283,13 @@ private struct ProviderSwitchChip: View {
         case .warp: "Warp"
         case .perplexity: "Pplx"
         case .abacus: "Abacus"
+        case .qwen: "Qwen"
+        case .doubao: "Doubao"
+        case .stepfun: "StepFun"
+        case .trae: "Trae"
+        case .mimo: "MiMo"
+        case .zenmux: "Zenmux"
+        case .aigocode: "AigoCode"
         }
     }
 }
@@ -644,6 +651,20 @@ enum WidgetColors {
             Color(red: 32 / 255, green: 178 / 255, blue: 170 / 255) // Perplexity teal
         case .abacus:
             Color(red: 56 / 255, green: 189 / 255, blue: 248 / 255)
+        case .qwen:
+            Color(red: 106 / 255, green: 58 / 255, blue: 255 / 255)
+        case .doubao:
+            Color(red: 51 / 255, green: 112 / 255, blue: 255 / 255)
+        case .stepfun:
+            Color(red: 0.5, green: 0.5, blue: 0.5)
+        case .trae:
+            Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255)
+        case .mimo:
+            Color(red: 1.0, green: 105 / 255, blue: 0)
+        case .zenmux:
+            Color(red: 0.5, green: 0.5, blue: 0.5)
+        case .aigocode:
+            Color(red: 0.5, green: 0.5, blue: 0.5)
         }
     }
 }

@@ -21,7 +21,14 @@ public struct ProviderSettingsSnapshot: Sendable {
         ollama: OllamaProviderSettings? = nil,
         jetbrains: JetBrainsProviderSettings? = nil,
         perplexity: PerplexityProviderSettings? = nil,
-        abacus: AbacusProviderSettings? = nil) -> ProviderSettingsSnapshot
+        abacus: AbacusProviderSettings? = nil,
+        mimo: MiMoProviderSettings? = nil,
+        qwen: QwenProviderSettings? = nil,
+        doubao: DoubaoProviderSettings? = nil,
+        stepfun: StepFunProviderSettings? = nil,
+        trae: TraeProviderSettings? = nil,
+        zenmux: ZenmuxProviderSettings? = nil,
+        aigocode: AigoCodeProviderSettings? = nil) -> ProviderSettingsSnapshot
     {
         ProviderSettingsSnapshot(
             debugMenuEnabled: debugMenuEnabled,
@@ -43,7 +50,14 @@ public struct ProviderSettingsSnapshot: Sendable {
             ollama: ollama,
             jetbrains: jetbrains,
             perplexity: perplexity,
-            abacus: abacus)
+            abacus: abacus,
+            mimo: mimo,
+            qwen: qwen,
+            doubao: doubao,
+            stepfun: stepfun,
+            trae: trae,
+            zenmux: zenmux,
+            aigocode: aigocode)
     }
 
     public struct CodexProviderSettings: Sendable {
@@ -186,6 +200,16 @@ public struct ProviderSettingsSnapshot: Sendable {
         }
     }
 
+    public struct MiMoProviderSettings: Sendable {
+        public let cookieSource: ProviderCookieSource
+        public let manualCookieHeader: String?
+
+        public init(cookieSource: ProviderCookieSource, manualCookieHeader: String?) {
+            self.cookieSource = cookieSource
+            self.manualCookieHeader = manualCookieHeader
+        }
+    }
+
     public struct AugmentProviderSettings: Sendable {
         public let cookieSource: ProviderCookieSource
         public let manualCookieHeader: String?
@@ -244,6 +268,66 @@ public struct ProviderSettingsSnapshot: Sendable {
         }
     }
 
+    public struct QwenProviderSettings: Sendable {
+        public let cookieSource: ProviderCookieSource
+        public let manualCookieHeader: String?
+
+        public init(cookieSource: ProviderCookieSource, manualCookieHeader: String?) {
+            self.cookieSource = cookieSource
+            self.manualCookieHeader = manualCookieHeader
+        }
+    }
+
+    public struct DoubaoProviderSettings: Sendable {
+        public let cookieSource: ProviderCookieSource
+        public let manualCookieHeader: String?
+
+        public init(cookieSource: ProviderCookieSource, manualCookieHeader: String?) {
+            self.cookieSource = cookieSource
+            self.manualCookieHeader = manualCookieHeader
+        }
+    }
+
+    public struct StepFunProviderSettings: Sendable {
+        public let cookieSource: ProviderCookieSource
+        public let manualCookieHeader: String?
+
+        public init(cookieSource: ProviderCookieSource, manualCookieHeader: String?) {
+            self.cookieSource = cookieSource
+            self.manualCookieHeader = manualCookieHeader
+        }
+    }
+
+    public struct TraeProviderSettings: Sendable {
+        public let cookieSource: ProviderCookieSource
+        public let manualCookieHeader: String?
+
+        public init(cookieSource: ProviderCookieSource, manualCookieHeader: String?) {
+            self.cookieSource = cookieSource
+            self.manualCookieHeader = manualCookieHeader
+        }
+    }
+
+    public struct ZenmuxProviderSettings: Sendable {
+        public let cookieSource: ProviderCookieSource
+        public let manualCookieHeader: String?
+
+        public init(cookieSource: ProviderCookieSource, manualCookieHeader: String?) {
+            self.cookieSource = cookieSource
+            self.manualCookieHeader = manualCookieHeader
+        }
+    }
+
+    public struct AigoCodeProviderSettings: Sendable {
+        public let cookieSource: ProviderCookieSource
+        public let manualCookieHeader: String?
+
+        public init(cookieSource: ProviderCookieSource, manualCookieHeader: String?) {
+            self.cookieSource = cookieSource
+            self.manualCookieHeader = manualCookieHeader
+        }
+    }
+
     public let debugMenuEnabled: Bool
     public let debugKeepCLISessionsAlive: Bool
     public let codex: CodexProviderSettings?
@@ -264,6 +348,13 @@ public struct ProviderSettingsSnapshot: Sendable {
     public let jetbrains: JetBrainsProviderSettings?
     public let perplexity: PerplexityProviderSettings?
     public let abacus: AbacusProviderSettings?
+    public let mimo: MiMoProviderSettings?
+    public let qwen: QwenProviderSettings?
+    public let doubao: DoubaoProviderSettings?
+    public let stepfun: StepFunProviderSettings?
+    public let trae: TraeProviderSettings?
+    public let zenmux: ZenmuxProviderSettings?
+    public let aigocode: AigoCodeProviderSettings?
 
     public var jetbrainsIDEBasePath: String? {
         self.jetbrains?.ideBasePath
@@ -289,7 +380,14 @@ public struct ProviderSettingsSnapshot: Sendable {
         ollama: OllamaProviderSettings?,
         jetbrains: JetBrainsProviderSettings? = nil,
         perplexity: PerplexityProviderSettings? = nil,
-        abacus: AbacusProviderSettings? = nil)
+        abacus: AbacusProviderSettings? = nil,
+        mimo: MiMoProviderSettings? = nil,
+        qwen: QwenProviderSettings? = nil,
+        doubao: DoubaoProviderSettings? = nil,
+        stepfun: StepFunProviderSettings? = nil,
+        trae: TraeProviderSettings? = nil,
+        zenmux: ZenmuxProviderSettings? = nil,
+        aigocode: AigoCodeProviderSettings? = nil)
     {
         self.debugMenuEnabled = debugMenuEnabled
         self.debugKeepCLISessionsAlive = debugKeepCLISessionsAlive
@@ -311,6 +409,13 @@ public struct ProviderSettingsSnapshot: Sendable {
         self.jetbrains = jetbrains
         self.perplexity = perplexity
         self.abacus = abacus
+        self.mimo = mimo
+        self.qwen = qwen
+        self.doubao = doubao
+        self.stepfun = stepfun
+        self.trae = trae
+        self.zenmux = zenmux
+        self.aigocode = aigocode
     }
 }
 
@@ -333,6 +438,13 @@ public enum ProviderSettingsSnapshotContribution: Sendable {
     case jetbrains(ProviderSettingsSnapshot.JetBrainsProviderSettings)
     case perplexity(ProviderSettingsSnapshot.PerplexityProviderSettings)
     case abacus(ProviderSettingsSnapshot.AbacusProviderSettings)
+    case mimo(ProviderSettingsSnapshot.MiMoProviderSettings)
+    case qwen(ProviderSettingsSnapshot.QwenProviderSettings)
+    case doubao(ProviderSettingsSnapshot.DoubaoProviderSettings)
+    case stepfun(ProviderSettingsSnapshot.StepFunProviderSettings)
+    case trae(ProviderSettingsSnapshot.TraeProviderSettings)
+    case zenmux(ProviderSettingsSnapshot.ZenmuxProviderSettings)
+    case aigocode(ProviderSettingsSnapshot.AigoCodeProviderSettings)
 }
 
 public struct ProviderSettingsSnapshotBuilder: Sendable {
@@ -356,12 +468,20 @@ public struct ProviderSettingsSnapshotBuilder: Sendable {
     public var jetbrains: ProviderSettingsSnapshot.JetBrainsProviderSettings?
     public var perplexity: ProviderSettingsSnapshot.PerplexityProviderSettings?
     public var abacus: ProviderSettingsSnapshot.AbacusProviderSettings?
+    public var mimo: ProviderSettingsSnapshot.MiMoProviderSettings?
+    public var qwen: ProviderSettingsSnapshot.QwenProviderSettings?
+    public var doubao: ProviderSettingsSnapshot.DoubaoProviderSettings?
+    public var stepfun: ProviderSettingsSnapshot.StepFunProviderSettings?
+    public var trae: ProviderSettingsSnapshot.TraeProviderSettings?
+    public var zenmux: ProviderSettingsSnapshot.ZenmuxProviderSettings?
+    public var aigocode: ProviderSettingsSnapshot.AigoCodeProviderSettings?
 
     public init(debugMenuEnabled: Bool = false, debugKeepCLISessionsAlive: Bool = false) {
         self.debugMenuEnabled = debugMenuEnabled
         self.debugKeepCLISessionsAlive = debugKeepCLISessionsAlive
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
     public mutating func apply(_ contribution: ProviderSettingsSnapshotContribution) {
         switch contribution {
         case let .codex(value): self.codex = value
@@ -382,6 +502,13 @@ public struct ProviderSettingsSnapshotBuilder: Sendable {
         case let .jetbrains(value): self.jetbrains = value
         case let .perplexity(value): self.perplexity = value
         case let .abacus(value): self.abacus = value
+        case let .mimo(value): self.mimo = value
+        case let .qwen(value): self.qwen = value
+        case let .doubao(value): self.doubao = value
+        case let .stepfun(value): self.stepfun = value
+        case let .trae(value): self.trae = value
+        case let .zenmux(value): self.zenmux = value
+        case let .aigocode(value): self.aigocode = value
         }
     }
 
@@ -406,6 +533,13 @@ public struct ProviderSettingsSnapshotBuilder: Sendable {
             ollama: self.ollama,
             jetbrains: self.jetbrains,
             perplexity: self.perplexity,
-            abacus: self.abacus)
+            abacus: self.abacus,
+            mimo: self.mimo,
+            qwen: self.qwen,
+            doubao: self.doubao,
+            stepfun: self.stepfun,
+            trae: self.trae,
+            zenmux: self.zenmux,
+            aigocode: self.aigocode)
     }
 }
