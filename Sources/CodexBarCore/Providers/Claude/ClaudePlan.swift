@@ -114,6 +114,9 @@ public enum ClaudePlan: String, CaseIterable, Sendable {
 
     private static func fromRateLimitTier(_ rateLimitTier: String?) -> Self? {
         let tier = Self.normalized(rateLimitTier)
+        if tier.contains("ultra") {
+            return .ultra
+        }
         if tier.contains("max") {
             return .max
         }

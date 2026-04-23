@@ -3,6 +3,7 @@ import Testing
 @testable import CodexBar
 @testable import CodexBarCore
 
+// swiftlint:disable:next type_body_length
 struct ClaudeUsageTests {
     private actor AsyncCounter {
         private var value = 0
@@ -703,6 +704,38 @@ struct ClaudeUsageTests {
         let parsed = try ClaudeWebAPIFetcher._parseUsageResponseForTesting(data)
         #expect(parsed.sessionPercentUsed == 9)
         #expect(parsed.weeklyPercentUsed == nil)
+    }
+
+    @Test
+    func `parses claude web API usage response with fractional utilization`() throws {
+        let json = """
+        {
+          "five_hour": { "utilization": 8.5, "resets_at": "2025-12-23T16:00:00.000Z" },
+          "seven_day": { "utilization": 3.75, "resets_at": "2025-12-29T23:00:00.000Z" },
+          "seven_day_opus": { "utilization": 1.25 }
+        }
+        """
+        let data = Data(json.utf8)
+        let parsed = try ClaudeWebAPIFetcher._parseUsageResponseForTesting(data)
+        #expect(parsed.sessionPercentUsed == 8.5)
+        #expect(parsed.weeklyPercentUsed == 3.75)
+        #expect(parsed.opusPercentUsed == 1.25)
+    }
+
+    @Test
+    func `parses claude web API usage response with sonnet key`() throws {
+        let json = """
+        {
+          "five_hour": { "utilization": 5, "resets_at": "2025-12-23T16:00:00.000Z" },
+          "seven_day": { "utilization": 15, "resets_at": "2025-12-29T23:00:00.000Z" },
+          "seven_day_sonnet": { "utilization": 7 }
+        }
+        """
+        let data = Data(json.utf8)
+        let parsed = try ClaudeWebAPIFetcher._parseUsageResponseForTesting(data)
+        #expect(parsed.sessionPercentUsed == 5)
+        #expect(parsed.weeklyPercentUsed == 15)
+        #expect(parsed.opusPercentUsed == 7)
     }
 
     @Test

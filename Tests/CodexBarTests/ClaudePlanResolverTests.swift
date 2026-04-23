@@ -9,6 +9,8 @@ struct ClaudePlanResolverTests {
         #expect(ClaudePlan.oauthLoginMethod(rateLimitTier: "claude_pro") == "Claude Pro")
         #expect(ClaudePlan.oauthLoginMethod(rateLimitTier: "claude_team") == "Claude Team")
         #expect(ClaudePlan.oauthLoginMethod(rateLimitTier: "claude_enterprise") == "Claude Enterprise")
+        #expect(ClaudePlan.oauthLoginMethod(rateLimitTier: "claude_ultra") == "Claude Ultra")
+        #expect(ClaudePlan.oauthLoginMethod(rateLimitTier: "default_claude_ultra_50x") == "Claude Ultra")
     }
 
     @Test
