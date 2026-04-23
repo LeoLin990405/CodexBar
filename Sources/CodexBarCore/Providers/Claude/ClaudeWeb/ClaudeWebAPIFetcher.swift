@@ -456,8 +456,8 @@ public enum ClaudeWebAPIFetcher {
         var sessionPercent: Double?
         var sessionResets: Date?
         if let fiveHour = json["five_hour"] as? [String: Any] {
-            if let utilization = fiveHour["utilization"] as? Int {
-                sessionPercent = Double(utilization)
+            if let utilization = fiveHour["utilization"] as? NSNumber {
+                sessionPercent = utilization.doubleValue
             }
             if let resetsAt = fiveHour["resets_at"] as? String {
                 sessionResets = self.parseISO8601Date(resetsAt)
@@ -472,19 +472,23 @@ public enum ClaudeWebAPIFetcher {
         var weeklyPercent: Double?
         var weeklyResets: Date?
         if let sevenDay = json["seven_day"] as? [String: Any] {
-            if let utilization = sevenDay["utilization"] as? Int {
-                weeklyPercent = Double(utilization)
+            if let utilization = sevenDay["utilization"] as? NSNumber {
+                weeklyPercent = utilization.doubleValue
             }
             if let resetsAt = sevenDay["resets_at"] as? String {
                 weeklyResets = self.parseISO8601Date(resetsAt)
             }
         }
 
-        // Parse seven_day_opus (Opus-specific weekly) usage
+        // Parse Opus/Sonnet-specific weekly usage
         var opusPercent: Double?
-        if let sevenDayOpus = json["seven_day_opus"] as? [String: Any] {
-            if let utilization = sevenDayOpus["utilization"] as? Int {
-                opusPercent = Double(utilization)
+        let opusCandidates = ["seven_day_opus", "seven_day_sonnet", "seven_day_sonnet_only"]
+        for key in opusCandidates {
+            if let window = json[key] as? [String: Any],
+               let utilization = window["utilization"] as? NSNumber
+            {
+                opusPercent = utilization.doubleValue
+                break
             }
         }
 
