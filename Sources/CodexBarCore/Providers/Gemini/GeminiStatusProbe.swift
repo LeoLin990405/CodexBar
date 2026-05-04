@@ -747,7 +747,35 @@ public struct GeminiStatusProbe: Sendable {
         return discoveredPaths
     }
 
+    public static func resolveOAuthFileContent(from geminiPath: String) -> String? {
+        let resolvedGeminiPath = URL(fileURLWithPath: geminiPath).resolvingSymlinksInPath().path
+        return Self.resolveOAuthFileContentFromLegacyPaths(realGeminiPath: resolvedGeminiPath)
+            ?? Self.resolveOAuthFileContentFromLegacyPaths(realGeminiPath: geminiPath)
+    }
+
     private static func extractOAuthCredentialsFromLegacyPaths(realGeminiPath: String) -> OAuthClientCredentials? {
+        for path in Self.legacyOAuthFileCandidatePaths(realGeminiPath: realGeminiPath) {
+            if let content = try? String(contentsOfFile: path, encoding: .utf8),
+               let credentials = Self.parseOAuthCredentials(from: content)
+            {
+                return credentials
+            }
+        }
+
+        return nil
+    }
+
+    private static func resolveOAuthFileContentFromLegacyPaths(realGeminiPath: String) -> String? {
+        for path in Self.legacyOAuthFileCandidatePaths(realGeminiPath: realGeminiPath) {
+            if let content = try? String(contentsOfFile: path, encoding: .utf8) {
+                return content
+            }
+        }
+
+        return nil
+    }
+
+    private static func legacyOAuthFileCandidatePaths(realGeminiPath: String) -> [String] {
         let binDir = (realGeminiPath as NSString).deletingLastPathComponent
         let baseDir = (binDir as NSString).deletingLastPathComponent
 
@@ -767,16 +795,7 @@ public struct GeminiStatusProbe: Sendable {
             // npm nested inside gemini-cli
             "\(baseDir)/node_modules/@google/gemini-cli-core/\(oauthFile)",
         ]
-
-        for path in possiblePaths {
-            if let content = try? String(contentsOfFile: path, encoding: .utf8),
-               let credentials = Self.parseOAuthCredentials(from: content)
-            {
-                return credentials
-            }
-        }
-
-        return nil
+        return possiblePaths
     }
 
     private static func parseOAuthCredentials(from content: String) -> OAuthClientCredentials? {
