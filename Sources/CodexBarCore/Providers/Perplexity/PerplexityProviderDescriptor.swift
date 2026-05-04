@@ -33,12 +33,141 @@ public enum PerplexityProviderDescriptor {
                 supportsTokenCost: false,
                 noDataMessage: { "Perplexity cost tracking is not supported." }),
             fetchPlan: ProviderFetchPlan(
-                sourceModes: [.auto, .web],
-                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [PerplexityWebFetchStrategy()] })),
+                sourceModes: [.auto, .web, .api],
+                pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),
             cli: ProviderCLIConfig(
                 name: "perplexity",
                 aliases: [],
                 versionDetector: nil))
+    }
+
+    private static func resolveStrategies(context: ProviderFetchContext) async -> [any ProviderFetchStrategy] {
+        switch context.sourceMode {
+        case .api:
+            return [PerplexitySessionFetchStrategy()]
+        case .web:
+            return [PerplexityWebFetchStrategy()]
+        case .auto:
+            return [PerplexitySessionFetchStrategy(), PerplexityWebFetchStrategy()]
+        case .cli, .oauth:
+            return []
+        }
+    }
+}
+
+struct PerplexitySessionFetchStrategy: ProviderFetchStrategy {
+    private struct ResolvedSessionCookie {
+        let value: PerplexityCookieOverride
+        let source: SessionCookieSource
+    }
+
+    private enum SessionCookieSource {
+        case manual
+        case cache
+        case environment
+    }
+
+    let id: String = "perplexity.session"
+    let kind: ProviderFetchKind = .apiToken
+
+    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
+        guard context.settings?.perplexity?.cookieSource != .off else { return false }
+        if context.settings?.perplexity?.cookieSource == .manual { return true }
+        if PerplexityCookieHeader.resolveCookieOverride(context: context) != nil { return true }
+        if CookieHeaderCache.load(provider: .perplexity) != nil { return true }
+        return PerplexitySettingsReader.sessionToken(environment: context.env) != nil
+    }
+
+    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
+        let resolvedCookies = try self.resolveSessionCookies(context: context)
+        guard !resolvedCookies.isEmpty else {
+            throw PerplexityAPIError.missingToken
+        }
+
+        var sawInvalidToken = false
+        for resolvedCookie in resolvedCookies {
+            do {
+                let snapshot = try await self.fetchSnapshot(using: resolvedCookie.value)
+                return self.makeResult(
+                    usage: snapshot.toUsageSnapshot(),
+                    sourceLabel: "session")
+            } catch PerplexityAPIError.invalidToken {
+                sawInvalidToken = true
+                if resolvedCookie.source == .cache {
+                    CookieHeaderCache.clear(provider: .perplexity)
+                }
+                continue
+            }
+        }
+
+        if sawInvalidToken {
+            throw PerplexityAPIError.invalidToken
+        }
+        throw PerplexityAPIError.missingToken
+    }
+
+    func shouldFallback(on error: Error, context: ProviderFetchContext) -> Bool {
+        guard context.sourceMode != .api else { return false }
+        if case PerplexityAPIError.missingToken = error { return true }
+        if case PerplexityAPIError.invalidCookie = error { return true }
+        if case PerplexityAPIError.invalidToken = error { return true }
+        return true
+    }
+
+    private func resolveSessionCookies(context: ProviderFetchContext) throws -> [ResolvedSessionCookie] {
+        guard context.settings?.perplexity?.cookieSource != .off else { return [] }
+
+        if context.settings?.perplexity?.cookieSource == .manual {
+            guard let override = PerplexityCookieHeader.resolveCookieOverride(context: context) else {
+                throw PerplexityAPIError.invalidCookie
+            }
+            return [ResolvedSessionCookie(value: override, source: .manual)]
+        }
+
+        var cookies: [ResolvedSessionCookie] = []
+        if let override = PerplexityCookieHeader.resolveCookieOverride(context: context) {
+            cookies.append(ResolvedSessionCookie(value: override, source: .manual))
+        }
+        if let cached = CookieHeaderCache.load(provider: .perplexity),
+           let override = PerplexityCookieHeader.override(from: cached.cookieHeader)
+        {
+            cookies.append(ResolvedSessionCookie(value: override, source: .cache))
+        }
+        if let cookie = PerplexitySettingsReader.sessionCookieOverride(environment: context.env) {
+            cookies.append(ResolvedSessionCookie(value: cookie, source: .environment))
+        }
+
+        return self.deduplicatedSessionCookies(cookies)
+    }
+
+    private func fetchSnapshot(using cookie: PerplexityCookieOverride) async throws -> PerplexityUsageSnapshot {
+        var lastInvalidToken = false
+        for cookieName in cookie.requestCookieNames {
+            do {
+                return try await PerplexityUsageFetcher.fetchCredits(
+                    sessionToken: cookie.token,
+                    cookieName: cookieName)
+            } catch PerplexityAPIError.invalidToken {
+                lastInvalidToken = true
+                continue
+            }
+        }
+
+        if lastInvalidToken {
+            throw PerplexityAPIError.invalidToken
+        }
+        throw PerplexityAPIError.missingToken
+    }
+
+    private func deduplicatedSessionCookies(_ cookies: [ResolvedSessionCookie]) -> [ResolvedSessionCookie] {
+        var deduplicated: [ResolvedSessionCookie] = []
+        for cookie in cookies {
+            if deduplicated.contains(where: { $0.value.token == cookie.value.token }) {
+                continue
+            }
+            deduplicated.append(cookie)
+        }
+        return deduplicated
     }
 }
 
@@ -66,6 +195,7 @@ struct PerplexityWebFetchStrategy: ProviderFetchStrategy {
 
     let id: String = "perplexity.web"
     let kind: ProviderFetchKind = .web
+    let backgroundPolicy: ProviderFetchBackgroundPolicy = .userInitiatedOnly
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {
         guard context.settings?.perplexity?.cookieSource != .off else { return false }

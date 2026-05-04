@@ -57,6 +57,11 @@ public enum MiniMaxProviderDescriptor {
             apiToken: apiToken,
             cookieHeader: ProviderTokenResolver.minimaxCookie(environment: context.env))
         if authMode.usesAPIToken {
+            if ProviderInteractionContext.current == .background,
+               apiKeyKind != .standard
+            {
+                return [MiniMaxAPIFetchStrategy()]
+            }
             if apiKeyKind == .standard {
                 return [MiniMaxCodingPlanFetchStrategy()]
             }

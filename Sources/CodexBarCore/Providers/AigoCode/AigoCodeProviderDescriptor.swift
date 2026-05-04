@@ -35,7 +35,14 @@ public enum AigoCodeProviderDescriptor {
                 sourceModes: [.auto, .web, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { context in
                     var strategies: [any ProviderFetchStrategy] = []
-                    // Prefer web dashboard when available (works without API key)
+                    let hasAPIToken = ProviderTokenResolver.aigocodeToken(environment: context.env) != nil
+                    if ProviderInteractionContext.current == .background,
+                       context.sourceMode == .auto,
+                       hasAPIToken
+                    {
+                        return [AigoCodeAPIFetchStrategy()]
+                    }
+                    // Prefer web dashboard when available (works without API key).
                     #if os(macOS)
                     if context.sourceMode.usesWeb || context.sourceMode == .auto {
                         strategies.append(AigoCodeWebDashboardFetchStrategy())

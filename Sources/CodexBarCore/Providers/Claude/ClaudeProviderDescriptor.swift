@@ -154,6 +154,22 @@ private struct ClaudePlannedFetchStrategy: ProviderFetchStrategy {
         self.base.kind
     }
 
+    var backgroundPolicy: ProviderFetchBackgroundPolicy {
+        self.base.backgroundPolicy
+    }
+
+    var requiresBrowserSession: Bool {
+        self.base.requiresBrowserSession
+    }
+
+    var requiresKeychainAccess: Bool {
+        self.base.requiresKeychainAccess
+    }
+
+    var minimumBackgroundRefreshInterval: TimeInterval? {
+        self.base.minimumBackgroundRefreshInterval
+    }
+
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {
         if context.sourceMode == .auto {
             return self.plannedStep.isPlausiblyAvailable

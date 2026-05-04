@@ -72,7 +72,7 @@ final class AugmentProviderRuntime: ProviderRuntime {
         let onSessionRecovered: () async -> Void = { [weak store = context.store] in
             guard let store else { return }
             store.augmentLogger.info("Augment session recovered; refreshing usage")
-            await store.refreshProvider(.augment)
+            await store.requestProviderRefresh(.augment, reason: .runtimeSignal)
         }
 
         self.keepalive = AugmentSessionKeepalive(logger: logger, onSessionRecovered: onSessionRecovered)
@@ -101,12 +101,13 @@ final class AugmentProviderRuntime: ProviderRuntime {
                 return
             }
             await keepalive.forceRefresh()
+            await context.store.requestProviderRefresh(.augment, reason: .runtimeSignal, force: true)
             return
         }
 
         await keepalive.forceRefresh()
         context.store.augmentLogger.info("Refreshing Augment usage after session refresh")
-        await context.store.refreshProvider(.augment)
+        await context.store.requestProviderRefresh(.augment, reason: .runtimeSignal, force: true)
         #endif
     }
 }

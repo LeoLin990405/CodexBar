@@ -71,6 +71,12 @@ public enum AlibabaCodingPlanProviderDescriptor {
             break
         }
 
+        if ProviderInteractionContext.current == .background,
+           ProviderTokenResolver.alibabaToken(environment: context.env) != nil
+        {
+            return [AlibabaCodingPlanAPIFetchStrategy()]
+        }
+
         if context.settings?.alibaba?.cookieSource == .off {
             return [AlibabaCodingPlanAPIFetchStrategy()]
         }

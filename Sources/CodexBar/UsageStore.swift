@@ -75,7 +75,7 @@ extension UsageStore {
                 self.startTimer()
                 self.updateProviderRuntimes()
                 await self.refreshHistoricalDatasetIfNeeded()
-                await self.refresh()
+                await self.refresh(reason: .settingsChanged)
             }
         }
     }
@@ -192,6 +192,7 @@ final class UsageStore {
     @ObservationIgnored var providerSpecs: [UsageProvider: ProviderSpec] = [:]
     @ObservationIgnored let providerMetadata: [UsageProvider: ProviderMetadata]
     @ObservationIgnored var providerRuntimes: [UsageProvider: any ProviderRuntime] = [:]
+    @ObservationIgnored private let providerRefreshCoordinator = ProviderRefreshCoordinator()
     @ObservationIgnored private var timerTask: Task<Void, Never>?
     @ObservationIgnored private var tokenTimerTask: Task<Void, Never>?
     @ObservationIgnored private var tokenRefreshSequenceTask: Task<Void, Never>?
@@ -278,7 +279,7 @@ final class UsageStore {
         Task { @MainActor [weak self] in
             await self?.refreshHistoricalDatasetIfNeeded()
         }
-        Task { await self.refresh() }
+        Task { await self.refresh(reason: .startup) }
         self.startTimer()
         self.startTokenTimer()
     }
@@ -454,10 +455,15 @@ final class UsageStore {
         }
     }
 
-    func refresh(forceTokenUsage: Bool = false) async {
+    func refresh(
+        forceTokenUsage: Bool = false,
+        reason explicitReason: ProviderRefreshReason? = nil) async
+    {
         guard !self.isRefreshing else { return }
         self.prepareRefreshState()
         let refreshPhase: ProviderRefreshPhase = self.hasCompletedInitialRefresh ? .regular : .startup
+        let refreshReason: ProviderRefreshReason = explicitReason
+            ?? (self.hasCompletedInitialRefresh ? .timer : .startup)
         let displayEnabledProviders = self.enabledProvidersForDisplay()
         let enabledProviderSet = Set(displayEnabledProviders)
         let refreshProviders = self.enabledProvidersForBackgroundWork()
@@ -478,9 +484,13 @@ final class UsageStore {
 
             await withTaskGroup(of: Void.self) { group in
                 for provider in refreshProviders {
-                    group.addTask { await self.refreshProvider(provider) }
-                    if availableRefreshProviders.contains(provider) {
-                        group.addTask { await self.refreshStatus(provider) }
+                    let includeStatus = availableRefreshProviders.contains(provider)
+                    group.addTask {
+                        await self.refreshProviderThroughCoordinator(
+                            provider,
+                            reason: refreshReason,
+                            force: forceTokenUsage,
+                            includeStatus: includeStatus)
                     }
                 }
                 group.addTask { await self.refreshCreditsIfNeeded(minimumSnapshotUpdatedAt: refreshStartedAt) }
@@ -517,12 +527,84 @@ final class UsageStore {
             }
 
             if forceTokenUsage, self.openAIDashboardRequiresLogin {
-                await self.refreshProvider(.codex)
+                await self.refreshProviderThroughCoordinator(
+                    .codex,
+                    reason: .userInitiated,
+                    force: true,
+                    includeStatus: availableRefreshProviders.contains(.codex))
                 await self.refreshCreditsIfNeeded(minimumSnapshotUpdatedAt: refreshStartedAt)
             }
 
             self.persistWidgetSnapshot(reason: "refresh")
         }
+    }
+
+    func requestProviderRefresh(
+        _ provider: UsageProvider,
+        reason: ProviderRefreshReason = .runtimeSignal,
+        force: Bool = false,
+        includeStatus: Bool = true,
+        persistSnapshot: Bool = true) async
+    {
+        await self.refreshProviderThroughCoordinator(
+            provider,
+            reason: reason,
+            force: force,
+            includeStatus: includeStatus && self.enabledProviders().contains(provider))
+        if persistSnapshot {
+            self.persistWidgetSnapshot(reason: "provider-\(reason.rawValue)")
+        }
+    }
+
+    private func refreshProviderThroughCoordinator(
+        _ provider: UsageProvider,
+        reason: ProviderRefreshReason,
+        force: Bool,
+        includeStatus: Bool) async
+    {
+        let minimumInterval = await self.minimumBackgroundRefreshInterval(
+            for: provider,
+            reason: reason)
+        let admission = await self.providerRefreshCoordinator.begin(
+            provider: provider,
+            reason: reason,
+            force: force,
+            minimumInterval: minimumInterval)
+        guard admission == .run else { return }
+
+        await self.refreshProvider(provider)
+        if includeStatus {
+            await self.refreshStatus(provider)
+        }
+
+        let shouldReplay = await self.providerRefreshCoordinator.finish(provider: provider)
+        if shouldReplay {
+            await self.refreshProviderThroughCoordinator(
+                provider,
+                reason: .coalesced,
+                force: true,
+                includeStatus: includeStatus)
+        }
+    }
+
+    private func minimumBackgroundRefreshInterval(
+        for provider: UsageProvider,
+        reason: ProviderRefreshReason) async -> TimeInterval?
+    {
+        guard reason != .userInitiated,
+              ProviderInteractionContext.current != .userInitiated,
+              let spec = self.providerSpecs[provider]
+        else {
+            return nil
+        }
+
+        let context = spec.makeFetchContext()
+        let strategies = await spec.descriptor.fetchPlan.pipeline.resolveStrategies(context)
+        let intervals = strategies.compactMap { strategy -> TimeInterval? in
+            guard strategy.isAllowedForCurrentInteraction() else { return nil }
+            return strategy.minimumBackgroundRefreshInterval
+        }
+        return intervals.max()
     }
 
     /// For demo/testing: drop the snapshot so the loading animation plays, then restore the last snapshot.
@@ -553,7 +635,7 @@ final class UsageStore {
         self.timerTask = Task.detached(priority: .utility) { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(wait))
-                await self?.refresh()
+                await self?.refresh(reason: .timer)
             }
         }
     }

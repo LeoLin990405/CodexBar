@@ -67,6 +67,7 @@ struct TraeLocalFetchStrategy: ProviderFetchStrategy {
 struct TraeWebFetchStrategy: ProviderFetchStrategy {
     let id: String = "trae.web"
     let kind: ProviderFetchKind = .web
+    let backgroundPolicy: ProviderFetchBackgroundPolicy = .userInitiatedOnly
     private static let log = CodexBarLog.logger(LogCategories.traeWeb)
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {

@@ -33,7 +33,26 @@ public enum StepFunProviderDescriptor {
                 noDataMessage: { "StepFun cost summary is not available." }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api, .web],
-                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [StepFunWebFetchStrategy()] })),
+                pipeline: ProviderFetchPipeline(resolveStrategies: { context in
+                    switch context.sourceMode {
+                    case .web:
+                        #if os(macOS)
+                        return [StepFunWebDashboardFetchStrategy()]
+                        #else
+                        return []
+                        #endif
+                    case .api:
+                        return [StepFunAPIFetchStrategy()]
+                    case .auto:
+                        #if os(macOS)
+                        return [StepFunWebDashboardFetchStrategy(), StepFunAPIFetchStrategy()]
+                        #else
+                        return [StepFunAPIFetchStrategy()]
+                        #endif
+                    case .cli, .oauth:
+                        return []
+                    }
+                })),
             cli: ProviderCLIConfig(
                 name: "stepfun",
                 aliases: ["step", "stepfun-ai"],
@@ -41,13 +60,19 @@ public enum StepFunProviderDescriptor {
     }
 }
 
-struct StepFunWebFetchStrategy: ProviderFetchStrategy {
-    let id: String = "stepfun.web"
-    let kind: ProviderFetchKind = .web
+struct StepFunWebDashboardFetchStrategy: ProviderFetchStrategy {
+    let id: String = "stepfun.webDashboard"
+    let kind: ProviderFetchKind = .webDashboard
+    let backgroundPolicy: ProviderFetchBackgroundPolicy = .userInitiatedOnly
     private static let log = CodexBarLog.logger(LogCategories.stepfunUsage)
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {
-        // API key is always required for balance
+        guard context.sourceMode == .auto || context.sourceMode.usesWeb else {
+            return false
+        }
+        guard context.settings?.stepfun?.cookieSource != .off else {
+            return false
+        }
         guard Self.resolveAPIKey(environment: context.env) != nil else {
             return false
         }
@@ -59,46 +84,57 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
             throw StepFunUsageError.missingCredentials
         }
 
-        // Try WKWebView dashboard scraping for plan/rate limit data (like AigoCode)
         #if os(macOS)
-        var dashboardSnapshot: StepFunDashboardFetcher.DashboardSnapshot?
-        if context.settings?.stepfun?.cookieSource != .off {
-            do {
-                dashboardSnapshot = try await StepFunDashboardFetcher.fetchFromMainActor(timeout: 20)
-                Self.log.debug("Got StepFun plan data from WKWebView dashboard")
-            } catch {
-                Self.log.debug("StepFun dashboard fetch failed: \(error.localizedDescription)")
-            }
-        }
-        #endif
-
-        var dashData: StepFunUsageFetcher.DashboardData?
-        #if os(macOS)
-        if let ds = dashboardSnapshot {
-            dashData = StepFunUsageFetcher.DashboardData(
-                planName: ds.planName,
-                planExpiry: ds.planExpiry,
-                fiveHourLeftPercent: ds.fiveHourLeftPercent,
-                fiveHourResetTime: ds.fiveHourResetTime,
-                weeklyLeftPercent: ds.weeklyLeftPercent,
-                weeklyResetTime: ds.weeklyResetTime)
-        }
-        #endif
+        let dashboardSnapshot = try await StepFunDashboardFetcher.fetchFromMainActor(timeout: 20)
+        Self.log.debug("Got StepFun plan data from WKWebView dashboard")
+        let dashData = StepFunUsageFetcher.DashboardData(
+            planName: dashboardSnapshot.planName,
+            planExpiry: dashboardSnapshot.planExpiry,
+            fiveHourLeftPercent: dashboardSnapshot.fiveHourLeftPercent,
+            fiveHourResetTime: dashboardSnapshot.fiveHourResetTime,
+            weeklyLeftPercent: dashboardSnapshot.weeklyLeftPercent,
+            weeklyResetTime: dashboardSnapshot.weeklyResetTime)
 
         let snapshot = try await StepFunUsageFetcher.fetchUsage(
             apiKey: apiKey, dashboardData: dashData)
-        #if os(macOS)
         return self.makeResult(
             usage: snapshot.toUsageSnapshot(),
-            sourceLabel: dashboardSnapshot != nil ? "web+api" : "api")
+            sourceLabel: "web+api")
         #else
-        return self.makeResult(usage: snapshot.toUsageSnapshot(), sourceLabel: "api")
+        throw StepFunUsageError.missingCredentials
         #endif
     }
 
-    func shouldFallback(on error: Error, context _: ProviderFetchContext) -> Bool {
+    func shouldFallback(on error: Error, context: ProviderFetchContext) -> Bool {
         if case StepFunUsageError.missingCredentials = error { return false }
-        return true
+        return context.sourceMode == .auto
+    }
+
+    private static func resolveAPIKey(environment: [String: String]) -> String? {
+        ProviderTokenResolver.stepfunToken(environment: environment)
+    }
+}
+
+struct StepFunAPIFetchStrategy: ProviderFetchStrategy {
+    let id: String = "stepfun.api"
+    let kind: ProviderFetchKind = .apiToken
+
+    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
+        Self.resolveAPIKey(environment: context.env) != nil
+    }
+
+    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
+        guard let apiKey = Self.resolveAPIKey(environment: context.env) else {
+            throw StepFunUsageError.missingCredentials
+        }
+        let snapshot = try await StepFunUsageFetcher.fetchUsage(
+            apiKey: apiKey,
+            dashboardData: nil)
+        return self.makeResult(usage: snapshot.toUsageSnapshot(), sourceLabel: "api")
+    }
+
+    func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {
+        false
     }
 
     private static func resolveAPIKey(environment: [String: String]) -> String? {
