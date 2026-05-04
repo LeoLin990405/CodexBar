@@ -13,8 +13,8 @@ public struct KimiUsageSnapshot: Sendable {
         self.authToken = authToken
     }
 
-    private static func parseDate(_ dateString: String) -> Date? {
-        // Handle ISO 8601 format like: 2026-01-09T15:23:13.716839300Z
+    private static func parseDate(_ dateString: String?) -> Date? {
+        guard let dateString else { return nil }
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let date = formatter.date(from: dateString) {

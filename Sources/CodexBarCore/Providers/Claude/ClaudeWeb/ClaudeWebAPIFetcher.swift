@@ -351,7 +351,7 @@ public enum ClaudeWebAPIFetcher {
         for browserSource in installedBrowsers {
             do {
                 let query = BrowserCookieQuery(domains: cookieDomains)
-                let sources = try Self.cookieClient.records(
+                let sources = try Self.cookieClient.codexBarRecords(
                     matching: query,
                     in: browserSource,
                     logger: log)
@@ -456,8 +456,8 @@ public enum ClaudeWebAPIFetcher {
         var sessionPercent: Double?
         var sessionResets: Date?
         if let fiveHour = json["five_hour"] as? [String: Any] {
-            if let utilization = fiveHour["utilization"] as? Int {
-                sessionPercent = Double(utilization)
+            if let utilization = fiveHour["utilization"] as? NSNumber {
+                sessionPercent = utilization.doubleValue
             }
             if let resetsAt = fiveHour["resets_at"] as? String {
                 sessionResets = self.parseISO8601Date(resetsAt)
@@ -472,19 +472,23 @@ public enum ClaudeWebAPIFetcher {
         var weeklyPercent: Double?
         var weeklyResets: Date?
         if let sevenDay = json["seven_day"] as? [String: Any] {
-            if let utilization = sevenDay["utilization"] as? Int {
-                weeklyPercent = Double(utilization)
+            if let utilization = sevenDay["utilization"] as? NSNumber {
+                weeklyPercent = utilization.doubleValue
             }
             if let resetsAt = sevenDay["resets_at"] as? String {
                 weeklyResets = self.parseISO8601Date(resetsAt)
             }
         }
 
-        // Parse seven_day_opus (Opus-specific weekly) usage
+        // Parse Opus/Sonnet-specific weekly usage
         var opusPercent: Double?
-        if let sevenDayOpus = json["seven_day_opus"] as? [String: Any] {
-            if let utilization = sevenDayOpus["utilization"] as? Int {
-                opusPercent = Double(utilization)
+        let opusCandidates = ["seven_day_opus", "seven_day_sonnet", "seven_day_sonnet_only"]
+        for key in opusCandidates {
+            if let window = json[key] as? [String: Any],
+               let utilization = window["utilization"] as? NSNumber
+            {
+                opusPercent = utilization.doubleValue
+                break
             }
         }
 
@@ -691,7 +695,7 @@ public enum ClaudeWebAPIFetcher {
         guard let response = try? JSONDecoder().decode(AccountResponse.self, from: data) else { return nil }
         let email = response.emailAddress?.trimmingCharacters(in: .whitespacesAndNewlines)
         let membership = Self.selectMembership(response.memberships, orgId: orgId)
-        let plan = Self.inferPlan(
+        let plan = ClaudePlan.webLoginMethod(
             rateLimitTier: membership?.organization.rateLimitTier,
             billingType: membership?.organization.billingType)
         return WebAccountInfo(email: email, loginMethod: plan)
@@ -708,18 +712,7 @@ public enum ClaudeWebAPIFetcher {
         return memberships.first
     }
 
-    private static func inferPlan(rateLimitTier: String?, billingType: String?) -> String? {
-        let tier = rateLimitTier?.lowercased() ?? ""
-        let billing = billingType?.lowercased() ?? ""
-        if tier.contains("max") { return "Claude Max" }
-        if tier.contains("pro") { return "Claude Pro" }
-        if tier.contains("team") { return "Claude Team" }
-        if tier.contains("enterprise") { return "Claude Enterprise" }
-        if billing.contains("stripe"), tier.contains("claude") { return "Claude Pro" }
-        return nil
-    }
-
-    private struct ProbeParseResult: Sendable {
+    private struct ProbeParseResult {
         let keys: [String]
         let emails: [String]
         let planHints: [String]

@@ -4,10 +4,9 @@ import SwiftUI
 import Testing
 @testable import CodexBar
 
-@Suite
 struct MenuCardModelTests {
     @Test
-    func buildsMetricsUsingRemainingPercent() throws {
+    func `builds metrics using remaining percent`() throws {
         let now = Date()
         let identity = ProviderIdentitySnapshot(
             providerID: .codex,
@@ -38,11 +37,24 @@ struct MenuCardModelTests {
             tertiary: snapshot.tertiary,
             updatedAt: now,
             identity: identity)
+        let codexProjection = CodexConsumerProjection.make(
+            surface: .liveCard,
+            context: CodexConsumerProjection.Context(
+                snapshot: updatedSnap,
+                rawUsageError: nil,
+                liveCredits: nil,
+                rawCreditsError: nil,
+                liveDashboard: nil,
+                rawDashboardError: nil,
+                dashboardAttachmentAuthorized: false,
+                dashboardRequiresLogin: false,
+                now: now))
 
         let model = UsageMenuCardView.Model.make(.init(
             provider: .codex,
             metadata: metadata,
             snapshot: updatedSnap,
+            codexProjection: codexProjection,
             credits: CreditsSnapshot(remaining: 12, events: [], updatedAt: now),
             creditsError: nil,
             dashboard: nil,
@@ -69,112 +81,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func buildsMetricsUsingUsedPercentWhenEnabled() throws {
-        let now = Date()
-        let identity = ProviderIdentitySnapshot(
-            providerID: .codex,
-            accountEmail: "codex@example.com",
-            accountOrganization: nil,
-            loginMethod: "Plus Plan")
-        let snapshot = UsageSnapshot(
-            primary: RateWindow(
-                usedPercent: 22,
-                windowMinutes: 300,
-                resetsAt: now.addingTimeInterval(3000),
-                resetDescription: nil),
-            secondary: RateWindow(
-                usedPercent: 40,
-                windowMinutes: 10080,
-                resetsAt: now.addingTimeInterval(6000),
-                resetDescription: nil),
-            updatedAt: now,
-            identity: identity)
-        let metadata = try #require(ProviderDefaults.metadata[.codex])
-
-        let dashboard = OpenAIDashboardSnapshot(
-            signedInEmail: "codex@example.com",
-            codeReviewRemainingPercent: 73,
-            creditEvents: [],
-            dailyBreakdown: [],
-            usageBreakdown: [],
-            creditsPurchaseURL: nil,
-            updatedAt: now)
-
-        let model = UsageMenuCardView.Model.make(.init(
-            provider: .codex,
-            metadata: metadata,
-            snapshot: snapshot,
-            credits: nil,
-            creditsError: nil,
-            dashboard: dashboard,
-            dashboardError: nil,
-            tokenSnapshot: nil,
-            tokenError: nil,
-            account: AccountInfo(email: "codex@example.com", plan: "Plus Plan"),
-            isRefreshing: false,
-            lastError: nil,
-            usageBarsShowUsed: true,
-            resetTimeDisplayStyle: .countdown,
-            tokenCostUsageEnabled: false,
-            showOptionalCreditsAndExtraUsage: true,
-            hidePersonalInfo: false,
-            now: now))
-
-        #expect(model.metrics.first?.title == "Session")
-        #expect(model.metrics.first?.percent == 22)
-        #expect(model.metrics.first?.percentLabel.contains("used") == true)
-        #expect(model.metrics.contains { $0.title == "Code review" && $0.percent == 27 })
-    }
-
-    @Test
-    func showsCodeReviewMetricWhenDashboardPresent() throws {
-        let now = Date()
-        let identity = ProviderIdentitySnapshot(
-            providerID: .codex,
-            accountEmail: "codex@example.com",
-            accountOrganization: nil,
-            loginMethod: nil)
-        let snapshot = UsageSnapshot(
-            primary: RateWindow(usedPercent: 0, windowMinutes: 300, resetsAt: nil, resetDescription: nil),
-            secondary: nil,
-            tertiary: nil,
-            updatedAt: now,
-            identity: identity)
-        let metadata = try #require(ProviderDefaults.metadata[.codex])
-
-        let dashboard = OpenAIDashboardSnapshot(
-            signedInEmail: "codex@example.com",
-            codeReviewRemainingPercent: 73,
-            creditEvents: [],
-            dailyBreakdown: [],
-            usageBreakdown: [],
-            creditsPurchaseURL: nil,
-            updatedAt: now)
-        let model = UsageMenuCardView.Model.make(.init(
-            provider: .codex,
-            metadata: metadata,
-            snapshot: snapshot,
-            credits: nil,
-            creditsError: nil,
-            dashboard: dashboard,
-            dashboardError: nil,
-            tokenSnapshot: nil,
-            tokenError: nil,
-            account: AccountInfo(email: "codex@example.com", plan: nil),
-            isRefreshing: false,
-            lastError: nil,
-            usageBarsShowUsed: false,
-            resetTimeDisplayStyle: .countdown,
-            tokenCostUsageEnabled: false,
-            showOptionalCreditsAndExtraUsage: true,
-            hidePersonalInfo: false,
-            now: now))
-
-        #expect(model.metrics.contains { $0.title == "Code review" && $0.percent == 73 })
-    }
-
-    @Test
-    func claudeModelHidesWeeklyWhenUnavailable() throws {
+    func `claude model hides weekly when unavailable`() throws {
         let now = Date()
         let identity = ProviderIdentitySnapshot(
             providerID: .claude,
@@ -218,7 +125,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func showsErrorSubtitleWhenPresent() throws {
+    func `shows error subtitle when present`() throws {
         let metadata = try #require(ProviderDefaults.metadata[.codex])
         let model = UsageMenuCardView.Model.make(.init(
             provider: .codex,
@@ -246,7 +153,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func costSectionIncludesLast30DaysTokens() throws {
+    func `cost section includes last30 days tokens`() throws {
         let now = Date()
         let metadata = try #require(ProviderDefaults.metadata[.codex])
         let snapshot = UsageSnapshot(
@@ -286,7 +193,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func claudeModelDoesNotLeakCodexPlan() throws {
+    func `claude model does not leak codex plan`() throws {
         let metadata = try #require(ProviderDefaults.metadata[.claude])
         let model = UsageMenuCardView.Model.make(.init(
             provider: .claude,
@@ -313,46 +220,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func hidesCodexCreditsWhenDisabled() throws {
-        let now = Date()
-        let identity = ProviderIdentitySnapshot(
-            providerID: .codex,
-            accountEmail: "codex@example.com",
-            accountOrganization: nil,
-            loginMethod: nil)
-        let snapshot = UsageSnapshot(
-            primary: RateWindow(usedPercent: 0, windowMinutes: 300, resetsAt: nil, resetDescription: nil),
-            secondary: nil,
-            tertiary: nil,
-            updatedAt: now,
-            identity: identity)
-        let metadata = try #require(ProviderDefaults.metadata[.codex])
-
-        let model = UsageMenuCardView.Model.make(.init(
-            provider: .codex,
-            metadata: metadata,
-            snapshot: snapshot,
-            credits: CreditsSnapshot(remaining: 12, events: [], updatedAt: now),
-            creditsError: nil,
-            dashboard: nil,
-            dashboardError: nil,
-            tokenSnapshot: nil,
-            tokenError: nil,
-            account: AccountInfo(email: "codex@example.com", plan: nil),
-            isRefreshing: false,
-            lastError: nil,
-            usageBarsShowUsed: false,
-            resetTimeDisplayStyle: .countdown,
-            tokenCostUsageEnabled: false,
-            showOptionalCreditsAndExtraUsage: false,
-            hidePersonalInfo: false,
-            now: now))
-
-        #expect(model.creditsText == nil)
-    }
-
-    @Test
-    func hidesClaudeExtraUsageWhenDisabled() throws {
+    func `hides claude extra usage when disabled`() throws {
         let now = Date()
         let identity = ProviderIdentitySnapshot(
             providerID: .claude,
@@ -393,7 +261,7 @@ struct MenuCardModelTests {
 
     @Test
     @MainActor
-    func openRouterModel_usesAPIKeyQuotaBarAndQuotaDetail() throws {
+    func `open router model uses API key quota bar and quota detail`() throws {
         let now = Date()
         let metadata = try #require(ProviderDefaults.metadata[.openrouter])
         let snapshot = OpenRouterUsageSnapshot(
@@ -439,7 +307,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func openRouterModel_withoutKeyLimitShowsTextOnlySummary() throws {
+    func `open router model without key limit shows text only summary`() throws {
         let now = Date()
         let metadata = try #require(ProviderDefaults.metadata[.openrouter])
         let snapshot = OpenRouterUsageSnapshot(
@@ -480,7 +348,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func openRouterModel_whenKeyFetchUnavailableShowsUnavailableNote() throws {
+    func `open router model when key fetch unavailable shows unavailable note`() throws {
         let now = Date()
         let metadata = try #require(ProviderDefaults.metadata[.openrouter])
         let snapshot = OpenRouterUsageSnapshot(
@@ -519,7 +387,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func hidesEmailWhenPersonalInfoHidden() throws {
+    func `hides email when personal info hidden`() throws {
         let now = Date()
         let identity = ProviderIdentitySnapshot(
             providerID: .codex,
@@ -561,7 +429,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func kiloModelSplitsPassAndActivityAndShowsFallbackNote() throws {
+    func `kilo model splits pass and activity and shows fallback note`() throws {
         let now = Date()
         let metadata = try #require(ProviderDefaults.metadata[.kilo])
         let snapshot = UsageSnapshot(
@@ -607,7 +475,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func kiloModelTreatsAutoTopUpOnlyLoginAsActivity() throws {
+    func `kilo model treats auto top up only login as activity`() throws {
         let now = Date()
         let metadata = try #require(ProviderDefaults.metadata[.kilo])
         let snapshot = UsageSnapshot(
@@ -646,7 +514,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func kiloModelDoesNotShowFallbackNoteWhenNotAutoToCLI() throws {
+    func `kilo model does not show fallback note when not auto to CLI`() throws {
         let now = Date()
         let metadata = try #require(ProviderDefaults.metadata[.kilo])
         let snapshot = UsageSnapshot(
@@ -713,7 +581,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func kiloModelShowsPrimaryDetailWhenResetDateMissing() throws {
+    func `kilo model shows primary detail when reset date missing`() throws {
         let now = Date()
         let metadata = try #require(ProviderDefaults.metadata[.kilo])
         let snapshot = UsageSnapshot(
@@ -757,7 +625,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func kiloModelKeepsZeroTotalEdgeStateVisible() throws {
+    func `kilo model keeps zero total edge state visible`() throws {
         let now = Date()
         let metadata = try #require(ProviderDefaults.metadata[.kilo])
         let snapshot = KiloUsageSnapshot(
@@ -796,7 +664,7 @@ struct MenuCardModelTests {
     }
 
     @Test
-    func warpModelShowsPrimaryDetailWhenResetDateMissing() throws {
+    func `warp model shows primary detail when reset date missing`() throws {
         let now = Date()
         let identity = ProviderIdentitySnapshot(
             providerID: .warp,

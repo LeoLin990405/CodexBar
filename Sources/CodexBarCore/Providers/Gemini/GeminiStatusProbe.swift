@@ -31,12 +31,15 @@ public struct GeminiStatusSnapshot: Sendable {
     }
 
     /// Converts Gemini quotas to a unified UsageSnapshot.
-    /// Groups quotas by tier: Pro (24h window) as primary, Flash (24h window) as secondary.
+    /// Groups quotas by tier: Pro (24h window) as primary, Flash (24h window) as secondary,
+    /// Flash Lite (24h window) as tertiary.
     public func toUsageSnapshot() -> UsageSnapshot {
         let lower = self.modelQuotas.map { ($0.modelId.lowercased(), $0) }
-        let flashQuotas = lower.filter { $0.0.contains("flash") }.map(\.1)
-        let proQuotas = lower.filter { $0.0.contains("pro") }.map(\.1)
+        let flashLiteQuotas = lower.filter { Self.isFlashLiteModel(id: $0.0) }.map(\.1)
+        let flashQuotas = lower.filter { Self.isFlashModel(id: $0.0) }.map(\.1)
+        let proQuotas = lower.filter { Self.isProModel(id: $0.0) }.map(\.1)
 
+        let flashLiteMin = flashLiteQuotas.min(by: { $0.percentLeft < $1.percentLeft })
         let flashMin = flashQuotas.min(by: { $0.percentLeft < $1.percentLeft })
         let proMin = proQuotas.min(by: { $0.percentLeft < $1.percentLeft })
 
@@ -53,6 +56,13 @@ public struct GeminiStatusSnapshot: Sendable {
                 resetsAt: $0.resetTime,
                 resetDescription: $0.resetDescription)
         }
+        let tertiary: RateWindow? = flashLiteMin.map {
+            RateWindow(
+                usedPercent: 100 - $0.percentLeft,
+                windowMinutes: 1440,
+                resetsAt: $0.resetTime,
+                resetDescription: $0.resetDescription)
+        }
 
         let identity = ProviderIdentitySnapshot(
             providerID: .gemini,
@@ -62,8 +72,21 @@ public struct GeminiStatusSnapshot: Sendable {
         return UsageSnapshot(
             primary: primary,
             secondary: secondary,
+            tertiary: tertiary,
             updatedAt: Date(),
             identity: identity)
+    }
+
+    private static func isFlashLiteModel(id: String) -> Bool {
+        id.contains("flash-lite")
+    }
+
+    private static func isFlashModel(id: String) -> Bool {
+        id.contains("flash") && !self.isFlashLiteModel(id: id)
+    }
+
+    private static func isProModel(id: String) -> Bool {
+        id.contains("pro")
     }
 }
 
@@ -337,7 +360,7 @@ public struct GeminiStatusProbe: Sendable {
         return nil
     }
 
-    private struct CodeAssistStatus: Sendable {
+    private struct CodeAssistStatus {
         let tier: GeminiUserTierId?
         let projectId: String?
 
@@ -451,68 +474,305 @@ public struct GeminiStatusProbe: Sendable {
             return nil
         }
 
-        guard let content = Self.resolveOAuthFileContent(from: geminiPath) else {
-            return nil
+        // Resolve symlinks to find the actual installation
+        let resolvedGeminiPath = URL(fileURLWithPath: geminiPath).resolvingSymlinksInPath().path
+
+        // Try the legacy layouts first — they're cheap file reads and cover the common cases
+        // (Homebrew, npm/bun sibling, Nix) without spawning subprocesses or walking the tree.
+        if let credentials = Self.extractOAuthCredentialsFromLegacyPaths(realGeminiPath: resolvedGeminiPath) {
+            return credentials
         }
-        return self.parseOAuthCredentials(from: content)
+
+        // For fnm-managed installs, ask fnm where the package lives
+        if Self.isLikelyFnmManagedPath(geminiPath) || Self.isLikelyFnmManagedPath(resolvedGeminiPath),
+           let fnmPath = TTYCommandRunner.which("fnm"),
+           let packageRoot = Self.resolveGeminiPackageRootViaFnm(fnmPath: fnmPath, environment: env),
+           let credentials = Self.extractOAuthCredentials(fromGeminiPackageRoot: packageRoot)
+        {
+            return credentials
+        }
+
+        // Fall back to walking up the directory tree from the binary
+        if let packageRoot = Self.findGeminiPackageRoot(startingAt: resolvedGeminiPath),
+           let credentials = Self.extractOAuthCredentials(fromGeminiPackageRoot: packageRoot)
+        {
+            return credentials
+        }
+
+        return nil
     }
 
-    /// Resolve the full symlink chain starting from `binaryPath`, then search each
-    /// intermediate directory for the Gemini CLI oauth2.js file.
-    /// Returns the file content if found, or `nil`.
-    /// Visible to tests via `@testable import`.
-    static func resolveOAuthFileContent(from binaryPath: String) -> String? {
-        // Resolve symlinks recursively, collecting all intermediate paths
-        // (e.g. /usr/local/bin/gemini → /opt/homebrew/bin/gemini → ../Cellar/.../bin/gemini → ...)
-        let fm = FileManager.default
-        var candidates: [String] = [binaryPath]
-        var current = binaryPath
-        var visited: Set<String> = []
-        while true {
-            let canonical = (current as NSString).standardizingPath
-            if visited.contains(canonical) { break }
-            visited.insert(canonical)
-            guard let resolved = try? fm.destinationOfSymbolicLink(atPath: current) else { break }
-            if resolved.hasPrefix("/") {
-                current = resolved
-            } else {
-                current = ((current as NSString).deletingLastPathComponent as NSString)
-                    .appendingPathComponent(resolved)
-            }
-            current = (current as NSString).standardizingPath
-            candidates.append(current)
+    private static func isLikelyFnmManagedPath(_ path: String) -> Bool {
+        let normalized = path.replacingOccurrences(of: "\\", with: "/")
+        return normalized.contains("/fnm_multishells/")
+            || (normalized.contains("/node-versions/") && normalized.contains("/fnm/"))
+    }
+
+    private static func resolveGeminiPackageRootViaFnm(
+        fnmPath: String,
+        environment: [String: String]) -> String?
+    {
+        guard let currentVersion = runProcess(
+            executable: fnmPath,
+            arguments: ["current"],
+            environment: environment,
+            timeout: 2.0),
+            !currentVersion.isEmpty
+        else {
+            return nil
         }
 
-        // Navigate from bin/gemini to the oauth2.js file
-        // Try from each resolved path in the symlink chain (deepest first)
+        // Prefer npm root -g because require.resolve searches from the current
+        // working directory and often fails for globally-installed packages.
+        if let npmRoot = runProcess(
+            executable: fnmPath,
+            arguments: [
+                "exec",
+                "--using",
+                currentVersion,
+                "npm",
+                "root",
+                "-g",
+            ],
+            environment: environment,
+            timeout: 4.0),
+            !npmRoot.isEmpty
+        {
+            let packageRoot = "\(npmRoot)/@google/gemini-cli"
+            let packageJSONPath = "\(packageRoot)/package.json"
+            if FileManager.default.fileExists(atPath: packageJSONPath) {
+                return packageRoot
+            }
+        }
+
+        // Fallback for non-npm global installations.
+        if let packageJSONPath = runProcess(
+            executable: fnmPath,
+            arguments: [
+                "exec",
+                "--using",
+                currentVersion,
+                "node",
+                "-p",
+                "require.resolve('@google/gemini-cli/package.json')",
+            ],
+            environment: environment,
+            timeout: 4.0),
+            !packageJSONPath.isEmpty
+        {
+            return (packageJSONPath as NSString).deletingLastPathComponent
+        }
+
+        return nil
+    }
+
+    private static func runProcess(
+        executable: String,
+        arguments: [String],
+        environment: [String: String],
+        timeout: TimeInterval) -> String?
+    {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
+
+        var mergedEnvironment = environment
+        mergedEnvironment["PATH"] = PathBuilder.effectivePATH(
+            purposes: [.tty, .nodeTooling],
+            env: environment,
+            loginPATH: LoginShellPathCache.shared.current)
+        process.environment = mergedEnvironment
+
+        let stdout = Pipe()
+        process.standardOutput = stdout
+        process.standardError = Pipe()
+        process.standardInput = nil
+
+        let exitSemaphore = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in
+            exitSemaphore.signal()
+        }
+
+        do {
+            try process.run()
+        } catch {
+            return nil
+        }
+
+        let didExit = exitSemaphore.wait(timeout: .now() + timeout) == .success
+        if !didExit {
+            if process.isRunning {
+                process.terminate()
+                _ = exitSemaphore.wait(timeout: .now() + 0.5)
+            }
+            return nil
+        }
+
+        let data = stdout.fileHandleForReading.readDataToEndOfFile()
+        guard process.terminationStatus == 0,
+              let output = String(data: data, encoding: .utf8)?
+                  .trimmingCharacters(in: .whitespacesAndNewlines),
+                  !output.isEmpty
+        else {
+            return nil
+        }
+
+        return output.components(separatedBy: .newlines).first?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func findGeminiPackageRoot(startingAt path: String) -> String? {
+        let fileManager = FileManager.default
+        var currentURL = URL(fileURLWithPath: path).standardizedFileURL
+
+        var isDirectory: ObjCBool = false
+        if !fileManager.fileExists(atPath: currentURL.path, isDirectory: &isDirectory) || !isDirectory.boolValue {
+            currentURL.deleteLastPathComponent()
+        }
+
+        // Bound the walk so an unrelated Gemini install elsewhere on the host
+        // (e.g. a global npm/brew install unrelated to the resolved binary) can't
+        // contaminate discovery started from the actual binary path.
+        let maxAscents = 8
+        for _ in 0...maxAscents {
+            let packageJSONURL = currentURL.appendingPathComponent("package.json")
+            if let data = try? Data(contentsOf: packageJSONURL),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               json["name"] as? String == "@google/gemini-cli"
+            {
+                return currentURL.path
+            }
+
+            // Also check for a global Node installation layout:
+            // <current>/lib/node_modules/@google/gemini-cli/package.json
+            let globalPackageJSONURL = currentURL
+                .appendingPathComponent("lib")
+                .appendingPathComponent("node_modules")
+                .appendingPathComponent("@google")
+                .appendingPathComponent("gemini-cli")
+                .appendingPathComponent("package.json")
+            if let data = try? Data(contentsOf: globalPackageJSONURL),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               json["name"] as? String == "@google/gemini-cli"
+            {
+                return globalPackageJSONURL.deletingLastPathComponent().path
+            }
+
+            let parentURL = currentURL.deletingLastPathComponent()
+            if parentURL.path == currentURL.path {
+                return nil
+            }
+            currentURL = parentURL
+        }
+
+        return nil
+    }
+
+    private static func extractOAuthCredentials(fromGeminiPackageRoot packageRoot: String) -> OAuthClientCredentials? {
+        // Check the standard distributed file first, then any sibling core package
+        let oauthFile = "dist/src/code_assist/oauth2.js"
+        let candidatePaths = [
+            "\(packageRoot)/\(oauthFile)",
+            "\(packageRoot)/node_modules/@google/gemini-cli-core/\(oauthFile)",
+        ]
+
+        for path in candidatePaths {
+            if let content = try? String(contentsOfFile: path, encoding: .utf8),
+               let credentials = Self.parseOAuthCredentials(from: content)
+            {
+                return credentials
+            }
+        }
+
+        return Self.extractOAuthCredentialsFromBundle(packageRoot: packageRoot)
+    }
+
+    private static func extractOAuthCredentialsFromBundle(packageRoot: String) -> OAuthClientCredentials? {
+        let bundleRoot = URL(fileURLWithPath: packageRoot).appendingPathComponent("bundle", isDirectory: true)
+        let entryURL = bundleRoot.appendingPathComponent("gemini.js")
+
+        guard FileManager.default.fileExists(atPath: entryURL.path) else {
+            return nil
+        }
+
+        var pendingURLs = [entryURL]
+        var visitedPaths = Set<String>()
+
+        while !pendingURLs.isEmpty {
+            let currentURL = pendingURLs.removeFirst()
+            let standardizedPath = currentURL.standardizedFileURL.path
+            guard visitedPaths.insert(standardizedPath).inserted,
+                  let content = try? String(contentsOf: currentURL, encoding: .utf8)
+            else {
+                continue
+            }
+
+            if let credentials = Self.parseOAuthCredentials(from: content) {
+                return credentials
+            }
+
+            let imports = Self.extractRelativeJavaScriptImports(from: content)
+            for importPath in imports {
+                let nextURL = URL(fileURLWithPath: importPath, relativeTo: currentURL.deletingLastPathComponent())
+                    .standardizedFileURL
+                guard nextURL.path.hasPrefix(bundleRoot.path) else { continue }
+                pendingURLs.append(nextURL)
+            }
+        }
+
+        return nil
+    }
+
+    private static func extractRelativeJavaScriptImports(from content: String) -> [String] {
+        let patterns = [
+            #"(?:import|export)\s+(?:[^;]*?\s+from\s+)?[\"'](\./[^\"']+\.js)[\"']"#,
+            #"import\(\s*[\"'](\./[^\"']+\.js)[\"']\s*\)"#,
+        ]
+
+        var discoveredPaths: [String] = []
+        var seen = Set<String>()
+        let fullRange = NSRange(content.startIndex..., in: content)
+
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+            for match in regex.matches(in: content, range: fullRange) {
+                guard let range = Range(match.range(at: 1), in: content) else { continue }
+                let path = String(content[range])
+                if seen.insert(path).inserted {
+                    discoveredPaths.append(path)
+                }
+            }
+        }
+
+        return discoveredPaths
+    }
+
+    private static func extractOAuthCredentialsFromLegacyPaths(realGeminiPath: String) -> OAuthClientCredentials? {
+        let binDir = (realGeminiPath as NSString).deletingLastPathComponent
+        let baseDir = (binDir as NSString).deletingLastPathComponent
+
         let oauthSubpath =
             "node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/code_assist/oauth2.js"
         let nixShareSubpath =
             "share/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/code_assist/oauth2.js"
         let oauthFile = "dist/src/code_assist/oauth2.js"
+        let possiblePaths = [
+            // Homebrew nested structure
+            "\(baseDir)/libexec/lib/\(oauthSubpath)",
+            "\(baseDir)/lib/\(oauthSubpath)",
+            // Nix package layout
+            "\(baseDir)/\(nixShareSubpath)",
+            // Bun/npm sibling structure: gemini-cli-core is a sibling to gemini-cli
+            "\(baseDir)/../gemini-cli-core/\(oauthFile)",
+            // npm nested inside gemini-cli
+            "\(baseDir)/node_modules/@google/gemini-cli-core/\(oauthFile)",
+        ]
 
-        for candidate in candidates.reversed() {
-            let binDir = (candidate as NSString).deletingLastPathComponent
-            let baseDir = (binDir as NSString).deletingLastPathComponent
-
-            let possiblePaths = [
-                // Homebrew nested structure
-                "\(baseDir)/libexec/lib/\(oauthSubpath)",
-                "\(baseDir)/lib/\(oauthSubpath)",
-                // Nix package layout
-                "\(baseDir)/\(nixShareSubpath)",
-                // Bun/npm sibling structure
-                "\(baseDir)/../gemini-cli-core/\(oauthFile)",
-                // npm nested inside gemini-cli
-                "\(baseDir)/node_modules/@google/gemini-cli-core/\(oauthFile)",
-                // Direct node_modules lookup from candidate
-                "\(binDir)/node_modules/@google/gemini-cli-core/\(oauthFile)",
-            ]
-
-            for path in possiblePaths {
-                if let content = try? String(contentsOfFile: path, encoding: .utf8) {
-                    return content
-                }
+        for path in possiblePaths {
+            if let content = try? String(contentsOfFile: path, encoding: .utf8),
+               let credentials = Self.parseOAuthCredentials(from: content)
+            {
+                return credentials
             }
         }
 

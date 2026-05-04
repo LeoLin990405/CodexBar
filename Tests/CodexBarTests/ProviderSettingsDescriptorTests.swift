@@ -5,10 +5,9 @@ import Testing
 @testable import CodexBar
 
 @MainActor
-@Suite
 struct ProviderSettingsDescriptorTests {
     @Test
-    func toggleIDsAreUniqueAcrossProviders() throws {
+    func `toggle I ds are unique across providers`() throws {
         let suite = "ProviderSettingsDescriptorTests-unique"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defaults.removePersistentDomain(forName: suite)
@@ -83,7 +82,7 @@ struct ProviderSettingsDescriptorTests {
     }
 
     @Test
-    func codexExposesUsageAndCookiePickers() throws {
+    func `codex exposes usage and cookie pickers`() throws {
         let suite = "ProviderSettingsDescriptorTests-codex"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defaults.removePersistentDomain(forName: suite)
@@ -126,7 +125,57 @@ struct ProviderSettingsDescriptorTests {
     }
 
     @Test
-    func claudeExposesUsageAndCookiePickers() throws {
+    func `codex exposes open AI web extras toggle as default off opt in`() throws {
+        let suite = "ProviderSettingsDescriptorTests-codex-openai-toggle"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        let configStore = testConfigStore(suiteName: suite)
+        let settings = SettingsStore(
+            userDefaults: defaults,
+            configStore: configStore,
+            zaiTokenStore: NoopZaiTokenStore(),
+            syntheticTokenStore: NoopSyntheticTokenStore())
+        let store = UsageStore(
+            fetcher: UsageFetcher(environment: [:]),
+            browserDetection: BrowserDetection(cacheTTL: 0),
+            settings: settings)
+
+        let context = ProviderSettingsContext(
+            provider: .codex,
+            settings: settings,
+            store: store,
+            boolBinding: { keyPath in
+                Binding(
+                    get: { settings[keyPath: keyPath] },
+                    set: { settings[keyPath: keyPath] = $0 })
+            },
+            stringBinding: { keyPath in
+                Binding(
+                    get: { settings[keyPath: keyPath] },
+                    set: { settings[keyPath: keyPath] = $0 })
+            },
+            statusText: { _ in nil },
+            setStatusText: { _, _ in },
+            lastAppActiveRunAt: { _ in nil },
+            setLastAppActiveRunAt: { _, _ in },
+            requestConfirmation: { _ in })
+
+        let toggles = CodexProviderImplementation().settingsToggles(context: context)
+        let extrasToggle = try #require(toggles.first(where: { $0.id == "codex-openai-web-extras" }))
+        #expect(extrasToggle.binding.wrappedValue == false)
+        #expect(extrasToggle.subtitle.contains("Optional."))
+        #expect(extrasToggle.subtitle.contains("Turn this on"))
+
+        let batterySaverToggle = try #require(toggles.first(where: { $0.id == "codex-openai-web-battery-saver" }))
+        #expect(batterySaverToggle.binding.wrappedValue == false)
+        #expect(batterySaverToggle.isVisible?() == false)
+
+        settings.openAIWebAccessEnabled = true
+        #expect(batterySaverToggle.isVisible?() == true)
+    }
+
+    @Test
+    func `claude exposes usage and cookie pickers`() throws {
         let suite = "ProviderSettingsDescriptorTests-claude"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defaults.removePersistentDomain(forName: suite)
@@ -173,7 +222,7 @@ struct ProviderSettingsDescriptorTests {
     }
 
     @Test
-    func claudePromptPolicyPickerHiddenWhenExperimentalReaderSelected() throws {
+    func `claude prompt policy picker hidden when experimental reader selected`() throws {
         let suite = "ProviderSettingsDescriptorTests-claude-prompt-hidden-experimental"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defaults.removePersistentDomain(forName: suite)
@@ -217,7 +266,7 @@ struct ProviderSettingsDescriptorTests {
     }
 
     @Test
-    func claudeKeychainPromptPolicyPickerDisabledWhenGlobalKeychainDisabled() throws {
+    func `claude keychain prompt policy picker disabled when global keychain disabled`() throws {
         let suite = "ProviderSettingsDescriptorTests-claude-keychain-disabled"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defaults.removePersistentDomain(forName: suite)
@@ -261,7 +310,7 @@ struct ProviderSettingsDescriptorTests {
     }
 
     @Test
-    func claudeWebExtrasAutoDisablesWhenLeavingCLI() throws {
+    func `claude web extras auto disables when leaving CLI`() throws {
         let suite = "ProviderSettingsDescriptorTests-claude-invariant"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defaults.removePersistentDomain(forName: suite)
@@ -280,7 +329,7 @@ struct ProviderSettingsDescriptorTests {
     }
 
     @Test
-    func kiloExposesUsageSourcePickerAndApiFieldOnly() throws {
+    func `kilo exposes usage source picker and api field only`() throws {
         let suite = "ProviderSettingsDescriptorTests-kilo"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defaults.removePersistentDomain(forName: suite)
@@ -323,5 +372,34 @@ struct ProviderSettingsDescriptorTests {
         #expect(toggles.isEmpty)
         #expect(pickers.contains(where: { $0.id == "kilo-usage-source" }))
         #expect(fields.contains(where: { $0.id == "kilo-api-key" }))
+    }
+
+    @Test
+    func `alibaba presentation follows store source label`() throws {
+        let suite = "ProviderSettingsDescriptorTests-alibaba-presentation"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        let configStore = testConfigStore(suiteName: suite)
+        let settings = SettingsStore(
+            userDefaults: defaults,
+            configStore: configStore,
+            zaiTokenStore: NoopZaiTokenStore(),
+            syntheticTokenStore: NoopSyntheticTokenStore())
+        let store = UsageStore(
+            fetcher: UsageFetcher(environment: [:]),
+            browserDetection: BrowserDetection(cacheTTL: 0),
+            settings: settings)
+        let metadata = try #require(ProviderDescriptorRegistry.metadata[.alibaba])
+        let context = ProviderPresentationContext(
+            provider: .alibaba,
+            settings: settings,
+            store: store,
+            metadata: metadata)
+
+        let detailLine = AlibabaCodingPlanProviderImplementation()
+            .presentation(context: context)
+            .detailLine(context)
+
+        #expect(detailLine == store.sourceLabel(for: .alibaba))
     }
 }

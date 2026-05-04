@@ -57,6 +57,8 @@ public enum ProviderDescriptorRegistry {
         .claude: ClaudeProviderDescriptor.descriptor,
         .cursor: CursorProviderDescriptor.descriptor,
         .opencode: OpenCodeProviderDescriptor.descriptor,
+        .opencodego: OpenCodeGoProviderDescriptor.descriptor,
+        .alibaba: AlibabaCodingPlanProviderDescriptor.descriptor,
         .factory: FactoryProviderDescriptor.descriptor,
         .gemini: GeminiProviderDescriptor.descriptor,
         .antigravity: AntigravityProviderDescriptor.descriptor,
@@ -75,13 +77,15 @@ public enum ProviderDescriptorRegistry {
         .synthetic: SyntheticProviderDescriptor.descriptor,
         .openrouter: OpenRouterProviderDescriptor.descriptor,
         .warp: WarpProviderDescriptor.descriptor,
+        .perplexity: PerplexityProviderDescriptor.descriptor,
+        .abacus: AbacusProviderDescriptor.descriptor,
         .qwen: QwenProviderDescriptor.descriptor,
         .doubao: DoubaoProviderDescriptor.descriptor,
+        .stepfun: StepFunProviderDescriptor.descriptor,
+        .trae: TraeProviderDescriptor.descriptor,
+        .mimo: MiMoProviderDescriptor.descriptor,
         .zenmux: ZenmuxProviderDescriptor.descriptor,
         .aigocode: AigoCodeProviderDescriptor.descriptor,
-        .trae: TraeProviderDescriptor.descriptor,
-        .stepfun: StepFunProviderDescriptor.descriptor,
-        .mimo: MiMoProviderDescriptor.descriptor,
     ]
     private static let bootstrap: Void = {
         for provider in UsageProvider.allCases {
