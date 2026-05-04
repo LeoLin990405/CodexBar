@@ -754,9 +754,9 @@ public struct GeminiStatusProbe: Sendable {
     }
 
     private static func extractOAuthCredentialsFromLegacyPaths(realGeminiPath: String) -> OAuthClientCredentials? {
-        for path in Self.legacyOAuthFileCandidatePaths(realGeminiPath: realGeminiPath) {
+        for path in legacyOAuthFileCandidatePaths(realGeminiPath: realGeminiPath) {
             if let content = try? String(contentsOfFile: path, encoding: .utf8),
-               let credentials = Self.parseOAuthCredentials(from: content)
+               let credentials = parseOAuthCredentials(from: content)
             {
                 return credentials
             }
@@ -766,7 +766,7 @@ public struct GeminiStatusProbe: Sendable {
     }
 
     private static func resolveOAuthFileContentFromLegacyPaths(realGeminiPath: String) -> String? {
-        for path in Self.legacyOAuthFileCandidatePaths(realGeminiPath: realGeminiPath) {
+        for path in legacyOAuthFileCandidatePaths(realGeminiPath: realGeminiPath) {
             if let content = try? String(contentsOfFile: path, encoding: .utf8) {
                 return content
             }
@@ -784,7 +784,7 @@ public struct GeminiStatusProbe: Sendable {
         let nixShareSubpath =
             "share/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/code_assist/oauth2.js"
         let oauthFile = "dist/src/code_assist/oauth2.js"
-        let possiblePaths = [
+        return [
             // Homebrew nested structure
             "\(baseDir)/libexec/lib/\(oauthSubpath)",
             "\(baseDir)/lib/\(oauthSubpath)",
@@ -795,7 +795,6 @@ public struct GeminiStatusProbe: Sendable {
             // npm nested inside gemini-cli
             "\(baseDir)/node_modules/@google/gemini-cli-core/\(oauthFile)",
         ]
-        return possiblePaths
     }
 
     private static func parseOAuthCredentials(from content: String) -> OAuthClientCredentials? {
