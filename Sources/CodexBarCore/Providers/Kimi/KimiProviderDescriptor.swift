@@ -43,13 +43,13 @@ public enum KimiProviderDescriptor {
     private static func resolveStrategies(context: ProviderFetchContext) async -> [any ProviderFetchStrategy] {
         switch context.sourceMode {
         case .api:
-            return [KimiTokenFetchStrategy()]
+            [KimiTokenFetchStrategy()]
         case .web:
-            return [KimiWebFetchStrategy()]
+            [KimiWebFetchStrategy()]
         case .auto:
-            return [KimiTokenFetchStrategy(), KimiWebFetchStrategy()]
+            [KimiTokenFetchStrategy(), KimiWebFetchStrategy()]
         case .cli, .oauth:
-            return []
+            []
         }
     }
 }

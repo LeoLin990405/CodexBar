@@ -44,13 +44,13 @@ public enum PerplexityProviderDescriptor {
     private static func resolveStrategies(context: ProviderFetchContext) async -> [any ProviderFetchStrategy] {
         switch context.sourceMode {
         case .api:
-            return [PerplexitySessionFetchStrategy()]
+            [PerplexitySessionFetchStrategy()]
         case .web:
-            return [PerplexityWebFetchStrategy()]
+            [PerplexityWebFetchStrategy()]
         case .auto:
-            return [PerplexitySessionFetchStrategy(), PerplexityWebFetchStrategy()]
+            [PerplexitySessionFetchStrategy(), PerplexityWebFetchStrategy()]
         case .cli, .oauth:
-            return []
+            []
         }
     }
 }
