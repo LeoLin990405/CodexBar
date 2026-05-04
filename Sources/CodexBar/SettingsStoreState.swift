@@ -1,6 +1,6 @@
 import Foundation
 
-struct SettingsDefaultsState: Sendable {
+struct SettingsDefaultsState {
     var refreshFrequency: RefreshFrequency
     var launchAtLogin: Bool
     var debugMenuEnabled: Bool
@@ -27,6 +27,7 @@ struct SettingsDefaultsState: Sendable {
     var claudeWebExtrasEnabledRaw: Bool
     var showOptionalCreditsAndExtraUsage: Bool
     var openAIWebAccessEnabled: Bool
+    var openAIWebBatterySaverEnabled: Bool
     var jetbrainsIDEBasePath: String
     var mergeIcons: Bool
     var switcherShowsIcons: Bool

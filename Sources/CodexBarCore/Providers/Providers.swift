@@ -7,6 +7,8 @@ public enum UsageProvider: String, CaseIterable, Sendable, Codable {
     case claude
     case cursor
     case opencode
+    case opencodego
+    case alibaba
     case factory
     case gemini
     case antigravity
@@ -25,13 +27,15 @@ public enum UsageProvider: String, CaseIterable, Sendable, Codable {
     case synthetic
     case warp
     case openrouter
+    case perplexity
+    case abacus
     case qwen
     case doubao
+    case stepfun
+    case trae
+    case mimo
     case zenmux
     case aigocode
-    case trae
-    case stepfun
-    case mimo
 }
 
 // swiftformat:enable sortDeclarations
@@ -45,6 +49,8 @@ public enum IconStyle: Sendable, CaseIterable {
     case antigravity
     case cursor
     case opencode
+    case opencodego
+    case alibaba
     case factory
     case copilot
     case kimi
@@ -59,13 +65,15 @@ public enum IconStyle: Sendable, CaseIterable {
     case synthetic
     case warp
     case openrouter
+    case perplexity
+    case abacus
     case qwen
     case doubao
+    case stepfun
+    case trae
+    case mimo
     case zenmux
     case aigocode
-    case trae
-    case stepfun
-    case mimo
     case combined
 }
 
@@ -86,11 +94,8 @@ public struct ProviderMetadata: Sendable {
     public let browserCookieOrder: BrowserCookieImportOrder?
     public let dashboardURL: String?
     public let subscriptionDashboardURL: String?
-    /// Statuspage.io base URL for incident polling (append /api/v2/status.json).
     public let statusPageURL: String?
-    /// Browser-only status link (no API polling); used when statusPageURL is nil.
     public let statusLinkURL: String?
-    /// Google Workspace product ID for status polling (appsstatus dashboard).
     public let statusWorkspaceProductID: String?
 
     public init(
@@ -146,6 +151,23 @@ public enum ProviderBrowserCookieDefaults {
     public static var defaultImportOrder: BrowserCookieImportOrder? {
         #if os(macOS)
         Browser.defaultImportOrder
+        #else
+        nil
+        #endif
+    }
+
+    public static var cursorCookieImportOrder: BrowserCookieImportOrder? {
+        #if os(macOS)
+        [.safari] + Browser.defaultImportOrder.filter { $0 != .safari }
+        #else
+        nil
+        #endif
+    }
+
+    public static var codexCookieImportOrder: BrowserCookieImportOrder? {
+        #if os(macOS)
+        let preferredPrefix: [Browser] = [.safari, .chrome, .firefox]
+        return preferredPrefix + Browser.defaultImportOrder.filter { !preferredPrefix.contains($0) }
         #else
         nil
         #endif

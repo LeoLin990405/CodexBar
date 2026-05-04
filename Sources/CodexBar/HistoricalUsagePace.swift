@@ -1,16 +1,16 @@
 import CodexBarCore
 import Foundation
 
-enum HistoricalUsageWindowKind: String, Codable, Sendable {
+enum HistoricalUsageWindowKind: String, Codable {
     case secondary
 }
 
-enum HistoricalUsageRecordSource: String, Codable, Sendable {
+enum HistoricalUsageRecordSource: String, Codable {
     case live
     case backfill
 }
 
-struct HistoricalUsageRecord: Codable, Sendable {
+struct HistoricalUsageRecord: Codable {
     let v: Int
     let provider: UsageProvider
     let windowKind: HistoricalUsageWindowKind
@@ -57,13 +57,13 @@ struct HistoricalUsageRecord: Codable, Sendable {
     }
 }
 
-struct HistoricalWeekProfile: Sendable {
+struct HistoricalWeekProfile {
     let resetsAt: Date
     let windowMinutes: Int
     let curve: [Double]
 }
 
-struct CodexHistoricalDataset: Sendable {
+struct CodexHistoricalDataset {
     static let gridPointCount = 169
     let weeks: [HistoricalWeekProfile]
 }
@@ -93,6 +93,20 @@ actor HistoricalUsageHistoryStore {
     func loadCodexDataset(accountKey: String?) -> CodexHistoricalDataset? {
         self.ensureLoaded()
         return self.buildDataset(accountKey: accountKey)
+    }
+
+    func loadCodexDataset(
+        canonicalAccountKey: String?,
+        canonicalEmailHashKey: String?,
+        legacyEmailHash: String?,
+        hasAdjacentMultiAccountVeto: Bool) -> CodexHistoricalDataset?
+    {
+        self.ensureLoaded()
+        return self.buildDataset(
+            canonicalAccountKey: canonicalAccountKey,
+            canonicalEmailHashKey: canonicalEmailHashKey,
+            legacyEmailHash: legacyEmailHash,
+            hasAdjacentMultiAccountVeto: hasAdjacentMultiAccountVeto)
     }
 
     func recordCodexWeekly(
@@ -155,7 +169,10 @@ actor HistoricalUsageHistoryStore {
 
         let windowStart = resetsAt.addingTimeInterval(-duration)
         let calibrationEnd = Self.clampDate(now, lower: windowStart, upper: resetsAt)
-        let dayUsages = Self.parseDayUsages(from: breakdown, asOf: calibrationEnd)
+        let dayUsages = Self.parseDayUsages(
+            from: breakdown,
+            asOf: calibrationEnd,
+            fillingFrom: windowStart)
         guard !dayUsages.isEmpty else { return existingDataset }
         guard let coverageStart = dayUsages.first?.start, let coverageEnd = dayUsages.last?.end else {
             return existingDataset
@@ -346,21 +363,54 @@ actor HistoricalUsageHistoryStore {
     }
 
     private func buildDataset(accountKey: String?) -> CodexHistoricalDataset? {
+        let scoped = self.records.filter { record in
+            guard Self.isCodexSecondaryRecord(record) else { return false }
+            if let accountKey {
+                return record.accountKey == accountKey
+            }
+            return record.accountKey == nil
+        }
+        return self.buildDataset(from: scoped)
+    }
+
+    private func buildDataset(
+        canonicalAccountKey: String?,
+        canonicalEmailHashKey: String?,
+        legacyEmailHash: String?,
+        hasAdjacentMultiAccountVeto: Bool) -> CodexHistoricalDataset?
+    {
+        guard let canonicalAccountKey else {
+            return self.buildDataset(accountKey: nil)
+        }
+
+        let shouldIncludeUnscoped = CodexHistoryOwnership.hasStrictSingleAccountContinuity(
+            scopedRawKeys: Self.scopedRawKeysRelevantToCodexUnscopedHistory(self.records),
+            targetCanonicalKey: canonicalAccountKey,
+            canonicalEmailHashKey: canonicalEmailHashKey,
+            legacyEmailHash: legacyEmailHash,
+            hasAdjacentMultiAccountVeto: hasAdjacentMultiAccountVeto)
+
+        let scoped = self.records.filter { record in
+            guard Self.isCodexSecondaryRecord(record) else { return false }
+            guard let rawKey = record.accountKey else {
+                return shouldIncludeUnscoped
+            }
+
+            let owner = CodexHistoryOwnership.classifyPersistedKey(rawKey, legacyEmailHash: legacyEmailHash)
+            return CodexHistoryOwnership.belongsToTargetContinuity(
+                owner,
+                targetCanonicalKey: canonicalAccountKey,
+                canonicalEmailHashKey: canonicalEmailHashKey)
+        }
+        return self.buildDataset(from: scoped)
+    }
+
+    private func buildDataset(from scoped: [HistoricalUsageRecord]) -> CodexHistoricalDataset? {
         struct WeekKey: Hashable {
             let resetsAt: Date
             let windowMinutes: Int
         }
 
-        let scoped = self.records
-            .filter { record in
-                guard record.provider == .codex, record.windowKind == .secondary, record.windowMinutes > 0 else {
-                    return false
-                }
-                if let accountKey {
-                    return record.accountKey == accountKey
-                }
-                return record.accountKey == nil
-            }
         if scoped.isEmpty { return nil }
 
         let grouped = Dictionary(grouping: scoped) {
@@ -396,6 +446,10 @@ actor HistoricalUsageHistoryStore {
         weeks.sort { $0.resetsAt < $1.resetsAt }
         if weeks.isEmpty { return nil }
         return CodexHistoricalDataset(weeks: weeks)
+    }
+
+    private nonisolated static func isCodexSecondaryRecord(_ record: HistoricalUsageRecord) -> Bool {
+        record.provider == .codex && record.windowKind == .secondary && record.windowMinutes > 0
     }
 
     private static func reconstructWeekCurve(
@@ -501,13 +555,51 @@ actor HistoricalUsageHistoryStore {
         return hasStartCoverage && hasEndCoverage
     }
 
+    private nonisolated static func scopedRawKeysRelevantToCodexUnscopedHistory(
+        _ records: [HistoricalUsageRecord]) -> [String]
+    {
+        let unscopedRecords = records.filter { record in
+            Self.isCodexSecondaryRecord(record) && record.accountKey == nil
+        }
+        guard let continuityWindow = self.historicalContinuityWindow(for: unscopedRecords) else {
+            return []
+        }
+
+        return records.compactMap { record in
+            guard Self.isCodexSecondaryRecord(record),
+                  let accountKey = record.accountKey,
+                  continuityWindow.contains(record.sampledAt)
+            else {
+                return nil
+            }
+            return accountKey
+        }
+    }
+
+    private nonisolated static func historicalContinuityWindow(
+        for records: [HistoricalUsageRecord]) -> ClosedRange<Date>?
+    {
+        let sampledDates = records.map(\.sampledAt)
+        guard let lowerBound = sampledDates.min(),
+              let upperBound = sampledDates.max()
+        else {
+            return nil
+        }
+        let expansion = TimeInterval(records.map(\.windowMinutes).max() ?? 0) * 60
+        return lowerBound.addingTimeInterval(-expansion)...upperBound.addingTimeInterval(expansion)
+    }
+
     private struct DayUsage {
         let start: Date
         let end: Date
         let creditsUsed: Double
     }
 
-    private static func parseDayUsages(from breakdown: [OpenAIDashboardDailyBreakdown], asOf: Date) -> [DayUsage] {
+    private static func parseDayUsages(
+        from breakdown: [OpenAIDashboardDailyBreakdown],
+        asOf: Date,
+        fillingFrom expectedCoverageStart: Date? = nil) -> [DayUsage]
+    {
         var creditsByStart: [Date: Double] = [:]
         creditsByStart.reserveCapacity(breakdown.count)
 
@@ -531,22 +623,34 @@ actor HistoricalUsageHistoryStore {
         }
 
         dayUsages.sort { lhs, rhs in lhs.start < rhs.start }
-        return Self.fillMissingZeroUsageDays(in: dayUsages, through: asOf)
+        return Self.fillMissingZeroUsageDays(
+            in: dayUsages,
+            through: asOf,
+            fillingFrom: expectedCoverageStart)
     }
 
-    private static func fillMissingZeroUsageDays(in dayUsages: [DayUsage], through asOf: Date) -> [DayUsage] {
+    private static func fillMissingZeroUsageDays(
+        in dayUsages: [DayUsage],
+        through asOf: Date,
+        fillingFrom expectedCoverageStart: Date? = nil) -> [DayUsage]
+    {
         guard let firstStart = dayUsages.first?.start else { return [] }
 
         let calendar = Self.gregorianCalendar()
+        let fillStart: Date = if let expectedCoverageStart {
+            min(firstStart, calendar.startOfDay(for: expectedCoverageStart))
+        } else {
+            firstStart
+        }
         let finalDayStart = calendar.startOfDay(for: asOf)
-        guard firstStart <= finalDayStart else { return dayUsages }
+        guard fillStart <= finalDayStart else { return dayUsages }
 
         let creditsByStart = Dictionary(uniqueKeysWithValues: dayUsages.map { ($0.start, $0.creditsUsed) })
-        let daySpan = max(0, calendar.dateComponents([.day], from: firstStart, to: finalDayStart).day ?? 0)
+        let daySpan = max(0, calendar.dateComponents([.day], from: fillStart, to: finalDayStart).day ?? 0)
         var filled: [DayUsage] = []
         filled.reserveCapacity(daySpan + 1)
 
-        var cursor = firstStart
+        var cursor = fillStart
         while cursor <= finalDayStart {
             guard let nominalEnd = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
             let effectiveEnd: Date = if cursor <= asOf, asOf < nominalEnd {

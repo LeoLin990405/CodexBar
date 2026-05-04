@@ -1,0 +1,108 @@
+name: Release macOS App
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos-app:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode 26.1.1 (if present) or fallback to default
+        run: |
+          set -euo pipefail
+          for candidate in /Applications/Xcode_26.1.1.app /Applications/Xcode_26.1.app /Applications/Xcode.app; do
+            if [[ -d "$candidate" ]]; then
+              sudo xcode-select -s "${candidate}/Contents/Developer"
+              echo "DEVELOPER_DIR=${candidate}/Contents/Developer" >> "$GITHUB_ENV"
+              break
+            fi
+          done
+          /usr/bin/xcodebuild -version
+
+      - name: Swift toolchain version
+        run: |
+          set -euo pipefail
+          swift --version
+          swift package --version
+
+      - name: Build and package macOS app (adhoc signed)
+        env:
+          CODEXBAR_SIGNING: adhoc
+        run: |
+          set -euo pipefail
+          ./Scripts/package_app.sh release
+
+      - name: Verify app bundle
+        run: |
+          set -euo pipefail
+          if [[ ! -d "CodexBar.app" ]]; then
+            echo "ERROR: CodexBar.app not found after packaging." >&2
+            exit 1
+          fi
+          ls -la CodexBar.app/Contents/MacOS/
+          file CodexBar.app/Contents/MacOS/CodexBar
+
+      - name: Create ZIP artifact
+        id: pkg
+        run: |
+          set -euo pipefail
+          source "./version.env"
+          VERSION="${MARKETING_VERSION}-$(git rev-parse --short HEAD)"
+          ZIP_NAME="CodexBar-${VERSION}.zip"
+
+          # Use ditto to preserve extended attributes and codesigning
+          ditto -c -k --keepParent "CodexBar.app" "$ZIP_NAME"
+
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "marketing_version=$MARKETING_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact (push/manual)
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: codexbar-macos-${{ steps.pkg.outputs.version }}
+          path: ${{ steps.pkg.outputs.zip_name }}
+
+      - name: Upload release asset (release event)
+        if: github.event_name == 'release'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          ZIP_NAME="${{ steps.pkg.outputs.zip_name }}"
+          gh release upload "$TAG" "$ZIP_NAME" --clobber
+
+      - name: Update continuous pre-release (push to main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.pkg.outputs.version }}"
+          MARKETING_VERSION="${{ steps.pkg.outputs.marketing_version }}"
+          ZIP_NAME="${{ steps.pkg.outputs.zip_name }}"
+
+          # Delete existing continuous release if present
+          gh release delete continuous --yes || true
+          git push --delete origin continuous || true
+
+          # Create new continuous pre-release
+          gh release create continuous \
+            --title "CodexBar Continuous (${MARKETING_VERSION})" \
+            --notes "Automated build from main @ $(git rev-parse --short HEAD).\n\nThis is an **adhoc-signed** build for testing. Gatekeeper may warn on first open; right-click → Open to bypass." \
+            --prerelease \
+            --target "${GITHUB_SHA}" \
+            "$ZIP_NAME"

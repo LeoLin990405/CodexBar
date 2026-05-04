@@ -40,6 +40,10 @@ public enum MiMoUsageError: LocalizedError, Sendable {
 public enum MiMoSettingsReader {
     public static let apiURLKey = "MIMO_API_URL"
 
+    public static func apiKey(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
+        environment["MIMO_API_KEY"]
+    }
+
     public static func apiURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL {
         if let override = environment[self.apiURLKey],
            let url = URL(string: override.trimmingCharacters(in: .whitespacesAndNewlines)),

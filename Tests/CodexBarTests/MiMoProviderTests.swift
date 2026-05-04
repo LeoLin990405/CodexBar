@@ -359,7 +359,7 @@ struct MiMoProviderTests {
     @Test
     @MainActor
     func `provider detail plan row formats mimo as balance`() {
-        let row = ProviderDetailView.planRow(provider: .mimo, planText: "Balance: $25.51")
+        let row = ProviderDetailView<EmptyView>.planRow(provider: .mimo, planText: "Balance: $25.51")
 
         #expect(row?.label == "Balance")
         #expect(row?.value == "$25.51")

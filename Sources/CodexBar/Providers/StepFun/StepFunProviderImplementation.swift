@@ -10,6 +10,12 @@ struct StepFunProviderImplementation: ProviderImplementation {
     @MainActor
     func observeSettings(_ settings: SettingsStore) {
         _ = settings.stepfunAPIToken
+        _ = settings.stepfunCookieSource
+    }
+
+    @MainActor
+    func settingsSnapshot(context: ProviderSettingsSnapshotContext) -> ProviderSettingsSnapshotContribution? {
+        .stepfun(context.settings.stepfunSettingsSnapshot(tokenOverride: context.tokenOverride))
     }
 
     @MainActor
