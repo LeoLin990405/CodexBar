@@ -122,9 +122,11 @@ extension UsageStore {
             }
             await MainActor.run {
                 let hadPriorData = self.snapshots[provider] != nil
+                let backgroundRefreshHadNoSafeStrategy = self.isBackgroundNoAvailableStrategyError(error)
                 let shouldSurface =
-                    self.failureGates[provider]?
-                        .shouldSurfaceError(onFailureWithPriorData: hadPriorData) ?? true
+                    !backgroundRefreshHadNoSafeStrategy &&
+                    (self.failureGates[provider]?
+                        .shouldSurfaceError(onFailureWithPriorData: hadPriorData) ?? true)
                 if shouldSurface {
                     self.errors[provider] = error.localizedDescription
                     self.snapshots.removeValue(forKey: provider)
@@ -137,6 +139,15 @@ extension UsageStore {
                     provider: provider, settings: self.settings, store: self)
                 runtime.providerDidFail(context: context, provider: provider, error: error)
             }
+        }
+    }
+
+    private func isBackgroundNoAvailableStrategyError(_ error: Error) -> Bool {
+        guard ProviderInteractionContext.current != .userInitiated else { return false }
+        guard let error = error as? ProviderFetchError else { return false }
+        switch error {
+        case .noAvailableStrategy:
+            return true
         }
     }
 }

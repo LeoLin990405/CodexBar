@@ -110,20 +110,7 @@ public enum ProviderTokenResolver {
     public static func kimiAuthResolution(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
-        if let resolution = self.resolveEnv(KimiSettingsReader.authToken(environment: environment)) {
-            return resolution
-        }
-        #if os(macOS)
-        do {
-            let session = try KimiCookieImporter.importSession()
-            if let token = session.authToken {
-                return ProviderTokenResolution(token: token, source: .environment)
-            }
-        } catch {
-            // No browser cookies found, continue to fallback
-        }
-        #endif
-        return nil
+        self.resolveEnv(KimiSettingsReader.authToken(environment: environment))
     }
 
     public static func kimiK2Resolution(
@@ -160,20 +147,7 @@ public enum ProviderTokenResolver {
     public static func perplexityResolution(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
-        if let resolution = self.resolveEnv(PerplexitySettingsReader.sessionToken(environment: environment)) {
-            return resolution
-        }
-        #if os(macOS)
-        do {
-            let session = try PerplexityCookieImporter.importSession()
-            if let token = session.sessionToken {
-                return ProviderTokenResolution(token: token, source: .environment)
-            }
-        } catch {
-            // No browser cookies found, continue to fallback
-        }
-        #endif
-        return nil
+        self.resolveEnv(PerplexitySettingsReader.sessionToken(environment: environment))
     }
 
     private static func cleaned(_ raw: String?) -> String? {

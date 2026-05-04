@@ -4,6 +4,11 @@ on:
   push:
     branches: ["*"]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint-build-test:
@@ -28,12 +33,16 @@ jobs:
           set -euo pipefail
           swift --version
           swift package --version
+          swift -version | grep -E "Swift version 6\\.[2-9]|Swift version [7-9]"
 
       - name: Install lint tools
         run: ./Scripts/install_lint_tools.sh
 
       - name: Lint
         run: ./Scripts/lint.sh lint
+
+      - name: Realtime refresh policy tests
+        run: swift test --filter "ProviderRefreshCoordinatorTests|ProviderFetchBackgroundPolicyTests"
 
       - name: Swift Test
         run: swift test --no-parallel

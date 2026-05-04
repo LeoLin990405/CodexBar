@@ -126,15 +126,54 @@ public enum ProviderFetchKind: Sendable {
     case webDashboard
 }
 
+public enum ProviderFetchBackgroundPolicy: Sendable, Equatable {
+    case allowed
+    case userInitiatedOnly
+}
+
 public protocol ProviderFetchStrategy: Sendable {
     var id: String { get }
     var kind: ProviderFetchKind { get }
+    var backgroundPolicy: ProviderFetchBackgroundPolicy { get }
+    var requiresBrowserSession: Bool { get }
+    var requiresKeychainAccess: Bool { get }
+    var minimumBackgroundRefreshInterval: TimeInterval? { get }
     func isAvailable(_ context: ProviderFetchContext) async -> Bool
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult
     func shouldFallback(on error: Error, context: ProviderFetchContext) -> Bool
 }
 
 extension ProviderFetchStrategy {
+    public var backgroundPolicy: ProviderFetchBackgroundPolicy {
+        .allowed
+    }
+
+    public var requiresBrowserSession: Bool {
+        switch self.kind {
+        case .web, .webDashboard:
+            true
+        case .apiToken, .cli, .localProbe, .oauth:
+            false
+        }
+    }
+
+    public var requiresKeychainAccess: Bool {
+        self.requiresBrowserSession
+    }
+
+    public var minimumBackgroundRefreshInterval: TimeInterval? {
+        self.requiresBrowserSession ? 5 * 60 : nil
+    }
+
+    public func isAllowedForCurrentInteraction() -> Bool {
+        switch self.backgroundPolicy {
+        case .allowed:
+            true
+        case .userInitiatedOnly:
+            ProviderInteractionContext.current == .userInitiated
+        }
+    }
+
     public func makeResult(
         usage: UsageSnapshot,
         credits: CreditsSnapshot? = nil,
@@ -165,6 +204,15 @@ public struct ProviderFetchPipeline: Sendable {
         var lastAvailableError: Error?
 
         for strategy in strategies {
+            guard strategy.isAllowedForCurrentInteraction() else {
+                attempts.append(ProviderFetchAttempt(
+                    strategyID: strategy.id,
+                    kind: strategy.kind,
+                    wasAvailable: false,
+                    errorDescription: "Skipped during background refresh."))
+                continue
+            }
+
             let available = await strategy.isAvailable(context)
 
             guard available else {

@@ -32,18 +32,65 @@ public enum KimiProviderDescriptor {
                 supportsTokenCost: false,
                 noDataMessage: { "Kimi cost summary is not supported." }),
             fetchPlan: ProviderFetchPlan(
-                sourceModes: [.auto, .web],
-                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [KimiWebFetchStrategy()] })),
+                sourceModes: [.auto, .web, .api],
+                pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),
             cli: ProviderCLIConfig(
                 name: "kimi",
                 aliases: ["kimi-ai"],
                 versionDetector: nil))
+    }
+
+    private static func resolveStrategies(context: ProviderFetchContext) async -> [any ProviderFetchStrategy] {
+        switch context.sourceMode {
+        case .api:
+            return [KimiTokenFetchStrategy()]
+        case .web:
+            return [KimiWebFetchStrategy()]
+        case .auto:
+            return [KimiTokenFetchStrategy(), KimiWebFetchStrategy()]
+        case .cli, .oauth:
+            return []
+        }
+    }
+}
+
+struct KimiTokenFetchStrategy: ProviderFetchStrategy {
+    let id: String = "kimi.token"
+    let kind: ProviderFetchKind = .apiToken
+
+    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
+        self.resolveToken(context: context) != nil
+    }
+
+    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
+        guard let token = self.resolveToken(context: context) else {
+            throw KimiAPIError.missingToken
+        }
+
+        let snapshot = try await KimiUsageFetcher.fetchUsage(authToken: token)
+        return self.makeResult(
+            usage: snapshot.toUsageSnapshot(),
+            sourceLabel: "token")
+    }
+
+    func shouldFallback(on error: Error, context _: ProviderFetchContext) -> Bool {
+        if case KimiAPIError.missingToken = error { return true }
+        if case KimiAPIError.invalidToken = error { return true }
+        return true
+    }
+
+    private func resolveToken(context: ProviderFetchContext) -> String? {
+        if let override = KimiCookieHeader.resolveCookieOverride(context: context) {
+            return override.token
+        }
+        return ProviderTokenResolver.kimiAuthToken(environment: context.env)
     }
 }
 
 struct KimiWebFetchStrategy: ProviderFetchStrategy {
     let id: String = "kimi.web"
     let kind: ProviderFetchKind = .web
+    let backgroundPolicy: ProviderFetchBackgroundPolicy = .userInitiatedOnly
     private static let log = CodexBarLog.logger(LogCategories.kimiWeb)
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {

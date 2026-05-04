@@ -32,12 +32,67 @@ public enum DoubaoProviderDescriptor {
                 supportsTokenCost: false,
                 noDataMessage: { "Doubao cost summary is not available." }),
             fetchPlan: ProviderFetchPlan(
-                sourceModes: [.auto, .api],
-                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [DoubaoAPIFetchStrategy()] })),
+                sourceModes: [.auto, .web, .api],
+                pipeline: ProviderFetchPipeline(resolveStrategies: { context in
+                    switch context.sourceMode {
+                    case .web:
+                        #if os(macOS)
+                        return [DoubaoConsoleFetchStrategy()]
+                        #else
+                        return []
+                        #endif
+                    case .api:
+                        return [DoubaoAPIFetchStrategy()]
+                    case .auto:
+                        #if os(macOS)
+                        return [DoubaoConsoleFetchStrategy(), DoubaoAPIFetchStrategy()]
+                        #else
+                        return [DoubaoAPIFetchStrategy()]
+                        #endif
+                    case .cli, .oauth:
+                        return []
+                    }
+                })),
             cli: ProviderCLIConfig(
                 name: "doubao",
                 aliases: ["volcengine", "ark", "bytedance"],
                 versionDetector: nil))
+    }
+}
+
+struct DoubaoConsoleFetchStrategy: ProviderFetchStrategy {
+    let id: String = "doubao.console"
+    let kind: ProviderFetchKind = .webDashboard
+    let backgroundPolicy: ProviderFetchBackgroundPolicy = .userInitiatedOnly
+    private static let log = CodexBarLog.logger(LogCategories.doubaoUsage)
+
+    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
+        context.sourceMode == .auto || context.sourceMode.usesWeb
+    }
+
+    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
+        #if os(macOS)
+        let consoleResult = try await DoubaoConsoleFetcher.fetch(
+            browserDetection: context.browserDetection)
+        let snapshot = DoubaoUsageSnapshot(
+            remainingRequests: 0,
+            limitRequests: 0,
+            resetTime: consoleResult.quotas.first?.resetAt,
+            updatedAt: consoleResult.updatedAt,
+            apiKeyValid: true,
+            codingPlanQuotas: consoleResult.quotas)
+        return self.makeResult(
+            usage: snapshot.toUsageSnapshot(),
+            sourceLabel: "console")
+        #else
+        throw DoubaoUsageError.missingCredentials
+        #endif
+    }
+
+    func shouldFallback(on error: Error, context: ProviderFetchContext) -> Bool {
+        guard context.sourceMode == .auto else { return false }
+        Self.log.debug("Doubao console fetch failed, falling back: \(error)")
+        return true
     }
 }
 
@@ -54,28 +109,6 @@ struct DoubaoAPIFetchStrategy: ProviderFetchStrategy {
             throw DoubaoUsageError.missingCredentials
         }
 
-        // Try Volcengine console GetCodingPlanUsage first — it carries real
-        // session/weekly/monthly quotas. Fall back to chat-completion probe
-        // when cookies are missing / expired.
-        #if os(macOS)
-        do {
-            let consoleResult = try await DoubaoConsoleFetcher.fetch(
-                browserDetection: BrowserDetection(cacheTTL: 0))
-            let snapshot = DoubaoUsageSnapshot(
-                remainingRequests: 0,
-                limitRequests: 0,
-                resetTime: consoleResult.quotas.first?.resetAt,
-                updatedAt: consoleResult.updatedAt,
-                apiKeyValid: true,
-                codingPlanQuotas: consoleResult.quotas)
-            return self.makeResult(
-                usage: snapshot.toUsageSnapshot(),
-                sourceLabel: "console")
-        } catch {
-            Self.consoleLog.debug("Doubao console fetch failed, falling back: \(error)")
-        }
-        #endif
-
         let usage = try await DoubaoUsageFetcher.fetchUsage(apiKey: apiKey)
         let accumulated = await LocalUsageTracker.shared.record(
             provider: .doubao,
@@ -85,10 +118,6 @@ struct DoubaoAPIFetchStrategy: ProviderFetchStrategy {
             usage: usage.toUsageSnapshot(accumulated: accumulated),
             sourceLabel: "api")
     }
-
-    #if os(macOS)
-    private static let consoleLog = CodexBarLog.logger(LogCategories.doubaoUsage)
-    #endif
 
     func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {
         false
