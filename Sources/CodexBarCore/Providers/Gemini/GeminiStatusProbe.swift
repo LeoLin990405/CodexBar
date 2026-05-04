@@ -754,9 +754,9 @@ public struct GeminiStatusProbe: Sendable {
     }
 
     private static func extractOAuthCredentialsFromLegacyPaths(realGeminiPath: String) -> OAuthClientCredentials? {
-        for path in legacyOAuthFileCandidatePaths(realGeminiPath: realGeminiPath) {
+        for path in self.legacyOAuthFileCandidatePaths(realGeminiPath: realGeminiPath) {
             if let content = try? String(contentsOfFile: path, encoding: .utf8),
-               let credentials = parseOAuthCredentials(from: content)
+               let credentials = self.parseOAuthCredentials(from: content)
             {
                 return credentials
             }
@@ -766,7 +766,7 @@ public struct GeminiStatusProbe: Sendable {
     }
 
     private static func resolveOAuthFileContentFromLegacyPaths(realGeminiPath: String) -> String? {
-        for path in legacyOAuthFileCandidatePaths(realGeminiPath: realGeminiPath) {
+        for path in self.legacyOAuthFileCandidatePaths(realGeminiPath: realGeminiPath) {
             if let content = try? String(contentsOfFile: path, encoding: .utf8) {
                 return content
             }
