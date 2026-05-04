@@ -141,7 +141,7 @@ struct ProviderFetchBackgroundPolicyTests {
             backgroundPolicy: .allowed,
             sourceLabel: "api")
 
-        #expect(web.minimumBackgroundRefreshInterval == 5 * 60)
+        #expect(web.minimumBackgroundRefreshInterval == TimeInterval(5 * 60))
         #expect(api.minimumBackgroundRefreshInterval == nil)
     }
 
