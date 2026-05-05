@@ -243,10 +243,12 @@ struct MiMoProviderTests {
         let sgpURL = MiMoSettingsReader.apiBaseURL(environment: ["MIMO_REGION": "sgp"])
         let cnURL = MiMoSettingsReader.apiBaseURL(environment: ["MIMO_REGION": "cn"])
         let amsURL = MiMoSettingsReader.apiBaseURL(environment: ["MIMO_REGION": "ams"])
+        let fallbackURLs = MiMoSettingsReader.apiBaseURLs(environment: ["MIMO_REGION": "sgp"])
 
         #expect(sgpURL.absoluteString == "https://token-plan-sgp.xiaomimimo.com/anthropic")
         #expect(cnURL.absoluteString == "https://token-plan-cn.xiaomimimo.com/anthropic")
         #expect(amsURL.absoluteString == "https://token-plan-ams.xiaomimimo.com/anthropic")
+        #expect(fallbackURLs.map(\.label) == ["sgp", "cn", "ams", "global"])
     }
 
     @Test
@@ -297,6 +299,46 @@ struct MiMoProviderTests {
         #expect(result.usage.primary?.usedPercent == 0)
         #expect(result.usage.primary?.resetDescription == "Validation used 3 tokens")
         #expect(result.usage.loginMethod(for: .mimo) == "Token Plan")
+    }
+
+    @Test
+    func `mimo api strategy tries fallback regions after invalid configured region`() async throws {
+        let registered = URLProtocol.registerClass(MiMoStubURLProtocol.self)
+        defer {
+            if registered {
+                URLProtocol.unregisterClass(MiMoStubURLProtocol.self)
+            }
+            MiMoStubURLProtocol.handler = nil
+        }
+
+        var requestedHosts: [String] = []
+        MiMoStubURLProtocol.handler = { request in
+            let host = request.url?.host ?? ""
+            requestedHosts.append(host)
+            let statusCode = host.contains("token-plan-cn") ? 200 : 401
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: statusCode,
+                httpVersion: "HTTP/1.1",
+                headerFields: ["Content-Type": "application/json"])!
+            let body = statusCode == 200
+                ? #"{"id":"msg-test","usage":{"input_tokens":2,"output_tokens":1}}"#
+                : #"{"error":{"type":"invalid_key"}}"#
+            return (response, Data(body.utf8))
+        }
+
+        let strategy = MiMoAPIFetchStrategy()
+        let result = try await strategy.fetch(self.makeContext(environment: [
+            "MIMO_API_KEY": "mimo-token",
+            "MIMO_REGION": "sgp",
+        ]))
+
+        #expect(requestedHosts == [
+            "token-plan-sgp.xiaomimimo.com",
+            "token-plan-cn.xiaomimimo.com",
+        ])
+        #expect(result.strategyID == "mimo.api")
+        #expect(result.usage.primary?.resetDescription == "Validation used 3 tokens")
     }
 
     @Test
@@ -742,7 +784,8 @@ final class MiMoStubURLProtocol: URLProtocol {
     nonisolated(unsafe) static var handler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
 
     override static func canInit(with request: URLRequest) -> Bool {
-        request.url?.host == "mimo.test"
+        guard let host = request.url?.host else { return false }
+        return host == "mimo.test" || host.hasSuffix(".xiaomimimo.com")
     }
 
     override static func canonicalRequest(for request: URLRequest) -> URLRequest {

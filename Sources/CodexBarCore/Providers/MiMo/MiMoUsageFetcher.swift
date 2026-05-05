@@ -47,6 +47,7 @@ public enum MiMoSettingsReader {
     public static let apiURLKey = "MIMO_API_URL"
     public static let apiBaseURLKey = "MIMO_API_BASE_URL"
     public static let apiRegionKey = "MIMO_REGION"
+    public static let tokenPlanRegions = ["cn", "sgp", "ams"]
     public static let apiKeyEnvironmentKeys = [
         "MIMO_API_KEY",
         "XIAOMI_API_KEY",
@@ -70,20 +71,43 @@ public enum MiMoSettingsReader {
     }
 
     public static func apiBaseURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL {
+        self.apiBaseURLs(environment: environment).first?.url ?? URL(string: "https://api.xiaomimimo.com/v1")!
+    }
+
+    public static func apiBaseURLs(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> [(label: String, url: URL)]
+    {
         if let override = environment[self.apiBaseURLKey],
            let url = URL(string: override.trimmingCharacters(in: .whitespacesAndNewlines)),
            let scheme = url.scheme, !scheme.isEmpty
         {
-            return url
+            return [(label: "configured endpoint", url: url)]
         }
 
         let region = self.cleaned(environment[self.apiRegionKey])?.lowercased()
-        switch region {
-        case let region? where ["cn", "sgp", "ams"].contains(region):
-            return URL(string: "https://token-plan-\(region).xiaomimimo.com/anthropic")!
-        default:
-            return URL(string: "https://api.xiaomimimo.com/v1")!
+        let orderedRegions: [String] = if let region, self.tokenPlanRegions.contains(region) {
+            [region] + self.tokenPlanRegions.filter { $0 != region }
+        } else {
+            self.tokenPlanRegions
         }
+
+        var endpoints = orderedRegions.map { region in
+            (
+                label: region,
+                url: self.tokenPlanAPIBaseURL(region: region))
+        }
+        endpoints.append((
+            label: "global",
+            url: self.globalAPIBaseURL))
+        return endpoints
+    }
+
+    private static var globalAPIBaseURL: URL {
+        URL(string: "https://api.xiaomimimo.com/v1")!
+    }
+
+    private static func tokenPlanAPIBaseURL(region: String) -> URL {
+        URL(string: "https://token-plan-\(region).xiaomimimo.com/anthropic")!
     }
 
     private static func cleaned(_ raw: String?) -> String? {
@@ -132,24 +156,40 @@ public enum MiMoUsageFetcher {
             throw MiMoSettingsError.missingAPIKey
         }
 
-        let baseURL = MiMoSettingsReader.apiBaseURL(environment: environment)
-        let request = try self.makeAPIValidationRequest(baseURL: baseURL, apiKey: cleanedKey)
+        var invalidEndpoints: [String] = []
+        var lastError: Error?
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw MiMoUsageError.networkError("Invalid response")
-        }
-        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-            let region = environment[MiMoSettingsReader.apiRegionKey] ?? baseURL.host ?? "configured endpoint"
-            throw MiMoSettingsError.invalidAPIKey(region)
-        }
-        switch httpResponse.statusCode {
-        case 200...299, 400, 422, 429:
-            break
-        default:
-            throw MiMoUsageError.networkError("HTTP \(httpResponse.statusCode)")
+        for endpoint in MiMoSettingsReader.apiBaseURLs(environment: environment) {
+            do {
+                let request = try self.makeAPIValidationRequest(baseURL: endpoint.url, apiKey: cleanedKey)
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw MiMoUsageError.networkError("Invalid response")
+                }
+                if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                    invalidEndpoints.append(endpoint.label)
+                    continue
+                }
+                switch httpResponse.statusCode {
+                case 200...299, 400, 422, 429:
+                    return self.makeAPIUsageSnapshot(from: data, now: now)
+                default:
+                    throw MiMoUsageError.networkError("HTTP \(httpResponse.statusCode)")
+                }
+            } catch {
+                lastError = error
+                continue
+            }
         }
 
+        if !invalidEndpoints.isEmpty {
+            throw MiMoSettingsError.invalidAPIKey(invalidEndpoints.joined(separator: ", "))
+        }
+        if let lastError { throw lastError }
+        throw MiMoSettingsError.invalidAPIKey("configured endpoint")
+    }
+
+    private static func makeAPIUsageSnapshot(from data: Data, now: Date) -> UsageSnapshot {
         let apiResponse = try? JSONDecoder().decode(APIUsageResponse.self, from: data)
         let detail: String?
         if let usage = apiResponse?.usage {
