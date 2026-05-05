@@ -46,12 +46,48 @@ public enum MiMoProviderDescriptor {
                 supportsTokenCost: false,
                 noDataMessage: { "Xiaomi MiMo cost summary is not supported." }),
             fetchPlan: ProviderFetchPlan(
-                sourceModes: [.auto, .web],
-                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [MiMoWebFetchStrategy()] })),
+                sourceModes: [.auto, .web, .api],
+                pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),
             cli: ProviderCLIConfig(
                 name: "mimo",
                 aliases: ["xiaomi-mimo"],
                 versionDetector: nil))
+    }
+
+    private static func resolveStrategies(context: ProviderFetchContext) async -> [any ProviderFetchStrategy] {
+        switch context.sourceMode {
+        case .api:
+            [MiMoAPIFetchStrategy()]
+        case .web:
+            [MiMoWebFetchStrategy()]
+        case .auto:
+            [MiMoAPIFetchStrategy(), MiMoWebFetchStrategy()]
+        case .cli, .oauth:
+            []
+        }
+    }
+}
+
+struct MiMoAPIFetchStrategy: ProviderFetchStrategy {
+    let id: String = "mimo.api"
+    let kind: ProviderFetchKind = .apiToken
+
+    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
+        ProviderTokenResolver.mimoResolution(environment: context.env) != nil
+    }
+
+    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
+        guard let apiKey = ProviderTokenResolver.mimoToken(environment: context.env) else {
+            throw MiMoSettingsError.missingAPIKey
+        }
+        let usage = try await MiMoUsageFetcher.fetchAPIUsage(
+            apiKey: apiKey,
+            environment: context.env)
+        return self.makeResult(usage: usage, sourceLabel: "api")
+    }
+
+    func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {
+        true
     }
 }
 

@@ -40,7 +40,13 @@ extension MiMoUsageSnapshot {
         let balanceText = UsageFormatter.currencyString(self.balance, currencyCode: trimmedCurrency)
 
         let primary: RateWindow? = {
-            guard self.tokenLimit > 0 else { return nil }
+            guard self.tokenLimit > 0 else {
+                return RateWindow(
+                    usedPercent: 0,
+                    windowMinutes: nil,
+                    resetsAt: nil,
+                    resetDescription: nil)
+            }
             let usedPercent = max(0, min(100, self.tokenPercent * 100))
             let resetDesc = "\(self.tokenUsed.formatted()) / \(self.tokenLimit.formatted()) Credits"
             return RateWindow(

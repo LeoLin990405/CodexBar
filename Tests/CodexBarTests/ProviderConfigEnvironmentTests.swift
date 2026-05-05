@@ -52,6 +52,19 @@ struct ProviderConfigEnvironmentTests {
     }
 
     @Test
+    func `applies API key and region override for mimo`() {
+        let config = ProviderConfig(id: .mimo, apiKey: "mimo-token", region: "sgp")
+        let env = ProviderConfigEnvironment.applyAPIKeyOverride(
+            base: [:],
+            provider: .mimo,
+            config: config)
+
+        #expect(env[MiMoSettingsReader.apiKeyEnvironmentKeys.first ?? ""] == "mimo-token")
+        #expect(env[MiMoSettingsReader.apiRegionKey] == "sgp")
+        #expect(ProviderTokenResolver.mimoToken(environment: env) == "mimo-token")
+    }
+
+    @Test
     func `open router config override wins over environment token`() {
         let config = ProviderConfig(id: .openrouter, apiKey: "config-token")
         let env = ProviderConfigEnvironment.applyAPIKeyOverride(

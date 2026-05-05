@@ -52,6 +52,15 @@ public enum ProviderConfigEnvironment {
             if let key = TraeSettingsReader.apiKeyEnvironmentKeys.first {
                 env[key] = apiKey
             }
+        case .mimo:
+            if let key = MiMoSettingsReader.apiKeyEnvironmentKeys.first {
+                env[key] = apiKey
+            }
+            if let region = config?.region?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !region.isEmpty
+            {
+                env[MiMoSettingsReader.apiRegionKey] = region
+            }
         case .stepfun:
             if let key = StepFunSettingsReader.apiKeyEnvironmentKeys.first {
                 env[key] = apiKey

@@ -168,7 +168,7 @@ struct MiMoProviderTests {
 
         let usage = snapshot.toUsageSnapshot()
 
-        #expect(usage.primary == nil)
+        #expect(usage.primary?.usedPercent == 0)
         #expect(usage.secondary == nil)
         #expect(usage.loginMethod(for: .mimo) == "Balance: $25.51")
     }
@@ -211,8 +211,77 @@ struct MiMoProviderTests {
 
         let usage = snapshot.toUsageSnapshot()
 
-        #expect(usage.primary == nil)
+        #expect(usage.primary?.usedPercent == 0)
         #expect(usage.loginMethod(for: .mimo) == "Balance: $0.00")
+    }
+
+    @Test
+    func `mimo api strategy is available from api key`() async {
+        let strategy = MiMoAPIFetchStrategy()
+        let context = self.makeContext(environment: ["MIMO_API_KEY": "mimo-token"])
+
+        let available = await strategy.isAvailable(context)
+
+        #expect(available)
+    }
+
+    @Test
+    func `mimo descriptor supports api source`() async {
+        let descriptor = ProviderDescriptorRegistry.descriptor(for: .mimo)
+        let context = self.makeContext(
+            environment: ["MIMO_API_KEY": "mimo-token"],
+            sourceMode: .api)
+
+        let strategies = await descriptor.fetchPlan.pipeline.resolveStrategies(context)
+
+        #expect(descriptor.fetchPlan.sourceModes.contains(.api))
+        #expect(strategies.map(\.id) == ["mimo.api"])
+    }
+
+    @Test
+    func `mimo api strategy validates key through chat endpoint`() async throws {
+        let registered = URLProtocol.registerClass(MiMoStubURLProtocol.self)
+        defer {
+            if registered {
+                URLProtocol.unregisterClass(MiMoStubURLProtocol.self)
+            }
+            MiMoStubURLProtocol.handler = nil
+        }
+
+        var requestedPath: String?
+        var requestedAuthorization: String?
+        MiMoStubURLProtocol.handler = { request in
+            requestedPath = request.url?.path
+            requestedAuthorization = request.value(forHTTPHeaderField: "Authorization")
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: "HTTP/1.1",
+                headerFields: ["Content-Type": "application/json"])!
+            let body = """
+            {
+              "id": "chatcmpl-test",
+              "model": "mimo-v2.5",
+              "usage": {
+                "total_tokens": 3
+              }
+            }
+            """
+            return (response, Data(body.utf8))
+        }
+
+        let strategy = MiMoAPIFetchStrategy()
+        let result = try await strategy.fetch(self.makeContext(environment: [
+            "MIMO_API_KEY": "mimo-token",
+            "MIMO_API_BASE_URL": "https://mimo.test/v1",
+        ]))
+
+        #expect(requestedPath == "/v1/chat/completions")
+        #expect(requestedAuthorization == "Bearer mimo-token")
+        #expect(result.strategyID == "mimo.api")
+        #expect(result.usage.primary?.usedPercent == 0)
+        #expect(result.usage.primary?.resetDescription == "Validation used 3 tokens")
+        #expect(result.usage.loginMethod(for: .mimo) == "Token Plan")
     }
 
     @Test
@@ -617,12 +686,13 @@ struct MiMoProviderTests {
 
     private func makeContext(
         settings: ProviderSettingsSnapshot? = nil,
-        environment: [String: String] = [:]) -> ProviderFetchContext
+        environment: [String: String] = [:],
+        sourceMode: ProviderSourceMode = .auto) -> ProviderFetchContext
     {
         let browserDetection = BrowserDetection(cacheTTL: 0)
         return ProviderFetchContext(
             runtime: .app,
-            sourceMode: .auto,
+            sourceMode: sourceMode,
             includeCredits: false,
             webTimeout: 1,
             webDebugDumpHTML: false,
