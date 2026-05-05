@@ -80,7 +80,7 @@ public enum MiMoSettingsReader {
         let region = self.cleaned(environment[self.apiRegionKey])?.lowercased()
         switch region {
         case let region? where ["cn", "sgp", "ams"].contains(region):
-            return URL(string: "https://token-plan-\(region).xiaomimimo.com/v1")!
+            return URL(string: "https://token-plan-\(region).xiaomimimo.com/anthropic")!
         default:
             return URL(string: "https://api.xiaomimimo.com/v1")!
         }
@@ -133,19 +133,7 @@ public enum MiMoUsageFetcher {
         }
 
         let baseURL = MiMoSettingsReader.apiBaseURL(environment: environment)
-        let chatURL = baseURL.appendingPathComponent("chat/completions")
-        var request = URLRequest(url: chatURL)
-        request.httpMethod = "POST"
-        request.timeoutInterval = Self.requestTimeout
-        request.setValue("Bearer \(cleanedKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: [
-            "model": "mimo-v2.5",
-            "messages": [
-                ["role": "user", "content": "hi"],
-            ],
-            "max_tokens": 1,
-        ])
+        let request = try self.makeAPIValidationRequest(baseURL: baseURL, apiKey: cleanedKey)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -186,6 +174,46 @@ public enum MiMoUsageFetcher {
             secondary: nil,
             updatedAt: now,
             identity: identity)
+    }
+
+    private static func makeAPIValidationRequest(baseURL: URL, apiKey: String) throws -> URLRequest {
+        if self.usesAnthropicMessagesAPI(baseURL: baseURL) {
+            var request = URLRequest(url: baseURL.appendingPathComponent("v1").appendingPathComponent("messages"))
+            request.httpMethod = "POST"
+            request.timeoutInterval = Self.requestTimeout
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: [
+                "model": "mimo-v2.5",
+                "messages": [
+                    ["role": "user", "content": "hi"],
+                ],
+                "max_tokens": 1,
+            ])
+            return request
+        }
+
+        var request = URLRequest(url: baseURL.appendingPathComponent("chat").appendingPathComponent("completions"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = Self.requestTimeout
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "model": "mimo-v2.5",
+            "messages": [
+                ["role": "user", "content": "hi"],
+            ],
+            "max_tokens": 1,
+        ])
+        return request
+    }
+
+    private static func usesAnthropicMessagesAPI(baseURL: URL) -> Bool {
+        if baseURL.pathComponents.contains("anthropic") {
+            return true
+        }
+        return baseURL.host?.hasPrefix("token-plan-") == true
     }
 
     private static func fetchAuthenticated(
@@ -379,12 +407,22 @@ public enum MiMoUsageFetcher {
         enum CodingKeys: String, CodingKey {
             case totalTokens
             case totalTokensSnake = "total_tokens"
+            case inputTokens = "input_tokens"
+            case outputTokens = "output_tokens"
         }
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.totalTokens = try container.decodeIfPresent(Int.self, forKey: .totalTokens) ??
+            if let total = try container.decodeIfPresent(Int.self, forKey: .totalTokens) ??
                 container.decodeIfPresent(Int.self, forKey: .totalTokensSnake)
+            {
+                self.totalTokens = total
+                return
+            }
+            let input = try container.decodeIfPresent(Int.self, forKey: .inputTokens) ?? 0
+            let output = try container.decodeIfPresent(Int.self, forKey: .outputTokens) ?? 0
+            let total = input + output
+            self.totalTokens = total > 0 ? total : nil
         }
     }
 }
