@@ -33,13 +33,22 @@ public enum TraeProviderDescriptor {
                 noDataMessage: { "Trae cost summary is not available." }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web],
-                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in
-                    [TraeWebFetchStrategy(), TraeLocalFetchStrategy()]
-                })),
+                pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),
             cli: ProviderCLIConfig(
                 name: "trae",
                 aliases: [],
                 versionDetector: nil))
+    }
+
+    private static func resolveStrategies(context: ProviderFetchContext) async -> [any ProviderFetchStrategy] {
+        switch context.sourceMode {
+        case .web:
+            [TraeWebFetchStrategy()]
+        case .auto:
+            [TraeCachedSessionFetchStrategy(), TraeWebFetchStrategy(), TraeLocalFetchStrategy()]
+        case .api, .cli, .oauth:
+            []
+        }
     }
 }
 
@@ -47,11 +56,11 @@ struct TraeLocalFetchStrategy: ProviderFetchStrategy {
     let id: String = "trae.local"
     let kind: ProviderFetchKind = .localProbe
 
-    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
-        FileManager.default.fileExists(atPath: "/Applications/Trae.app")
+    func isAvailable(_: ProviderFetchContext) async -> Bool {
+        true
     }
 
-    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
+    func fetch(_: ProviderFetchContext) async throws -> ProviderFetchResult {
         let status = try await TraeStatusProbe.probe()
         return self.makeResult(
             usage: status.toUsageSnapshot(),
@@ -60,6 +69,51 @@ struct TraeLocalFetchStrategy: ProviderFetchStrategy {
 
     func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {
         false
+    }
+}
+
+struct TraeCachedSessionFetchStrategy: ProviderFetchStrategy {
+    let id: String = "trae.cached-session"
+    let kind: ProviderFetchKind = .apiToken
+
+    func isAvailable(_: ProviderFetchContext) async -> Bool {
+        #if os(macOS)
+        guard let cached = CookieHeaderCache.load(provider: .trae) else { return false }
+        return !cached.cookieHeader.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        #else
+        false
+        #endif
+    }
+
+    func fetch(_: ProviderFetchContext) async throws -> ProviderFetchResult {
+        #if os(macOS)
+        guard let cached = CookieHeaderCache.load(provider: .trae),
+              !cached.cookieHeader.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            throw TraeAPIError.invalidSession
+        }
+
+        do {
+            let session = TraeSessionInfo(
+                cookieHeader: cached.cookieHeader,
+                csrfToken: TraeCookieHeader.csrfToken(from: cached.cookieHeader),
+                cloudideSession: TraeCookieHeader.cloudideSession(from: cached.cookieHeader),
+                sourceLabel: cached.sourceLabel)
+            let snapshot = try await TraeUsageFetcher.fetchUsage(session: session)
+            return self.makeResult(
+                usage: snapshot.toUsageSnapshot(),
+                sourceLabel: "cached session")
+        } catch TraeAPIError.invalidSession {
+            CookieHeaderCache.clear(provider: .trae)
+            throw TraeAPIError.invalidSession
+        }
+        #else
+        throw TraeAPIError.invalidSession
+        #endif
+    }
+
+    func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {
+        true
     }
 }
 
@@ -84,6 +138,10 @@ struct TraeWebFetchStrategy: ProviderFetchStrategy {
 
         let session = TraeSessionInfo(from: cookieSession)
         let snapshot = try await TraeUsageFetcher.fetchUsage(session: session)
+        CookieHeaderCache.store(
+            provider: .trae,
+            cookieHeader: session.cookieHeader,
+            sourceLabel: cookieSession.sourceLabel)
         return self.makeResult(
             usage: snapshot.toUsageSnapshot(),
             sourceLabel: "web (\(cookieSession.sourceLabel))")
@@ -113,3 +171,26 @@ struct TraeWebFetchStrategy: ProviderFetchStrategy {
     }
 }
 #endif
+
+private enum TraeCookieHeader {
+    static func csrfToken(from cookieHeader: String) -> String? {
+        self.value(named: "passport_csrf_token", in: cookieHeader)
+    }
+
+    static func cloudideSession(from cookieHeader: String) -> String? {
+        self.value(named: "X-Cloudide-Session", in: cookieHeader)
+    }
+
+    private static func value(named name: String, in cookieHeader: String) -> String? {
+        cookieHeader
+            .split(separator: ";")
+            .compactMap { part -> String? in
+                let pieces = part.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+                guard pieces.count == 2 else { return nil }
+                let cookieName = pieces[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                guard cookieName == name else { return nil }
+                return pieces[1].trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            .first
+    }
+}
