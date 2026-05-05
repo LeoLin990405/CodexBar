@@ -287,7 +287,7 @@ private struct ProviderSwitchChip: View {
         case .doubao: "豆包"
         case .stepfun: "阶跃星辰"
         case .trae: "Trae"
-        case .mimo: "MiMo"
+        case .mimo: "小米 Mimo"
         case .zenmux: "Zenmux"
         case .aigocode: "AigoCode"
         }
