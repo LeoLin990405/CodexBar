@@ -375,7 +375,7 @@ struct CLISnapshotTests {
 
         let lines = output.split(separator: "\n")
         #expect(lines.last?.contains("状态：严重问题 – Major outage") == true)
-        #expect(output.contains("\u{001B}[31mStatus")) // red for critical
+        #expect(output.contains("\u{001B}[31m状态")) // red for critical
     }
 
     @Test

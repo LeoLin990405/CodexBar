@@ -62,6 +62,7 @@ public enum UsageFormatter {
         if let desc = window.resetDescription {
             let trimmed = desc.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
+            if trimmed.hasPrefix("重置") { return trimmed }
             if trimmed.lowercased()
                 .hasPrefix("resets") { return trimmed.replacingOccurrences(of: "Resets", with: "重置") }
             return "\(trimmed) 重置"
