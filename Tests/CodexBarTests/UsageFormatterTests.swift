@@ -7,13 +7,13 @@ struct UsageFormatterTests {
     @Test
     func `formats usage line`() {
         let line = UsageFormatter.usageLine(remaining: 25, used: 75, showUsed: false)
-        #expect(line == "25% left")
+        #expect(line == "25% 剩余")
     }
 
     @Test
     func `formats usage line show used`() {
         let line = UsageFormatter.usageLine(remaining: 25, used: 75, showUsed: true)
-        #expect(line == "75% used")
+        #expect(line == "75% 已用")
     }
 
     @Test
@@ -21,7 +21,7 @@ struct UsageFormatterTests {
         let now = Date()
         let fiveHoursAgo = now.addingTimeInterval(-5 * 3600)
         let text = UsageFormatter.updatedString(from: fiveHoursAgo, now: now)
-        #expect(text.contains("Updated"))
+        #expect(text.contains("更新"))
         // Check for relative time format (varies by locale: "ago" in English, "전" in Korean, etc.)
         #expect(text.contains("5") || text.lowercased().contains("hour") || text.contains("시간"))
     }
@@ -31,7 +31,7 @@ struct UsageFormatterTests {
         let now = Date()
         let dayAgo = now.addingTimeInterval(-26 * 3600)
         let text = UsageFormatter.updatedString(from: dayAgo, now: now)
-        #expect(text.contains("Updated"))
+        #expect(text.contains("更新"))
         #expect(!text.contains("ago"))
     }
 
@@ -39,35 +39,35 @@ struct UsageFormatterTests {
     func `reset countdown minutes`() {
         let now = Date(timeIntervalSince1970: 1_000_000)
         let reset = now.addingTimeInterval(10 * 60 + 1)
-        #expect(UsageFormatter.resetCountdownDescription(from: reset, now: now) == "in 11m")
+        #expect(UsageFormatter.resetCountdownDescription(from: reset, now: now) == "11 分钟后")
     }
 
     @Test
     func `reset countdown hours and minutes`() {
         let now = Date(timeIntervalSince1970: 1_000_000)
         let reset = now.addingTimeInterval(3 * 3600 + 31 * 60)
-        #expect(UsageFormatter.resetCountdownDescription(from: reset, now: now) == "in 3h 31m")
+        #expect(UsageFormatter.resetCountdownDescription(from: reset, now: now) == "3 小时 31 分钟后")
     }
 
     @Test
     func `reset countdown days and hours`() {
         let now = Date(timeIntervalSince1970: 1_000_000)
         let reset = now.addingTimeInterval((26 * 3600) + 10)
-        #expect(UsageFormatter.resetCountdownDescription(from: reset, now: now) == "in 1d 2h")
+        #expect(UsageFormatter.resetCountdownDescription(from: reset, now: now) == "1 天 2 小时后")
     }
 
     @Test
     func `reset countdown exact hour`() {
         let now = Date(timeIntervalSince1970: 1_000_000)
         let reset = now.addingTimeInterval(60 * 60)
-        #expect(UsageFormatter.resetCountdownDescription(from: reset, now: now) == "in 1h")
+        #expect(UsageFormatter.resetCountdownDescription(from: reset, now: now) == "1 小时后")
     }
 
     @Test
     func `reset countdown past date`() {
         let now = Date(timeIntervalSince1970: 1_000_000)
         let reset = now.addingTimeInterval(-10)
-        #expect(UsageFormatter.resetCountdownDescription(from: reset, now: now) == "now")
+        #expect(UsageFormatter.resetCountdownDescription(from: reset, now: now) == "现在")
     }
 
     @Test
@@ -76,7 +76,7 @@ struct UsageFormatterTests {
         let reset = now.addingTimeInterval(10 * 60 + 1)
         let window = RateWindow(usedPercent: 0, windowMinutes: nil, resetsAt: reset, resetDescription: "Resets soon")
         let text = UsageFormatter.resetLine(for: window, style: .countdown, now: now)
-        #expect(text == "Resets in 11m")
+        #expect(text == "11 分钟后 重置")
     }
 
     @Test
@@ -85,11 +85,11 @@ struct UsageFormatterTests {
             usedPercent: 0,
             windowMinutes: nil,
             resetsAt: nil,
-            resetDescription: "Resets at 23:30 (UTC)")
+            resetDescription: "重置 at 23:30 (UTC)")
         let countdown = UsageFormatter.resetLine(for: window, style: .countdown)
         let absolute = UsageFormatter.resetLine(for: window, style: .absolute)
-        #expect(countdown == "Resets at 23:30 (UTC)")
-        #expect(absolute == "Resets at 23:30 (UTC)")
+        #expect(countdown == "重置 at 23:30 (UTC)")
+        #expect(absolute == "重置 at 23:30 (UTC)")
     }
 
     @Test
@@ -220,6 +220,6 @@ struct UsageFormatterTests {
     @Test
     func `credits string formats correctly`() {
         let result = UsageFormatter.creditsString(from: 42.5)
-        #expect(result == "42.5 left")
+        #expect(result == "剩余 42.5")
     }
 }

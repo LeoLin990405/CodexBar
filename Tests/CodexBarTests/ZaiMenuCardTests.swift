@@ -63,7 +63,7 @@ struct ZaiMenuCardTests {
             hidePersonalInfo: false,
             now: now))
 
-        #expect(model.metrics.map(\.title) == ["Tokens", "MCP", "5-hour"])
+        #expect(model.metrics.map(\.title) == ["Token", "MCP", "5-hour"])
         let tertiary = try #require(model.metrics.first(where: { $0.title == "5-hour" }))
         #expect(tertiary.detailText == "750 / 1K (250 remaining)")
     }

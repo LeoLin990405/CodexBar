@@ -58,7 +58,7 @@ struct CodexBarWidgetProviderTests {
         let rows = WidgetUsageRow.rows(for: entry)
 
         #expect(rows.count == 1)
-        #expect(rows.first?.title == "Weekly")
+        #expect(rows.first?.title == "每周")
         #expect(rows.first?.percentLeft == 75)
     }
 
@@ -78,9 +78,9 @@ struct CodexBarWidgetProviderTests {
 
         let rows = WidgetUsageRow.rows(for: entry)
 
-        #expect(rows.map(\.title) == ["Session", "Weekly"])
+        #expect(rows.map(\.title) == ["会话", "每周"])
         #expect(rows.count == 2)
-        #expect(!rows.contains { $0.title == "Code review" })
+        #expect(!rows.contains { $0.title == "代码审查" })
     }
 
     @Test
@@ -93,7 +93,7 @@ struct CodexBarWidgetProviderTests {
             secondary: RateWindow(usedPercent: 25, windowMinutes: 10080, resetsAt: nil, resetDescription: nil),
             tertiary: nil,
             usageRows: [
-                WidgetSnapshot.WidgetUsageRowSnapshot(id: "weekly", title: "Weekly", percentLeft: 75),
+                WidgetSnapshot.WidgetUsageRowSnapshot(id: "weekly", title: "每周", percentLeft: 75),
             ],
             creditsRemaining: nil,
             codeReviewRemainingPercent: nil,
@@ -102,7 +102,7 @@ struct CodexBarWidgetProviderTests {
 
         let rows = WidgetUsageRow.rows(for: entry)
 
-        #expect(rows == [WidgetUsageRow(id: "weekly", title: "Weekly", percentLeft: 75)])
+        #expect(rows == [WidgetUsageRow(id: "weekly", title: "每周", percentLeft: 75)])
     }
 
     @Test

@@ -64,18 +64,18 @@ struct ProviderDetailView<SupplementaryContent: View>: View {
             return nil
         }
         guard provider == .openrouter || provider == .mimo else {
-            return (label: "Plan", value: rawPlan)
+            return (label: "方案", value: rawPlan)
         }
 
-        let prefix = "Balance:"
-        if rawPlan.hasPrefix(prefix) {
+        let prefixes = ["Balance:", "余额："]
+        if let prefix = prefixes.first(where: { rawPlan.hasPrefix($0) }) {
             let valueStart = rawPlan.index(rawPlan.startIndex, offsetBy: prefix.count)
             let trimmedValue = rawPlan[valueStart...].trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmedValue.isEmpty {
-                return (label: "Balance", value: trimmedValue)
+                return (label: "余额", value: trimmedValue)
             }
         }
-        return (label: "Balance", value: rawPlan)
+        return (label: "余额", value: rawPlan)
     }
 
     var body: some View {

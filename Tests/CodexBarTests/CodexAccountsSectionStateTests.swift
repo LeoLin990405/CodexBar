@@ -132,7 +132,7 @@ struct CodexAccountsSectionStateTests {
 
         #expect(state.systemVisibleAccount == nil)
         #expect(state.showsSystemPicker)
-        #expect(state.systemDisplayName == "No system account")
+        #expect(state.systemDisplayName == "无系统账号")
     }
 
     @Test

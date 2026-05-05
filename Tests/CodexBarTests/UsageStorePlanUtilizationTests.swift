@@ -346,7 +346,7 @@ struct UsageStorePlanUtilizationTests {
             provider: .codex,
             referenceDate: boundary.addingTimeInterval(-1))
 
-        #expect(detail.contains("48% used"))
+        #expect(detail.contains("已用 48%"))
         #expect(!detail.contains("Provider-reported"))
         #expect(!detail.contains("Estimated"))
         #expect(!detail.contains("wasted"))
@@ -387,7 +387,7 @@ struct UsageStorePlanUtilizationTests {
             provider: .codex,
             referenceDate: boundary.addingTimeInterval(-1))
 
-        #expect(detail.contains("0% used"))
+        #expect(detail.contains("已用 0%"))
         #expect(!detail.contains(": -"))
     }
 
@@ -436,13 +436,13 @@ struct UsageStorePlanUtilizationTests {
     @Test
     func `chart empty state shows series specific message`() {
         let text = PlanUtilizationHistoryChartMenuView._emptyStateTextForTesting(title: "Session")
-        #expect(text == "No session utilization data yet.")
+        #expect(text == "暂无 session 使用率数据。")
     }
 
     @Test
     func `chart empty state shows series specific message when not refreshing`() {
         let text = PlanUtilizationHistoryChartMenuView._emptyStateTextForTesting(title: "Weekly")
-        #expect(text == "No weekly utilization data yet.")
+        #expect(text == "暂无 weekly 使用率数据。")
     }
 
     @MainActor

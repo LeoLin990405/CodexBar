@@ -54,7 +54,7 @@ struct MenuDescriptorKiloTests {
         }
 
         #expect(textLines.contains("10/100 credits"))
-        #expect(!textLines.contains(where: { $0.contains("Resets 10/100 credits") }))
+        #expect(!textLines.contains(where: { $0.contains("重置 10/100 credits") }))
     }
 
     @Test
@@ -109,7 +109,7 @@ struct MenuDescriptorKiloTests {
             return text
         }
 
-        #expect(textLines.contains(where: { $0.contains("Resets") }))
+        #expect(textLines.contains(where: { $0.contains("重置") }))
         #expect(textLines.contains("$0.00 / $19.00 (+ $9.50 bonus)"))
     }
 
@@ -161,7 +161,7 @@ struct MenuDescriptorKiloTests {
                 return text
             }
 
-        #expect(textLines.contains("Activity: Auto top-up: off"))
-        #expect(!textLines.contains("Plan: Auto top-up: off"))
+        #expect(textLines.contains("活动：Auto top-up: off"))
+        #expect(!textLines.contains("方案：Auto top-up: off"))
     }
 }

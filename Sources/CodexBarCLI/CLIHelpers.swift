@@ -251,23 +251,23 @@ extension CodexBarCLI {
     static func renderOpenAIWebDashboardText(_ dash: OpenAIDashboardSnapshot) -> String {
         var lines: [String] = []
         if let email = dash.signedInEmail, !email.isEmpty {
-            lines.append("Web session: \(email)")
+            lines.append("Web 会话: \(email)")
         }
         if let remaining = dash.codeReviewRemainingPercent {
             let percent = Int(remaining.rounded())
             if let limit = dash.codeReviewLimit,
                let reset = UsageFormatter.resetLine(for: limit, style: .countdown)
             {
-                lines.append("Code review: \(percent)% remaining (\(reset))")
+                lines.append("代码审查：\(percent)% 剩余（\(reset)）")
             } else {
-                lines.append("Code review: \(percent)% remaining")
+                lines.append("代码审查：\(percent)% 剩余")
             }
         }
         if let first = dash.creditEvents.first {
             let day = first.date.formatted(date: .abbreviated, time: .omitted)
-            lines.append("Web history: \(dash.creditEvents.count) events (latest \(day))")
+            lines.append("Web 历史：\(dash.creditEvents.count) 条事件（最新 \(day)）")
         } else {
-            lines.append("Web history: none")
+            lines.append("Web 历史：无")
         }
         return lines.joined(separator: "\n")
     }

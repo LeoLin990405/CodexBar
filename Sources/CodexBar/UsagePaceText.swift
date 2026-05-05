@@ -12,9 +12,9 @@ enum UsagePaceText {
     static func weeklySummary(pace: UsagePace, now: Date = .init()) -> String {
         let detail = self.weeklyDetail(pace: pace, now: now)
         if let rightLabel = detail.rightLabel {
-            return "Pace: \(detail.leftLabel) · \(rightLabel)"
+            return "节奏：\(detail.leftLabel) · \(rightLabel)"
         }
-        return "Pace: \(detail.leftLabel)"
+        return "节奏：\(detail.leftLabel)"
     }
 
     static func weeklyDetail(pace: UsagePace, now: Date = .init()) -> WeeklyDetail {
@@ -29,28 +29,28 @@ enum UsagePaceText {
         let deltaValue = Int(abs(pace.deltaPercent).rounded())
         switch pace.stage {
         case .onTrack:
-            return "On pace"
+            return "按节奏"
         case .slightlyAhead, .ahead, .farAhead:
-            return "\(deltaValue)% in deficit"
+            return "超额 \(deltaValue)%"
         case .slightlyBehind, .behind, .farBehind:
-            return "\(deltaValue)% in reserve"
+            return "余量 \(deltaValue)%"
         }
     }
 
     private static func detailRightLabel(for pace: UsagePace, now: Date) -> String? {
         let etaLabel: String?
         if pace.willLastToReset {
-            etaLabel = "Lasts until reset"
+            etaLabel = "可撑到重置"
         } else if let etaSeconds = pace.etaSeconds {
             let etaText = Self.durationText(seconds: etaSeconds, now: now)
-            etaLabel = etaText == "now" ? "Runs out now" : "Runs out in \(etaText)"
+            etaLabel = etaText == "现在" ? "现在用尽" : "\(etaText) 用尽"
         } else {
             etaLabel = nil
         }
 
         guard let runOutProbability = pace.runOutProbability else { return etaLabel }
         let roundedRisk = self.roundedRiskPercent(runOutProbability)
-        let riskLabel = "≈ \(roundedRisk)% run-out risk"
+        let riskLabel = "约 \(roundedRisk)% 用尽风险"
         if let etaLabel {
             return "\(etaLabel) · \(riskLabel)"
         }
@@ -60,8 +60,7 @@ enum UsagePaceText {
     private static func durationText(seconds: TimeInterval, now: Date) -> String {
         let date = now.addingTimeInterval(seconds)
         let countdown = UsageFormatter.resetCountdownDescription(from: date, now: now)
-        if countdown == "now" { return "now" }
-        if countdown.hasPrefix("in ") { return String(countdown.dropFirst(3)) }
+        if countdown == "现在" { return "现在" }
         return countdown
     }
 

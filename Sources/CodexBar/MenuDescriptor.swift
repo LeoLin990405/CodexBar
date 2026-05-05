@@ -286,8 +286,8 @@ struct MenuDescriptor {
                 entries.append(.text("活动：\(detail)", .secondary))
             }
         } else if let loginMethodText, !loginMethodText.isEmpty {
-            let balancePrefix = "Balance:"
-            if loginMethodText.hasPrefix(balancePrefix) {
+            let balancePrefixes = ["Balance:", "余额："]
+            if let balancePrefix = balancePrefixes.first(where: { loginMethodText.hasPrefix($0) }) {
                 let balanceValue = loginMethodText.dropFirst(balancePrefix.count)
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 entries.append(.text("余额：\(balanceValue)", .secondary))

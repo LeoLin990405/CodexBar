@@ -76,10 +76,10 @@ struct MenuDescriptorCodexManagedFallbackTests {
                 return text
             }
 
-        #expect(lines.contains("Account: managed@example.com"))
-        #expect(lines.contains("Plan: Enterprise"))
-        #expect(!lines.contains("Account: ambient@example.com"))
-        #expect(!lines.contains("Plan: Plus"))
+        #expect(lines.contains("账号：managed@example.com"))
+        #expect(lines.contains("方案：Enterprise"))
+        #expect(!lines.contains("账号：ambient@example.com"))
+        #expect(!lines.contains("方案：Plus"))
     }
 
     @Test
@@ -145,8 +145,8 @@ struct MenuDescriptorCodexManagedFallbackTests {
                 return text
             }
 
-        #expect(!lines.contains(where: { $0.hasPrefix("Session:") }))
-        #expect(lines.contains(where: { $0.hasPrefix("Weekly:") }))
+        #expect(!lines.contains(where: { $0.hasPrefix("会话:") }))
+        #expect(lines.contains(where: { $0.hasPrefix("每周:") }))
     }
 
     private static func writeCodexAuthFile(homeURL: URL, email: String, plan: String) throws {

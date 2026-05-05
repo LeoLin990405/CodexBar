@@ -163,8 +163,8 @@ struct ProviderSettingsDescriptorTests {
         let toggles = CodexProviderImplementation().settingsToggles(context: context)
         let extrasToggle = try #require(toggles.first(where: { $0.id == "codex-openai-web-extras" }))
         #expect(extrasToggle.binding.wrappedValue == false)
-        #expect(extrasToggle.subtitle.contains("Optional."))
-        #expect(extrasToggle.subtitle.contains("Turn this on"))
+        #expect(extrasToggle.subtitle.contains("可选"))
+        #expect(extrasToggle.subtitle.contains("开启后"))
 
         let batterySaverToggle = try #require(toggles.first(where: { $0.id == "codex-openai-web-battery-saver" }))
         #expect(batterySaverToggle.binding.wrappedValue == false)
@@ -306,7 +306,7 @@ struct ProviderSettingsDescriptorTests {
         let keychainPicker = try #require(pickers.first(where: { $0.id == "claude-keychain-prompt-policy" }))
         #expect(keychainPicker.isEnabled?() == false)
         let subtitle = keychainPicker.dynamicSubtitle?() ?? ""
-        #expect(subtitle.localizedCaseInsensitiveContains("inactive"))
+        #expect(subtitle.localizedCaseInsensitiveContains("不生效"))
     }
 
     @Test

@@ -608,8 +608,8 @@ public struct AugmentStatusProbe: Sendable {
             lines.append("  Limit: \(snapshot.creditsLimit?.description ?? "nil")")
             lines.append("")
             lines.append("Billing Cycle End: \(snapshot.billingCycleEnd?.description ?? "nil")")
-            lines.append("Account Email: \(snapshot.accountEmail ?? "nil")")
-            lines.append("Account Plan: \(snapshot.accountPlan ?? "nil")")
+            lines.append("账号邮箱：\(snapshot.accountEmail ?? "nil")")
+            lines.append("账号方案：\(snapshot.accountPlan ?? "nil")")
 
             if let rawJSON = snapshot.rawJSON {
                 lines.append("")

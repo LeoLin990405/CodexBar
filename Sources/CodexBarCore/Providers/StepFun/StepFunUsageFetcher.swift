@@ -68,12 +68,12 @@ public struct StepFunUsageSnapshot: Sendable {
             // Balance display: show as "active" with balance info, low usedPercent
             let balanceStr = String(format: "¥%.2f", self.balance)
             let voucherStr = self.voucherBalance > 0
-                ? String(format: " (voucher: ¥%.2f)", self.voucherBalance) : ""
+                ? String(format: "（代金券：¥%.2f）", self.voucherBalance) : ""
             primary = RateWindow(
                 usedPercent: self.balance > 0 ? 0 : 100,
                 windowMinutes: nil,
                 resetsAt: nil,
-                resetDescription: "Balance: \(balanceStr)\(voucherStr)")
+                resetDescription: "余额：\(balanceStr)\(voucherStr)")
         }
 
         // Secondary: weekly rate limit if available, otherwise nil

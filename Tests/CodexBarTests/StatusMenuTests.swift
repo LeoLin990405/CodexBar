@@ -518,22 +518,22 @@ struct StatusMenuTests {
         #expect(!titles.contains("Switch Account..."))
         #expect(!titles.contains("Usage Dashboard"))
         #expect(!titles.contains("Status Page"))
-        #expect(titles.contains("Refresh"))
-        #expect(titles.contains("Settings..."))
-        #expect(titles.contains("About CodexBar"))
-        #expect(titles.contains("Quit"))
+        #expect(titles.contains("刷新"))
+        #expect(titles.contains("设置..."))
+        #expect(titles.contains("关于 CodexBar"))
+        #expect(titles.contains("退出"))
 
-        let refreshItem = menu.items.first { $0.title == "Refresh" }
+        let refreshItem = menu.items.first { $0.title == "刷新" }
         #expect(refreshItem != nil)
         #expect(refreshItem?.keyEquivalent == "r")
         #expect(refreshItem?.keyEquivalentModifierMask == [.command])
 
-        let settingsItem = menu.items.first { $0.title == "Settings..." }
+        let settingsItem = menu.items.first { $0.title == "设置..." }
         #expect(settingsItem != nil)
         #expect(settingsItem?.keyEquivalent == ",")
         #expect(settingsItem?.keyEquivalentModifierMask == [.command])
 
-        let quitItem = menu.items.first { $0.title == "Quit" }
+        let quitItem = menu.items.first { $0.title == "退出" }
         #expect(quitItem != nil)
         #expect(quitItem?.keyEquivalent == "q")
         #expect(quitItem?.keyEquivalentModifierMask == [.command])
@@ -884,7 +884,7 @@ extension StatusMenuTests {
 
         controller.hydrateHostedSubviewMenuIfNeeded(submenu)
         #expect(submenu.items.count == 1)
-        #expect(submenu.items.first?.title == "No data available")
+        #expect(submenu.items.first?.title == "暂无数据")
         #expect(submenu.items.first?.toolTip == UsageProvider.codex.rawValue)
 
         store._setTokenSnapshotForTesting(CostUsageTokenSnapshot(
@@ -906,7 +906,7 @@ extension StatusMenuTests {
 
         controller.hydrateHostedSubviewMenuIfNeeded(submenu)
         #expect(submenu.items.count == 1)
-        #expect(submenu.items.first?.title != "No data available")
+        #expect(submenu.items.first?.title != "暂无数据")
         #expect(submenu.items.first?.representedObject as? String == StatusItemController.costHistoryChartID)
     }
 
@@ -1169,7 +1169,7 @@ extension StatusMenuTests {
         #expect(ids.contains("menuCard"))
         #expect(ids.contains(where: { $0.hasPrefix("overviewRow-") }) == false)
         #expect(ids.contains("overviewEmptyState") == false)
-        #expect(menu.items.contains(where: { $0.title == "No providers selected for Overview." }) == false)
+        #expect(menu.items.contains(where: { $0.title == "Overview 未选择 provider。" }) == false)
     }
 
     @Test

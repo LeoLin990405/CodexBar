@@ -170,7 +170,7 @@ struct MiMoProviderTests {
 
         #expect(usage.primary?.usedPercent == 0)
         #expect(usage.secondary == nil)
-        #expect(usage.loginMethod(for: .mimo) == "Balance: $25.51")
+        #expect(usage.loginMethod(for: .mimo) == "余额：$25.51")
     }
 
     @Test
@@ -212,7 +212,7 @@ struct MiMoProviderTests {
         let usage = snapshot.toUsageSnapshot()
 
         #expect(usage.primary?.usedPercent == 0)
-        #expect(usage.loginMethod(for: .mimo) == "Balance: $0.00")
+        #expect(usage.loginMethod(for: .mimo) == "余额：$0.00")
     }
 
     @Test
@@ -500,9 +500,9 @@ struct MiMoProviderTests {
     @Test
     @MainActor
     func `provider detail plan row formats mimo as balance`() {
-        let row = ProviderDetailView<EmptyView>.planRow(provider: .mimo, planText: "Balance: $25.51")
+        let row = ProviderDetailView<EmptyView>.planRow(provider: .mimo, planText: "余额：$25.51")
 
-        #expect(row?.label == "Balance")
+        #expect(row?.label == "余额")
         #expect(row?.value == "$25.51")
     }
 
@@ -541,8 +541,8 @@ struct MiMoProviderTests {
                 return text
             }
 
-        #expect(lines.contains("Balance: $25.51"))
-        #expect(!lines.contains("Balance: Balance: $25.51"))
+        #expect(lines.contains("余额：$25.51"))
+        #expect(!lines.contains("余额：余额：$25.51"))
     }
 
     @Test
@@ -663,7 +663,7 @@ struct MiMoProviderTests {
         #expect(requestedCookies.count == 2)
         #expect(requestedCookies[0].contains("expired-token"))
         #expect(requestedCookies[1].contains("valid-token"))
-        #expect(result.usage.loginMethod(for: .mimo) == "Balance: $25.51")
+        #expect(result.usage.loginMethod(for: .mimo) == "余额：$25.51")
         #expect(CookieHeaderCache.load(provider: .mimo)?.sourceLabel == "Active Chrome")
     }
 

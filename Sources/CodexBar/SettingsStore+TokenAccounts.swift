@@ -43,7 +43,7 @@ extension SettingsStore {
         let trimmedLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
         let existing = self.tokenAccountsData(for: provider)
         let accounts = existing?.accounts ?? []
-        let fallbackLabel = trimmedLabel.isEmpty ? "Account \(accounts.count + 1)" : trimmedLabel
+        let fallbackLabel = trimmedLabel.isEmpty ? "账号 \(accounts.count + 1)" : trimmedLabel
         let account = ProviderTokenAccount(
             id: UUID(),
             label: fallbackLabel,
