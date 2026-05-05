@@ -613,9 +613,9 @@ struct PlanUtilizationHistoryChartMenuView: View {
 
     private nonisolated static func emptyStateText(title: String?) -> String {
         if let title {
-            return "No \(title.lowercased()) utilization data yet."
+            return "暂无 \(title.lowercased()) 使用率数据。"
         }
-        return "No utilization data yet."
+        return "暂无使用率数据。"
     }
 
     #if DEBUG

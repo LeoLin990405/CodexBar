@@ -48,16 +48,16 @@ struct PerplexityProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.perplexityCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "Automatically imports browser session cookie.",
-                manual: "Paste a full cookie header or the __Secure-next-auth.session-token value.",
-                off: "Perplexity cookies are disabled.")
+                auto: "自动导入浏览器会话 Cookie。",
+                manual: "粘贴完整 Cookie header 或 __Secure-next-auth.session-token 值。",
+                off: "Perplexity Cookie 已禁用。")
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "perplexity-cookie-source",
-                title: "Cookie source",
-                subtitle: "Automatically imports browser session cookie.",
+                title: "Cookie 来源",
+                subtitle: "自动导入浏览器会话 Cookie。",
                 dynamicSubtitle: subtitle,
                 binding: cookieBinding,
                 options: options,
@@ -74,12 +74,12 @@ struct PerplexityProviderImplementation: ProviderImplementation {
                 title: "",
                 subtitle: "",
                 kind: .secure,
-                placeholder: "Cookie: \u{2026}\n\nor paste the __Secure-next-auth.session-token value",
+                placeholder: "Cookie: \u{2026}\n\n或粘贴 __Secure-next-auth.session-token 值",
                 binding: context.stringBinding(\.perplexityManualCookieHeader),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "perplexity-open-usage",
-                        title: "Open Usage Page",
+                        title: "打开用量页面",
                         style: .link,
                         isVisible: nil,
                         perform: {

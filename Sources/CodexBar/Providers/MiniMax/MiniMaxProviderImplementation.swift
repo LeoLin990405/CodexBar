@@ -64,9 +64,9 @@ struct MiniMaxProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.minimaxCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "Automatic imports browser cookies and local storage tokens.",
-                manual: "Paste a Cookie header or cURL capture from the Coding Plan page.",
-                off: "MiniMax cookies are disabled.")
+                auto: "自动导入浏览器 Cookie 和本地存储 token。",
+                manual: "粘贴来自 Coding Plan 页面的 Cookie header 或 cURL 抓取内容。",
+                off: "MiniMax Cookie 已关闭。")
         }
 
         let regionBinding = Binding(
@@ -81,8 +81,8 @@ struct MiniMaxProviderImplementation: ProviderImplementation {
         return [
             ProviderSettingsPickerDescriptor(
                 id: "minimax-cookie-source",
-                title: "Cookie source",
-                subtitle: "Automatic imports browser cookies and local storage tokens.",
+                title: "Cookie 来源",
+                subtitle: "自动导入浏览器 Cookie 和本地存储 token。",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -91,12 +91,12 @@ struct MiniMaxProviderImplementation: ProviderImplementation {
                 trailingText: {
                     guard let entry = CookieHeaderCache.load(provider: .minimax) else { return nil }
                     let when = entry.storedAt.relativeDescription()
-                    return "Cached: \(entry.sourceLabel) • \(when)"
+                    return "已缓存：\(entry.sourceLabel) • \(when)"
                 }),
             ProviderSettingsPickerDescriptor(
                 id: "minimax-region",
-                title: "API region",
-                subtitle: "Choose the MiniMax host (global .io or China mainland .com).",
+                title: "API 区域",
+                subtitle: "选择 MiniMax 主机（全球 .io 或中国大陆 .com）。",
                 binding: regionBinding,
                 options: regionOptions,
                 isVisible: nil,
@@ -115,14 +115,14 @@ struct MiniMaxProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "minimax-api-token",
                 title: "API token",
-                subtitle: "Stored in ~/.codexbar/config.json. Paste your MiniMax API key.",
+                subtitle: "保存在 ~/.codexbar/config.json。粘贴你的 MiniMax API key。",
                 kind: .secure,
-                placeholder: "Paste API token…",
+                placeholder: "粘贴 API token…",
                 binding: context.stringBinding(\.minimaxAPIToken),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "minimax-open-dashboard",
-                        title: "Open Coding Plan",
+                        title: "打开 Coding Plan",
                         style: .link,
                         isVisible: nil,
                         perform: {
@@ -141,7 +141,7 @@ struct MiniMaxProviderImplementation: ProviderImplementation {
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "minimax-open-dashboard-cookie",
-                        title: "Open Coding Plan",
+                        title: "打开 Coding Plan",
                         style: .link,
                         isVisible: nil,
                         perform: {

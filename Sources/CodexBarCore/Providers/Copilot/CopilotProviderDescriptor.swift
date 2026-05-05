@@ -16,7 +16,7 @@ public enum CopilotProviderDescriptor {
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Copilot usage",
+                toggleTitle: "显示 Copilot 用量",
                 cliName: "copilot",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -29,7 +29,7 @@ public enum CopilotProviderDescriptor {
                 color: ProviderColor(red: 168 / 255, green: 85 / 255, blue: 247 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Copilot cost summary is not supported." }),
+                noDataMessage: { "Copilot 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [CopilotAPIFetchStrategy()] })),

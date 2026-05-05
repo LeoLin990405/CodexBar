@@ -16,7 +16,7 @@ public enum AntigravityProviderDescriptor {
                 supportsOpus: true,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Antigravity usage (experimental)",
+                toggleTitle: "显示 Antigravity 用量（实验）",
                 cliName: "antigravity",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -31,7 +31,7 @@ public enum AntigravityProviderDescriptor {
                 color: ProviderColor(red: 96 / 255, green: 186 / 255, blue: 126 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Antigravity cost summary is not supported." }),
+                noDataMessage: { "Antigravity 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .cli],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [AntigravityStatusFetchStrategy()] })),

@@ -10,13 +10,13 @@ public enum CursorProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .cursor,
                 displayName: "Cursor",
-                sessionLabel: "Total",
+                sessionLabel: "总量",
                 weeklyLabel: "Auto",
                 opusLabel: "API",
                 supportsOpus: true,
                 supportsCredits: true,
                 creditsHint: "On-demand usage beyond included plan limits.",
-                toggleTitle: "Show Cursor usage",
+                toggleTitle: "显示 Cursor 用量",
                 cliName: "cursor",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -32,7 +32,7 @@ public enum CursorProviderDescriptor {
                 color: ProviderColor(red: 0 / 255, green: 191 / 255, blue: 165 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Cursor cost summary is not supported." }),
+                noDataMessage: { "Cursor 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .cli],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [CursorStatusFetchStrategy()] })),

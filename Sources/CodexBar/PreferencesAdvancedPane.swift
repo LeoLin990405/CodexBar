@@ -11,17 +11,17 @@ struct AdvancedPane: View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 16) {
                 SettingsSection(contentSpacing: 8) {
-                    Text("Keyboard shortcut")
+                    Text("键盘快捷键")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
                     HStack(alignment: .center, spacing: 12) {
-                        Text("Open menu")
+                        Text("打开菜单")
                             .font(.body)
                         Spacer()
                         KeyboardShortcuts.Recorder(for: .openMenu)
                     }
-                    Text("Trigger the menu bar menu from anywhere.")
+                    Text("从任意位置唤起菜单栏菜单。")
                         .font(.footnote)
                         .foregroundStyle(.tertiary)
                 }
@@ -36,7 +36,7 @@ struct AdvancedPane: View {
                             if self.isInstallingCLI {
                                 ProgressView().controlSize(.small)
                             } else {
-                                Text("Install CLI")
+                                Text("安装 CLI")
                             }
                         }
                         .disabled(self.isInstallingCLI)
@@ -48,7 +48,7 @@ struct AdvancedPane: View {
                                 .lineLimit(2)
                         }
                     }
-                    Text("Symlink CodexBarCLI to /usr/local/bin and /opt/homebrew/bin as codexbar.")
+                    Text("将 CodexBarCLI 软链接到 /usr/local/bin 和 /opt/homebrew/bin，命令名为 codexbar。")
                         .font(.footnote)
                         .foregroundStyle(.tertiary)
                 }
@@ -57,12 +57,12 @@ struct AdvancedPane: View {
 
                 SettingsSection(contentSpacing: 10) {
                     PreferenceToggleRow(
-                        title: "Show Debug Settings",
-                        subtitle: "Expose troubleshooting tools in the Debug tab.",
+                        title: "显示调试设置",
+                        subtitle: "在“调试”标签页中显示故障排查工具。",
                         binding: self.$settings.debugMenuEnabled)
                     PreferenceToggleRow(
-                        title: "Surprise me",
-                        subtitle: "Check if you like your agents having some fun up there.",
+                        title: "给我一点惊喜",
+                        subtitle: "让菜单栏里的 agent 偶尔活泼一下。",
                         binding: self.$settings.randomBlinkEnabled)
                 }
 
@@ -70,22 +70,21 @@ struct AdvancedPane: View {
 
                 SettingsSection(contentSpacing: 10) {
                     PreferenceToggleRow(
-                        title: "Hide personal information",
-                        subtitle: "Obscure email addresses in the menu bar and menu UI.",
+                        title: "隐藏个人信息",
+                        subtitle: "在菜单栏和菜单界面中隐藏邮箱地址。",
                         binding: self.$settings.hidePersonalInfo)
                 }
 
                 Divider()
 
                 SettingsSection(
-                    title: "Keychain access",
+                    title: "钥匙串访问",
                     caption: """
-                    Disable all Keychain reads and writes. Browser cookie import is unavailable; paste Cookie \
-                    headers manually in Providers.
+                    禁用所有钥匙串读写。浏览器 Cookie 导入将不可用；请在“服务”中手动粘贴 Cookie header。
                     """) {
                         PreferenceToggleRow(
-                            title: "Disable Keychain access",
-                            subtitle: "Prevents any Keychain access while enabled.",
+                            title: "禁用钥匙串访问",
+                            subtitle: "启用后阻止任何钥匙串访问。",
                             binding: self.$settings.debugDisableKeychainAccess)
                     }
             }
@@ -119,29 +118,29 @@ extension AdvancedPane {
             let dir = (dest as NSString).deletingLastPathComponent
             guard fm.fileExists(atPath: dir) else { continue }
             guard fm.isWritableFile(atPath: dir) else {
-                results.append("No write access: \(dir)")
+                results.append("无写入权限：\(dir)")
                 continue
             }
 
             if fm.fileExists(atPath: dest) {
                 if Self.isLink(atPath: dest, pointingTo: helperURL.path) {
-                    results.append("Installed: \(dir)")
+                    results.append("已安装：\(dir)")
                 } else {
-                    results.append("Exists: \(dir)")
+                    results.append("已存在：\(dir)")
                 }
                 continue
             }
 
             do {
                 try fm.createSymbolicLink(atPath: dest, withDestinationPath: helperURL.path)
-                results.append("Installed: \(dir)")
+                results.append("已安装：\(dir)")
             } catch {
-                results.append("Failed: \(dir)")
+                results.append("失败：\(dir)")
             }
         }
 
         self.cliStatus = results.isEmpty
-            ? "No writable bin dirs found."
+            ? "未找到可写入的 bin 目录。"
             : results.joined(separator: " · ")
     }
 

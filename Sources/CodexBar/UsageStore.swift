@@ -829,7 +829,7 @@ extension UsageStore {
             return url
         } catch {
             await MainActor.run {
-                self.errors[provider] = "Failed to save log: \(error.localizedDescription)"
+                self.errors[provider] = "保存日志失败：\(error.localizedDescription)"
             }
             return nil
         }

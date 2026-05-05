@@ -53,16 +53,16 @@ struct AlibabaCodingPlanProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.alibabaCodingPlanCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "Automatic imports browser cookies from Model Studio/Bailian.",
-                manual: "Paste a Cookie header from modelstudio.console.alibabacloud.com.",
-                off: "Alibaba cookies are disabled.")
+                auto: "自动导入 Model Studio/百炼的浏览器 Cookie。",
+                manual: "粘贴来自 modelstudio.console.alibabacloud.com 的 Cookie header。",
+                off: "Alibaba Cookie 已禁用。")
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "alibaba-coding-plan-cookie-source",
-                title: "Cookie source",
-                subtitle: "Automatic imports browser cookies from Model Studio/Bailian.",
+                title: "Cookie 来源",
+                subtitle: "自动导入 Model Studio/百炼的浏览器 Cookie。",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -71,12 +71,12 @@ struct AlibabaCodingPlanProviderImplementation: ProviderImplementation {
                 trailingText: {
                     guard let entry = CookieHeaderCache.load(provider: .alibaba) else { return nil }
                     let when = entry.storedAt.relativeDescription()
-                    return "Cached: \(entry.sourceLabel) • \(when)"
+                    return "已缓存：\(entry.sourceLabel) • \(when)"
                 }),
             ProviderSettingsPickerDescriptor(
                 id: "alibaba-coding-plan-region",
-                title: "Gateway region",
-                subtitle: "Use international or China mainland console gateways for quota fetches.",
+                title: "网关区域",
+                subtitle: "获取额度时使用国际版或中国大陆控制台网关。",
                 binding: binding,
                 options: options,
                 isVisible: nil,
@@ -90,14 +90,14 @@ struct AlibabaCodingPlanProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "alibaba-coding-plan-api-key",
                 title: "API key",
-                subtitle: "Stored in ~/.codexbar/config.json. Paste your Coding Plan API key from Model Studio.",
+                subtitle: "保存在 ~/.codexbar/config.json。粘贴来自 Model Studio 的 Coding Plan API key。",
                 kind: .secure,
                 placeholder: "cpk-...",
                 binding: context.stringBinding(\.alibabaCodingPlanAPIToken),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "alibaba-coding-plan-open-dashboard",
-                        title: "Open Coding Plan",
+                        title: "打开 Coding Plan",
                         style: .link,
                         isVisible: nil,
                         perform: {
@@ -116,7 +116,7 @@ struct AlibabaCodingPlanProviderImplementation: ProviderImplementation {
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "alibaba-coding-plan-open-dashboard-cookie",
-                        title: "Open Coding Plan",
+                        title: "打开 Coding Plan",
                         style: .link,
                         isVisible: nil,
                         perform: {

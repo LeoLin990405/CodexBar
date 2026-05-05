@@ -11,12 +11,12 @@ public enum OpenCodeProviderDescriptor {
                 id: .opencode,
                 displayName: "OpenCode",
                 sessionLabel: "5-hour",
-                weeklyLabel: "Weekly",
+                weeklyLabel: "每周",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show OpenCode usage",
+                toggleTitle: "显示 OpenCode 用量",
                 cliName: "opencode",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum OpenCodeProviderDescriptor {
                 color: ProviderColor(red: 59 / 255, green: 130 / 255, blue: 246 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "OpenCode cost summary is not supported." }),
+                noDataMessage: { "OpenCode 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [OpenCodeUsageFetchStrategy()] })),

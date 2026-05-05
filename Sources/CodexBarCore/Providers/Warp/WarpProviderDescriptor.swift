@@ -10,13 +10,13 @@ public enum WarpProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .warp,
                 displayName: "Warp",
-                sessionLabel: "Credits",
-                weeklyLabel: "Add-on credits",
+                sessionLabel: "Credits 余额",
+                weeklyLabel: "附加 credits",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Warp usage",
+                toggleTitle: "显示 Warp 用量",
                 cliName: "warp",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum WarpProviderDescriptor {
                 color: ProviderColor(red: 147 / 255, green: 139 / 255, blue: 180 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Warp cost summary is not available." }),
+                noDataMessage: { "Warp 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [WarpAPIFetchStrategy()] })),

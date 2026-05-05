@@ -266,11 +266,11 @@ public enum UsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .noSessions:
-            "No Codex sessions found yet. Run at least one Codex prompt first."
+            "尚未找到 Codex 会话。请先运行至少一次 Codex prompt。"
         case .noRateLimitsFound:
-            "Found sessions, but no rate limit events yet."
+            "已找到会话，但尚未发现速率限制事件。"
         case .decodeFailed:
-            "Could not parse Codex session log."
+            "无法解析 Codex 会话日志。"
         }
     }
 }
@@ -419,7 +419,7 @@ private final class CodexRPCClient: @unchecked Sendable {
         guard let resolvedExec else {
             Self.log.warning("Codex RPC binary not found", metadata: ["binary": executable])
             throw RPCWireError.startFailed(
-                "Codex CLI not found. Install with `npm i -g @openai/codex` (or bun) then relaunch CodexBar.")
+                "未找到 Codex CLI。请安装 `npm i -g @openai/codex`（或使用 bun），然后重新启动 CodexBar。")
         }
         var env = environment
         env["PATH"] = PathBuilder.effectivePATH(

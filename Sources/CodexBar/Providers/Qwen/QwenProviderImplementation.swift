@@ -18,15 +18,14 @@ struct QwenProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "qwen-api-token",
                 title: "API key",
-                subtitle: "Stored in ~/.codexbar/config.json. Get your API key from the Alibaba Cloud "
-                    + "Bailian console (DashScope).",
+                subtitle: "保存在 ~/.codexbar/config.json。可在阿里云百炼控制台（DashScope）获取 API key。",
                 kind: .secure,
                 placeholder: "sk-...",
                 binding: context.stringBinding(\.qwenAPIToken),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "qwen-open-dashboard",
-                        title: "Open Bailian Console",
+                        title: "打开百炼控制台",
                         style: .link,
                         isVisible: nil,
                         perform: {

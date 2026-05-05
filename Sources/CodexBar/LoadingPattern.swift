@@ -14,12 +14,12 @@ enum LoadingPattern: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .knightRider: "Knight Rider"
-        case .cylon: "Cylon"
-        case .outsideIn: "Outside-In"
-        case .race: "Race"
-        case .pulse: "Pulse"
-        case .unbraid: "Unbraid (logo → bars)"
+        case .knightRider: "骑士扫描"
+        case .cylon: "赛昂扫描"
+        case .outsideIn: "由外向内"
+        case .race: "竞速"
+        case .pulse: "脉冲"
+        case .unbraid: "展开（Logo → 进度条）"
         }
     }
 

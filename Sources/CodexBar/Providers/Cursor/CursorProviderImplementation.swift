@@ -53,16 +53,16 @@ struct CursorProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.cursorCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "Automatic imports browser cookies or stored sessions.",
-                manual: "Paste a Cookie header from a cursor.com request.",
-                off: "Cursor cookies are disabled.")
+                auto: "自动导入浏览器 Cookie 或已保存会话。",
+                manual: "粘贴来自 cursor.com 请求的 Cookie header。",
+                off: "Cursor Cookie 已禁用。")
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "cursor-cookie-source",
-                title: "Cookie source",
-                subtitle: "Automatic imports browser cookies or stored sessions.",
+                title: "Cookie 来源",
+                subtitle: "自动导入浏览器 Cookie 或已保存会话。",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -71,7 +71,7 @@ struct CursorProviderImplementation: ProviderImplementation {
                 trailingText: {
                     guard let entry = CookieHeaderCache.load(provider: .cursor) else { return nil }
                     let when = entry.storedAt.relativeDescription()
-                    return "Cached: \(entry.sourceLabel) • \(when)"
+                    return "已缓存：\(entry.sourceLabel) • \(when)"
                 }),
         ]
     }

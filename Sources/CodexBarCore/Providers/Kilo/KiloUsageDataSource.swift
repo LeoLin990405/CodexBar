@@ -11,7 +11,7 @@ public enum KiloUsageDataSource: String, CaseIterable, Identifiable, Sendable {
 
     public var displayName: String {
         switch self {
-        case .auto: "Auto"
+        case .auto: "自动"
         case .api: "API"
         case .cli: "CLI"
         }

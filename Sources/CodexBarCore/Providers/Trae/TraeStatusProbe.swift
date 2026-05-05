@@ -47,9 +47,9 @@ public enum TraeStatusProbeError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .notInstalled:
-            "Trae is not installed."
+            "Trae 未安装。"
         case .notRunning:
-            "Trae is not running."
+            "Trae 未运行。"
         }
     }
 }

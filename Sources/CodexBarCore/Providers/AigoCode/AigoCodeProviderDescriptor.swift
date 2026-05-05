@@ -10,13 +10,13 @@ public enum AigoCodeProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .aigocode,
                 displayName: "AigoCode",
-                sessionLabel: "Subscription",
-                weeklyLabel: "Weekly",
+                sessionLabel: "订阅",
+                weeklyLabel: "每周",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show AigoCode usage",
+                toggleTitle: "显示 AigoCode 用量",
                 cliName: "aigocode",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum AigoCodeProviderDescriptor {
                 color: ProviderColor(red: 34 / 255, green: 197 / 255, blue: 94 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "AigoCode cost summary is not available." }),
+                noDataMessage: { "AigoCode 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { context in

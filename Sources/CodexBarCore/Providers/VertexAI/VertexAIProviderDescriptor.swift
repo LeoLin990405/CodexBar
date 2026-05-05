@@ -10,13 +10,13 @@ public enum VertexAIProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .vertexai,
                 displayName: "Vertex AI",
-                sessionLabel: "Requests",
+                sessionLabel: "请求",
                 weeklyLabel: "Tokens",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Vertex AI usage",
+                toggleTitle: "显示 Vertex AI 用量",
                 cliName: "vertexai",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum VertexAIProviderDescriptor {
                 color: ProviderColor(red: 66 / 255, green: 133 / 255, blue: 244 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: true,
-                noDataMessage: { "No Vertex AI cost data found in Claude logs. Ensure entries include Vertex metadata."
+                noDataMessage: { "Claude 日志中未找到 Vertex AI 费用数据。请确认条目包含 Vertex 元数据。"
                 }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .oauth],

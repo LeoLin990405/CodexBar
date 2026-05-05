@@ -177,7 +177,7 @@ enum KimiCookieImportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noCookies:
-            "No Kimi session cookies found in browsers."
+            "浏览器中未找到 Kimi 会话 Cookie。"
         }
     }
 }

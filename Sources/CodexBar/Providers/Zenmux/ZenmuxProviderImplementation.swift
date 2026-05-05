@@ -18,15 +18,14 @@ struct ZenmuxProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "zenmux-api-token",
                 title: "API key",
-                subtitle: "Stored in ~/.codexbar/config.json. Get your API key from the Zenmux "
-                    + "dashboard.",
+                subtitle: "保存在 ~/.codexbar/config.json。可在 Zenmux 仪表盘获取 API key。",
                 kind: .secure,
-                placeholder: "sk-ss-v1-... or sk-ai-v1-...",
+                placeholder: "sk-ss-v1-... 或 sk-ai-v1-...",
                 binding: context.stringBinding(\.zenmuxAPIToken),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "zenmux-open-dashboard",
-                        title: "Open Zenmux Dashboard",
+                        title: "打开 Zenmux 仪表盘",
                         style: .link,
                         isVisible: nil,
                         perform: {

@@ -34,13 +34,13 @@ public enum AugmentProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .augment,
                 displayName: "Augment",
-                sessionLabel: "Credits",
-                weeklyLabel: "Usage",
+                sessionLabel: "Credits 余额",
+                weeklyLabel: "用量",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: true,
                 creditsHint: "Augment Code credits for AI-powered coding assistance.",
-                toggleTitle: "Show Augment usage",
+                toggleTitle: "显示 Augment 用量",
                 cliName: "augment",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -55,7 +55,7 @@ public enum AugmentProviderDescriptor {
                 color: ProviderColor(red: 99 / 255, green: 102 / 255, blue: 241 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Augment cost summary is not supported." }),
+                noDataMessage: { "Augment 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .cli],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in

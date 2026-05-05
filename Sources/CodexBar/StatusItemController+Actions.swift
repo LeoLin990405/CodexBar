@@ -112,9 +112,9 @@ extension StatusItemController {
         }
         guard self.settings.hasUnreadableManagedCodexAccountStore == false else {
             self.presentLoginAlert(
-                title: "Managed Codex accounts unavailable",
-                message: "CodexBar could not read managed account storage. " +
-                    "Recover the store before adding another account.")
+                title: "托管 Codex 账号不可用",
+                message: "CodexBar 无法读取托管账号存储。" +
+                    "请先恢复存储，再添加其他账号。")
             return
         }
 
@@ -263,21 +263,21 @@ extension StatusItemController {
            error == .authenticationInProgress
         {
             info = LoginAlertInfo(
-                title: "Codex account login already running",
-                message: "Wait for the current managed Codex login to finish before adding another account.")
+                title: "Codex 账号登录正在进行",
+                message: "请等待当前托管 Codex 登录完成，再添加其他账号。")
         } else if let error = error as? ManagedCodexAccountServiceError {
             let message = switch error {
             case .loginFailed:
-                "Managed Codex login did not complete. Try again after finishing the browser login flow."
+                "托管 Codex 登录未完成。请完成浏览器登录流程后重试。"
             case .missingEmail:
-                "Codex login completed, but no account email was available. " +
-                    "Try again after confirming the account is fully signed in."
+                "Codex 登录已完成，但没有获取到账户邮箱。" +
+                    "请确认账号已完整登录后重试。"
             case let .unsafeManagedHome(path):
-                "CodexBar refused to modify an unexpected managed home path: \(path)"
+                "CodexBar 拒绝修改异常的托管 home 路径：\(path)"
             }
-            info = LoginAlertInfo(title: "Could not add Codex account", message: message)
+            info = LoginAlertInfo(title: "无法添加 Codex 账号", message: message)
         } else {
-            info = LoginAlertInfo(title: "Could not add Codex account", message: error.localizedDescription)
+            info = LoginAlertInfo(title: "无法添加 Codex 账号", message: error.localizedDescription)
         }
 
         self.presentLoginAlert(title: info.title, message: info.message)
@@ -289,18 +289,18 @@ extension StatusItemController {
             return
         case .missingBinary:
             self.presentLoginAlert(
-                title: "Claude CLI not found",
-                message: "Install the Claude CLI (npm i -g @anthropic-ai/claude-code) and try again.")
+                title: "未找到 Claude CLI",
+                message: "请安装 Claude CLI（npm i -g @anthropic-ai/claude-code）后重试。")
         case let .launchFailed(message):
-            self.presentLoginAlert(title: "Could not start claude /login", message: message)
+            self.presentLoginAlert(title: "无法启动 claude /login", message: message)
         case .timedOut:
             self.presentLoginAlert(
-                title: "Claude login timed out",
+                title: "Claude 登录超时",
                 message: self.trimmedLoginOutput(result.output))
         case let .failed(status):
             let statusLine = "claude /login exited with status \(status)."
             let message = self.trimmedLoginOutput(result.output.isEmpty ? statusLine : result.output)
-            self.presentLoginAlert(title: "Claude login failed", message: message)
+            self.presentLoginAlert(title: "Claude 登录失败", message: message)
         }
     }
 
@@ -348,10 +348,10 @@ extension StatusItemController {
             nil
         case .missingBinary:
             LoginAlertInfo(
-                title: "Gemini CLI not found",
-                message: "Install the Gemini CLI (npm i -g @google/gemini-cli) and try again.")
+                title: "未找到 Gemini CLI",
+                message: "请安装 Gemini CLI（npm i -g @google/gemini-cli）后重试。")
         case let .launchFailed(message):
-            LoginAlertInfo(title: "Could not open Terminal for Gemini", message: message)
+            LoginAlertInfo(title: "无法为 Gemini 打开终端", message: message)
         }
     }
 
@@ -366,7 +366,7 @@ extension StatusItemController {
     private func trimmedLoginOutput(_ text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let limit = 600
-        if trimmed.isEmpty { return "No output captured." }
+        if trimmed.isEmpty { return "未捕获到输出。" }
         if trimmed.count <= limit { return trimmed }
         let idx = trimmed.index(trimmed.startIndex, offsetBy: limit)
         return "\(trimmed[..<idx])…"
@@ -374,8 +374,8 @@ extension StatusItemController {
 
     func postLoginNotification(for provider: UsageProvider) {
         let name = ProviderDescriptorRegistry.descriptor(for: provider).metadata.displayName
-        let title = "\(name) login successful"
-        let body = "You can return to the app; authentication finished."
+        let title = "\(name) 登录成功"
+        let body = "认证已完成，可以返回应用。"
         AppNotifications.shared.post(idPrefix: "login-\(provider.rawValue)", title: title, body: body)
     }
 
@@ -387,7 +387,7 @@ extension StatusItemController {
             // User closed the window; no alert needed
             return
         case let .failed(message):
-            self.presentLoginAlert(title: "Cursor login failed", message: message)
+            self.presentLoginAlert(title: "Cursor 登录失败", message: message)
         }
     }
 

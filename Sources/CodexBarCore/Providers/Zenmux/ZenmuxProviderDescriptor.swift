@@ -10,13 +10,13 @@ public enum ZenmuxProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .zenmux,
                 displayName: "Zenmux",
-                sessionLabel: "Requests",
-                weeklyLabel: "Rate limit",
+                sessionLabel: "请求",
+                weeklyLabel: "速率限制",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Zenmux usage",
+                toggleTitle: "显示 Zenmux 用量",
                 cliName: "zenmux",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum ZenmuxProviderDescriptor {
                 color: ProviderColor(red: 255 / 255, green: 140 / 255, blue: 0 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Zenmux cost summary is not available." }),
+                noDataMessage: { "Zenmux 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [ZenmuxAPIFetchStrategy()] })),

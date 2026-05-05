@@ -37,7 +37,7 @@ struct CostHistoryChartMenuView: View {
         let model = Self.makeModel(provider: self.provider, daily: self.daily)
         VStack(alignment: .leading, spacing: 10) {
             if model.points.isEmpty {
-                Text("No cost history data.")
+                Text("暂无费用历史数据。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
@@ -107,7 +107,7 @@ struct CostHistoryChartMenuView: View {
             }
 
             if let total = self.totalCostUSD {
-                Text("Total (30d): \(UsageFormatter.usdString(total))")
+                Text("总计（30 天）：\(UsageFormatter.usdString(total))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

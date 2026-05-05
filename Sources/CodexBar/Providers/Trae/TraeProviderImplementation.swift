@@ -15,16 +15,15 @@ struct TraeProviderImplementation: ProviderImplementation {
         [
             ProviderSettingsFieldDescriptor(
                 id: "trae-info",
-                title: "Status",
-                subtitle: "Trae is ByteDance's free AI IDE. CodexBar detects whether Trae is running "
-                    + "on this machine.",
+                title: "状态",
+                subtitle: "Trae 是字节跳动的免费 AI IDE。CodexBar 会检测这台机器上是否正在运行 Trae。",
                 kind: .plain,
                 placeholder: "",
                 binding: context.stringBinding(\.traeInfo),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "trae-open-website",
-                        title: "Open Trae Website",
+                        title: "打开 Trae 官网",
                         style: .link,
                         isVisible: nil,
                         perform: {

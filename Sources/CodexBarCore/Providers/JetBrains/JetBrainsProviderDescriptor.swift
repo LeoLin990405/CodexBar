@@ -10,13 +10,13 @@ public enum JetBrainsProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .jetbrains,
                 displayName: "JetBrains AI",
-                sessionLabel: "Current",
-                weeklyLabel: "Refill",
+                sessionLabel: "当前",
+                weeklyLabel: "补充",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show JetBrains AI usage",
+                toggleTitle: "显示 JetBrains AI 用量",
                 cliName: "jetbrains",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -29,7 +29,7 @@ public enum JetBrainsProviderDescriptor {
                 color: ProviderColor(red: 255 / 255, green: 51 / 255, blue: 153 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "JetBrains AI cost summary is not supported." }),
+                noDataMessage: { "JetBrains AI 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .cli],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [JetBrainsStatusFetchStrategy()] })),

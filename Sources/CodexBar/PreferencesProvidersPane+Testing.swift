@@ -160,20 +160,20 @@ enum ProvidersPaneTestHarness {
             provider: .codex,
             store: store,
             isEnabled: enabledBinding,
-            subtitle: "Subtitle",
+            subtitle: "副标题",
             model: model,
             settingsPickers: [descriptors.picker],
             settingsToggles: [descriptors.toggle],
             settingsFields: [descriptors.fieldPlain, descriptors.fieldSecure],
             settingsTokenAccounts: descriptors.tokenAccountsEmpty,
-            errorDisplay: ProviderErrorDisplay(preview: "Preview", full: "Full"),
+            errorDisplay: ProviderErrorDisplay(preview: "预览", full: "完整内容"),
             isErrorExpanded: expandedBinding,
             onCopyError: { _ in },
             onRefresh: {},
             showsSupplementarySettingsContent: true,
             supplementarySettingsContent: {
-                ProviderSettingsSection(title: "Accounts") {
-                    Text("Supplementary")
+                ProviderSettingsSection(title: "账号") {
+                    Text("补充内容")
                 }
             }).body
     }
@@ -182,22 +182,22 @@ enum ProvidersPaneTestHarness {
         let toggleBinding = Binding(get: { true }, set: { _ in })
         let actionBordered = ProviderSettingsActionDescriptor(
             id: "action-bordered",
-            title: "Bordered",
+            title: "边框按钮",
             style: .bordered,
             isVisible: { true },
             perform: { await Task.yield() })
         let actionLink = ProviderSettingsActionDescriptor(
             id: "action-link",
-            title: "Link",
+            title: "链接",
             style: .link,
             isVisible: { true },
             perform: { await Task.yield() })
         let toggle = ProviderSettingsToggleDescriptor(
             id: "toggle",
-            title: "Toggle",
-            subtitle: "Toggle subtitle",
+            title: "开关",
+            subtitle: "开关副标题",
             binding: toggleBinding,
-            statusText: { "Status" },
+            statusText: { "状态" },
             actions: [actionBordered, actionLink],
             isVisible: { true },
             onChange: nil,
@@ -205,41 +205,41 @@ enum ProvidersPaneTestHarness {
             onAppearWhenEnabled: nil)
         let picker = ProviderSettingsPickerDescriptor(
             id: "picker",
-            title: "Picker",
-            subtitle: "Picker subtitle",
+            title: "选择器",
+            subtitle: "选择器副标题",
             dynamicSubtitle: nil,
             binding: Binding(get: { "a" }, set: { _ in }),
             options: [
-                ProviderSettingsPickerOption(id: "a", title: "Option A"),
-                ProviderSettingsPickerOption(id: "b", title: "Option B"),
+                ProviderSettingsPickerOption(id: "a", title: "选项 A"),
+                ProviderSettingsPickerOption(id: "b", title: "选项 B"),
             ],
             isVisible: { true },
             onChange: nil,
-            trailingText: { "Trailing" })
+            trailingText: { "尾部文本" })
         let fieldPlain = ProviderSettingsFieldDescriptor(
             id: "plain",
-            title: "Field",
-            subtitle: "Field subtitle",
+            title: "字段",
+            subtitle: "字段副标题",
             kind: .plain,
-            placeholder: "Placeholder",
+            placeholder: "占位符",
             binding: Binding(get: { "" }, set: { _ in }),
             actions: [actionBordered],
             isVisible: { true },
             onActivate: nil)
         let fieldSecure = ProviderSettingsFieldDescriptor(
             id: "secure",
-            title: "Secure",
-            subtitle: "Secure subtitle",
+            title: "安全字段",
+            subtitle: "安全字段副标题",
             kind: .secure,
-            placeholder: "Secure",
+            placeholder: "安全输入",
             binding: Binding(get: { "" }, set: { _ in }),
             actions: [actionLink],
             isVisible: { true },
             onActivate: nil)
         let tokenAccountsEmpty = ProviderSettingsTokenAccountsDescriptor(
             id: "accounts-empty",
-            title: "Accounts",
-            subtitle: "Accounts subtitle",
+            title: "账号",
+            subtitle: "账号副标题",
             placeholder: "Token",
             provider: .codex,
             isVisible: { true },

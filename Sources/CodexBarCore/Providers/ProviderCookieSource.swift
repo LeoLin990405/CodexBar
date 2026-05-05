@@ -11,9 +11,9 @@ public enum ProviderCookieSource: String, CaseIterable, Identifiable, Sendable, 
 
     public var displayName: String {
         switch self {
-        case .auto: "Auto"
-        case .manual: "Manual"
-        case .off: "Off"
+        case .auto: "自动"
+        case .manual: "手动"
+        case .off: "关闭"
         }
     }
 

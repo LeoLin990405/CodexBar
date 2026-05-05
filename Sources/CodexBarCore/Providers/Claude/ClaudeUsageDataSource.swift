@@ -12,9 +12,9 @@ public enum ClaudeUsageDataSource: String, CaseIterable, Identifiable, Sendable 
 
     public var displayName: String {
         switch self {
-        case .auto: "Auto"
+        case .auto: "自动"
         case .oauth: "OAuth API"
-        case .web: "Web API (cookies)"
+        case .web: "Web API（Cookie）"
         case .cli: "CLI (PTY)"
         }
     }

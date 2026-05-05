@@ -137,13 +137,13 @@ public enum StepFunUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "Missing StepFun API key (STEPFUN_API_KEY)."
+            "缺少 StepFun API key（STEPFUN_API_KEY）。"
         case let .networkError(message):
-            "StepFun network error: \(message)"
+            "StepFun 网络错误：\(message)"
         case let .apiError(code, message):
-            "StepFun API error (\(code)): \(message)"
+            "StepFun API 错误（\(code)）：\(message)"
         case let .parseFailed(message):
-            "Failed to parse StepFun response: \(message)"
+            "解析 StepFun 响应失败：\(message)"
         }
     }
 }

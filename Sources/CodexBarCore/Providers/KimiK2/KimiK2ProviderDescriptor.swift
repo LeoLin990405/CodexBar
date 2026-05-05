@@ -10,13 +10,13 @@ public enum KimiK2ProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .kimik2,
                 displayName: "Kimi K2",
-                sessionLabel: "Credits",
-                weeklyLabel: "Credits",
+                sessionLabel: "Credits 余额",
+                weeklyLabel: "Credits 额度",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Kimi K2 usage",
+                toggleTitle: "显示 Kimi K2 用量",
                 cliName: "kimik2",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum KimiK2ProviderDescriptor {
                 color: ProviderColor(red: 76 / 255, green: 0 / 255, blue: 255 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Kimi K2 cost summary is not available." }),
+                noDataMessage: { "Kimi K2 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [KimiK2APIFetchStrategy()] })),

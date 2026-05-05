@@ -10,7 +10,7 @@ struct ClaudeProviderImplementation: ProviderImplementation {
     @MainActor
     func presentation(context _: ProviderPresentationContext) -> ProviderPresentation {
         ProviderPresentation { context in
-            var versionText = context.store.version(for: context.provider) ?? "not detected"
+            var versionText = context.store.version(for: context.provider) ?? "未检测到"
             if let parenRange = versionText.range(of: "(") {
                 versionText = versionText[..<parenRange.lowerBound].trimmingCharacters(in: .whitespaces)
             }
@@ -80,7 +80,7 @@ struct ClaudeProviderImplementation: ProviderImplementation {
         return [
             ProviderSettingsToggleDescriptor(
                 id: "claude-oauth-prompt-free-credentials",
-                title: "Avoid Keychain prompts",
+                title: "避免钥匙串弹窗",
                 subtitle: subtitle,
                 binding: promptFreeBinding,
                 statusText: nil,
@@ -120,35 +120,34 @@ struct ClaudeProviderImplementation: ProviderImplementation {
         let keychainPromptPolicyOptions: [ProviderSettingsPickerOption] = [
             ProviderSettingsPickerOption(
                 id: ClaudeOAuthKeychainPromptMode.never.rawValue,
-                title: "Never prompt"),
+                title: "永不弹窗"),
             ProviderSettingsPickerOption(
                 id: ClaudeOAuthKeychainPromptMode.onlyOnUserAction.rawValue,
-                title: "Only on user action"),
+                title: "仅用户操作时"),
             ProviderSettingsPickerOption(
                 id: ClaudeOAuthKeychainPromptMode.always.rawValue,
-                title: "Always allow prompts"),
+                title: "始终允许弹窗"),
         ]
         let cookieSubtitle: () -> String? = {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.claudeCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "Automatic imports browser cookies for the web API.",
-                manual: "Paste a Cookie header from a claude.ai request.",
-                off: "Claude cookies are disabled.")
+                auto: "自动导入浏览器 Cookie，用于 Web API。",
+                manual: "粘贴来自 claude.ai 请求的 Cookie header。",
+                off: "Claude Cookie 已关闭。")
         }
         let keychainPromptPolicySubtitle: () -> String? = {
             if context.settings.debugDisableKeychainAccess {
-                return "Global Keychain access is disabled in Advanced, so this setting is currently inactive."
+                return "已在“高级”中禁用全局钥匙串访问，因此此设置当前不生效。"
             }
-            return "Controls Claude OAuth Keychain prompts when the standard reader is active. Choosing " +
-                "\"Never prompt\" can make OAuth unavailable; use Web/CLI when needed."
+            return "控制标准读取器启用时 Claude OAuth 的钥匙串弹窗策略。选择“永不弹窗”可能导致 OAuth 不可用；必要时请使用 Web/CLI。"
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "claude-usage-source",
-                title: "Usage source",
-                subtitle: "Auto falls back to the next source if the preferred one fails.",
+                title: "用量来源",
+                subtitle: "自动模式会在首选来源失败后切换到下一个来源。",
                 binding: usageBinding,
                 options: usageOptions,
                 isVisible: nil,
@@ -160,8 +159,8 @@ struct ClaudeProviderImplementation: ProviderImplementation {
                 }),
             ProviderSettingsPickerDescriptor(
                 id: "claude-keychain-prompt-policy",
-                title: "Keychain prompt policy",
-                subtitle: "Applies only to the Security.framework OAuth keychain reader.",
+                title: "钥匙串弹窗策略",
+                subtitle: "仅适用于 Security.framework OAuth 钥匙串读取器。",
                 dynamicSubtitle: keychainPromptPolicySubtitle,
                 binding: keychainPromptPolicyBinding,
                 options: keychainPromptPolicyOptions,
@@ -170,8 +169,8 @@ struct ClaudeProviderImplementation: ProviderImplementation {
                 onChange: nil),
             ProviderSettingsPickerDescriptor(
                 id: "claude-cookie-source",
-                title: "Claude cookies",
-                subtitle: "Automatic imports browser cookies for the web API.",
+                title: "Claude Cookie",
+                subtitle: "自动导入浏览器 Cookie，用于 Web API。",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -180,7 +179,7 @@ struct ClaudeProviderImplementation: ProviderImplementation {
                 trailingText: {
                     guard let entry = CookieHeaderCache.load(provider: .claude) else { return nil }
                     let when = entry.storedAt.relativeDescription()
-                    return "Cached: \(entry.sourceLabel) • \(when)"
+                    return "已缓存：\(entry.sourceLabel) • \(when)"
                 }),
         ]
     }
@@ -218,7 +217,7 @@ struct ClaudeProviderImplementation: ProviderImplementation {
         -> (label: String, action: MenuDescriptor.MenuAction)?
     {
         guard self.shouldOpenTerminalForOAuthError(store: context.store) else { return nil }
-        return ("Open Terminal", .openTerminal(command: "claude"))
+        return ("打开终端", .openTerminal(command: "claude"))
     }
 
     @MainActor

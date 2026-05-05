@@ -13,7 +13,7 @@ extension UsageStore {
             }
             let result = await group.next()?.flatMap(\.self)
             group.cancelAll()
-            return result ?? "Probe timed out after \(Int(seconds))s"
+            return result ?? "探测在 \(Int(seconds)) 秒后超时"
         }
     }
 }

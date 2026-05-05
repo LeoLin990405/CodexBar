@@ -18,14 +18,14 @@ struct KimiK2ProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "kimi-k2-api-token",
                 title: "API key",
-                subtitle: "Stored in ~/.codexbar/config.json. Generate one at kimi-k2.ai.",
+                subtitle: "保存在 ~/.codexbar/config.json。可在 kimi-k2.ai 生成。",
                 kind: .secure,
-                placeholder: "Paste API key…",
+                placeholder: "粘贴 API key…",
                 binding: context.stringBinding(\.kimiK2APIToken),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "kimi-k2-open-api-keys",
-                        title: "Open API Keys",
+                        title: "打开 API Keys",
                         style: .link,
                         isVisible: nil,
                         perform: {

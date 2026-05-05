@@ -10,13 +10,13 @@ public enum PerplexityProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .perplexity,
                 displayName: "Perplexity",
-                sessionLabel: "Credits",
-                weeklyLabel: "Bonus credits",
-                opusLabel: "Purchased",
+                sessionLabel: "Credits 余额",
+                weeklyLabel: "奖励 credits",
+                opusLabel: "已购买",
                 supportsOpus: true,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Perplexity usage",
+                toggleTitle: "显示 Perplexity 用量",
                 cliName: "perplexity",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -31,7 +31,7 @@ public enum PerplexityProviderDescriptor {
                 color: ProviderColor(red: 32 / 255, green: 178 / 255, blue: 170 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Perplexity cost tracking is not supported." }),
+                noDataMessage: { "Perplexity 暂不支持费用跟踪。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),

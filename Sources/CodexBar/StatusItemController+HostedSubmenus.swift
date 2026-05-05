@@ -55,7 +55,7 @@ extension StatusItemController {
 
         guard !didHydrate else { return }
 
-        let unavailableItem = NSMenuItem(title: "No data available", action: nil, keyEquivalent: "")
+        let unavailableItem = NSMenuItem(title: "暂无数据", action: nil, keyEquivalent: "")
         unavailableItem.isEnabled = false
         unavailableItem.representedObject = chartID
         unavailableItem.toolTip = placeholder.toolTip

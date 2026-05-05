@@ -19,7 +19,7 @@ struct JetBrainsProviderImplementation: ProviderImplementation {
         guard !detectedIDEs.isEmpty else { return [] }
 
         var options: [ProviderSettingsPickerOption] = [
-            ProviderSettingsPickerOption(id: "", title: "Auto-detect"),
+            ProviderSettingsPickerOption(id: "", title: "自动检测"),
         ]
         for ide in detectedIDEs {
             options.append(ProviderSettingsPickerOption(id: ide.basePath, title: ide.displayName))
@@ -29,7 +29,7 @@ struct JetBrainsProviderImplementation: ProviderImplementation {
             ProviderSettingsPickerDescriptor(
                 id: "jetbrains.ide",
                 title: "JetBrains IDE",
-                subtitle: "Select the IDE to monitor",
+                subtitle: "选择要监控的 IDE",
                 binding: context.stringBinding(\.jetbrainsIDEBasePath),
                 options: options,
                 isVisible: nil,
@@ -50,8 +50,8 @@ struct JetBrainsProviderImplementation: ProviderImplementation {
         [
             ProviderSettingsFieldDescriptor(
                 id: "jetbrains.customPath",
-                title: "Custom Path",
-                subtitle: "Override auto-detection with a custom IDE base path",
+                title: "自定义路径",
+                subtitle: "用自定义 IDE 基础路径覆盖自动检测",
                 kind: .plain,
                 placeholder: "~/Library/Application Support/JetBrains/IntelliJIdea2024.3",
                 binding: context.stringBinding(\.jetbrainsIDEBasePath),

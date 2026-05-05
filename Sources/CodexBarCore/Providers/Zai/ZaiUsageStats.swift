@@ -441,13 +441,13 @@ public enum ZaiUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .invalidCredentials:
-            "Invalid z.ai API credentials"
+            "z.ai API 凭据无效"
         case let .networkError(message):
-            "z.ai network error: \(message)"
+            "z.ai 网络错误：\(message)"
         case let .apiError(message):
-            "z.ai API error: \(message)"
+            "z.ai API 错误：\(message)"
         case let .parseFailed(message):
-            "Failed to parse z.ai response: \(message)"
+            "解析 z.ai 响应失败：\(message)"
         }
     }
 }

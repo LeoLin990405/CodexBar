@@ -10,13 +10,13 @@ public enum OllamaProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .ollama,
                 displayName: "Ollama",
-                sessionLabel: "Session",
-                weeklyLabel: "Weekly",
+                sessionLabel: "会话",
+                weeklyLabel: "每周",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Ollama usage",
+                toggleTitle: "显示 Ollama 用量",
                 cliName: "ollama",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum OllamaProviderDescriptor {
                 color: ProviderColor(red: 136 / 255, green: 136 / 255, blue: 136 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Ollama cost summary is not supported." }),
+                noDataMessage: { "Ollama 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [OllamaStatusFetchStrategy()] })),

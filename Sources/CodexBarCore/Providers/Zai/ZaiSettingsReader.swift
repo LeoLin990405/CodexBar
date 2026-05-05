@@ -62,8 +62,8 @@ public enum ZaiSettingsError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingToken:
-            "z.ai API token not found. Set apiKey in ~/.codexbar/config.json or " +
-                "Z_AI_API_KEY/ZHIPU_API_KEY/GLM_API_KEY/BIGMODEL_API_KEY."
+            "未找到 z.ai API token。请在 ~/.codexbar/config.json 设置 apiKey，或设置 " +
+                "Z_AI_API_KEY/ZHIPU_API_KEY/GLM_API_KEY/BIGMODEL_API_KEY。"
         }
     }
 }

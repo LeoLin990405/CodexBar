@@ -420,13 +420,13 @@ public enum OpenRouterUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .invalidCredentials:
-            "Invalid OpenRouter API credentials"
+            "OpenRouter API 凭据无效"
         case let .networkError(message):
-            "OpenRouter network error: \(message)"
+            "OpenRouter 网络错误：\(message)"
         case let .apiError(message):
-            "OpenRouter API error: \(message)"
+            "OpenRouter API 错误：\(message)"
         case let .parseFailed(message):
-            "Failed to parse OpenRouter response: \(message)"
+            "解析 OpenRouter 响应失败：\(message)"
         }
     }
 }

@@ -10,13 +10,13 @@ public enum OpenRouterProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .openrouter,
                 displayName: "OpenRouter",
-                sessionLabel: "Credits",
-                weeklyLabel: "Usage",
+                sessionLabel: "Credits 余额",
+                weeklyLabel: "用量",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: true,
                 creditsHint: "Credit balance from OpenRouter API",
-                toggleTitle: "Show OpenRouter usage",
+                toggleTitle: "显示 OpenRouter 用量",
                 cliName: "openrouter",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum OpenRouterProviderDescriptor {
                 color: ProviderColor(red: 100 / 255, green: 103 / 255, blue: 242 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "OpenRouter cost summary is not yet supported." }),
+                noDataMessage: { "OpenRouter 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [OpenRouterAPIFetchStrategy()] })),

@@ -10,13 +10,13 @@ public enum TraeProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .trae,
                 displayName: "Trae",
-                sessionLabel: "Usage",
-                weeklyLabel: "Quota",
+                sessionLabel: "用量",
+                weeklyLabel: "额度",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Trae usage",
+                toggleTitle: "显示 Trae 用量",
                 cliName: "trae",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum TraeProviderDescriptor {
                 color: ProviderColor(red: 59 / 255, green: 130 / 255, blue: 246 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Trae cost summary is not available." }),
+                noDataMessage: { "Trae 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web],
                 pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),
@@ -164,7 +164,7 @@ struct TraeWebFetchStrategy: ProviderFetchStrategy {
     }
 
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        throw TraeAPIError.networkError("Web strategy not available on this platform")
+        throw TraeAPIError.networkError("当前平台不可用网页抓取策略")
     }
 
     func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {

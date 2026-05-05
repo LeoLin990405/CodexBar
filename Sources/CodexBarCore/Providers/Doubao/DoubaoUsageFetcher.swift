@@ -64,13 +64,13 @@ public struct DoubaoUsageSnapshot: Sendable {
         if self.limitRequests > 0 {
             let used = max(0, self.limitRequests - self.remainingRequests)
             usedPercent = min(100, max(0, Double(used) / Double(self.limitRequests) * 100))
-            resetDescription = "\(used)/\(self.limitRequests) requests"
+            resetDescription = "\(used)/\(self.limitRequests) 次请求"
         } else if self.apiKeyValid {
             usedPercent = 0
-            resetDescription = "Active — check dashboard for details"
+            resetDescription = "已激活 - 请到仪表盘查看详情"
         } else {
             usedPercent = 0
-            resetDescription = "No usage data"
+            resetDescription = "暂无用量数据"
         }
 
         let primary = RateWindow(
@@ -86,7 +86,7 @@ public struct DoubaoUsageSnapshot: Sendable {
                 usedPercent: weekPercent,
                 windowMinutes: 7 * 24 * 60,
                 resetsAt: nil,
-                resetDescription: "\(acc.weeklyRequests)/\(acc.weeklyLimit) weekly")
+                resetDescription: "\(acc.weeklyRequests)/\(acc.weeklyLimit) 每周")
         }
 
         let identity = ProviderIdentitySnapshot(
@@ -125,8 +125,8 @@ public struct DoubaoUsageSnapshot: Sendable {
     private static func levelLabel(_ level: String) -> String {
         switch level {
         case "session": "5h"
-        case "weekly": "Week"
-        case "monthly": "Month"
+        case "weekly": "本周"
+        case "monthly": "本月"
         default: level.capitalized
         }
     }
@@ -141,13 +141,13 @@ public enum DoubaoUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "Missing Doubao API key (ARK_API_KEY)."
+            "缺少 Doubao API key（ARK_API_KEY）。"
         case let .networkError(message):
-            "Doubao network error: \(message)"
+            "Doubao 网络错误：\(message)"
         case let .apiError(code, message):
-            "Doubao API error (\(code)): \(message)"
+            "Doubao API 错误（\(code)）：\(message)"
         case let .parseFailed(message):
-            "Failed to parse Doubao response: \(message)"
+            "解析 Doubao 响应失败：\(message)"
         }
     }
 }
