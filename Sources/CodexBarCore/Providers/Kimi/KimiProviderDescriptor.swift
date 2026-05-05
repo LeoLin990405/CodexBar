@@ -90,7 +90,6 @@ struct KimiTokenFetchStrategy: ProviderFetchStrategy {
 struct KimiWebFetchStrategy: ProviderFetchStrategy {
     let id: String = "kimi.web"
     let kind: ProviderFetchKind = .web
-    let backgroundPolicy: ProviderFetchBackgroundPolicy = .userInitiatedOnly
     private static let log = CodexBarLog.logger(LogCategories.kimiWeb)
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {

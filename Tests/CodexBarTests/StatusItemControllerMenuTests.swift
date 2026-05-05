@@ -112,6 +112,30 @@ struct StatusItemControllerMenuTests {
     }
 
     @Test
+    func `kimi weekly snapshot provides switcher indicator`() {
+        let snapshot = KimiUsageSnapshot(
+            weekly: KimiUsageDetail(
+                limit: "100",
+                used: "0",
+                remaining: "100",
+                resetTime: "2026-05-12T04:23:14Z"),
+            rateLimit: KimiUsageDetail(
+                limit: "100",
+                used: "0",
+                remaining: "100",
+                resetTime: "2026-05-05T17:23:14Z"),
+            updatedAt: Date())
+            .toUsageSnapshot()
+
+        let percent = StatusItemController.switcherWeeklyMetricPercent(
+            for: .kimi,
+            snapshot: snapshot,
+            showUsed: false)
+
+        #expect(percent == 100)
+    }
+
+    @Test
     func `open router brand fallback enabled when no key limit configured`() {
         let snapshot = OpenRouterUsageSnapshot(
             totalCredits: 50,
