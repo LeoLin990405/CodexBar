@@ -57,7 +57,7 @@ struct TraeLocalFetchStrategy: ProviderFetchStrategy {
     let kind: ProviderFetchKind = .localProbe
 
     func isAvailable(_: ProviderFetchContext) async -> Bool {
-        true
+        TraeStatusProbe.isInstalled()
     }
 
     func fetch(_: ProviderFetchContext) async throws -> ProviderFetchResult {
@@ -127,6 +127,7 @@ struct TraeWebFetchStrategy: ProviderFetchStrategy {
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {
         if context.sourceMode == .web { return true }
         if context.sourceMode == .auto {
+            if ProviderInteractionContext.current == .userInitiated { return true }
             return TraeCookieImporter.hasSession()
         }
         return false
