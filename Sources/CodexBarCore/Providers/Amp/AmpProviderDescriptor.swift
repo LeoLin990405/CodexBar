@@ -11,12 +11,12 @@ public enum AmpProviderDescriptor {
                 id: .amp,
                 displayName: "Amp",
                 sessionLabel: "Amp Free",
-                weeklyLabel: "Balance",
+                weeklyLabel: "余额",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Amp usage",
+                toggleTitle: "显示 Amp 用量",
                 cliName: "amp",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum AmpProviderDescriptor {
                 color: ProviderColor(red: 220 / 255, green: 38 / 255, blue: 38 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Amp cost summary is not supported." }),
+                noDataMessage: { "Amp 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [AmpStatusFetchStrategy()] })),

@@ -16,7 +16,7 @@ public enum GeminiProviderDescriptor {
                 supportsOpus: true,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Gemini usage",
+                toggleTitle: "显示 Gemini 用量",
                 cliName: "gemini",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -31,7 +31,7 @@ public enum GeminiProviderDescriptor {
                 color: ProviderColor(red: 171 / 255, green: 135 / 255, blue: 234 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Gemini cost summary is not supported." }),
+                noDataMessage: { "Gemini 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [GeminiStatusFetchStrategy()] })),

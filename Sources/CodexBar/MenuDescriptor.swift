@@ -110,7 +110,7 @@ struct MenuDescriptor {
                     sections.append(accountSection)
                 }
             } else {
-                sections.append(Section(entries: [.text("No usage configured.", .secondary)]))
+                sections.append(Section(entries: [.text("尚未配置用量服务。", .secondary)]))
             }
         }
 
@@ -223,11 +223,11 @@ struct MenuDescriptor {
                 if cost.currencyCode == "Quota" {
                     let used = String(format: "%.0f", cost.used)
                     let limit = String(format: "%.0f", cost.limit)
-                    entries.append(.text("Quota: \(used) / \(limit)", .primary))
+                    entries.append(.text("额度：\(used) / \(limit)", .primary))
                 }
             }
         } else {
-            entries.append(.text("No usage yet", .secondary))
+            entries.append(.text("暂无用量", .secondary))
         }
 
         let usageContext = ProviderMenuUsageContext(
@@ -275,34 +275,34 @@ struct MenuDescriptor {
         let redactedEmail = PersonalInfoRedactor.redactEmail(emailText, isEnabled: hidePersonalInfo)
 
         if let emailText, !emailText.isEmpty {
-            entries.append(.text("Account: \(redactedEmail)", .secondary))
+            entries.append(.text("账号：\(redactedEmail)", .secondary))
         }
         if provider == .kilo {
             let kiloLogin = self.kiloLoginParts(loginMethod: loginMethodText)
             if let pass = kiloLogin.pass {
-                entries.append(.text("Plan: \(AccountFormatter.plan(pass))", .secondary))
+                entries.append(.text("方案：\(AccountFormatter.plan(pass))", .secondary))
             }
             for detail in kiloLogin.details {
-                entries.append(.text("Activity: \(detail)", .secondary))
+                entries.append(.text("活动：\(detail)", .secondary))
             }
         } else if let loginMethodText, !loginMethodText.isEmpty {
             let balancePrefix = "Balance:"
             if loginMethodText.hasPrefix(balancePrefix) {
                 let balanceValue = loginMethodText.dropFirst(balancePrefix.count)
                     .trimmingCharacters(in: .whitespacesAndNewlines)
-                entries.append(.text("Balance: \(balanceValue)", .secondary))
+                entries.append(.text("余额：\(balanceValue)", .secondary))
             } else {
-                entries.append(.text("Plan: \(AccountFormatter.plan(loginMethodText))", .secondary))
+                entries.append(.text("方案：\(AccountFormatter.plan(loginMethodText))", .secondary))
             }
         }
 
         if metadata.usesAccountFallback {
             if emailText?.isEmpty ?? true, let fallbackEmail = fallback.email, !fallbackEmail.isEmpty {
                 let redacted = PersonalInfoRedactor.redactEmail(fallbackEmail, isEnabled: hidePersonalInfo)
-                entries.append(.text("Account: \(redacted)", .secondary))
+                entries.append(.text("账号：\(redacted)", .secondary))
             }
             if loginMethodText?.isEmpty ?? true, let fallbackPlan = fallback.plan, !fallbackPlan.isEmpty {
-                entries.append(.text("Plan: \(AccountFormatter.plan(fallbackPlan))", .secondary))
+                entries.append(.text("方案：\(AccountFormatter.plan(fallbackPlan))", .secondary))
             }
         }
 
@@ -394,10 +394,10 @@ struct MenuDescriptor {
         }
 
         if metadata?.dashboardURL != nil {
-            entries.append(.action("Usage Dashboard", .dashboard))
+            entries.append(.action("用量仪表盘", .dashboard))
         }
         if metadata?.statusPageURL != nil || metadata?.statusLinkURL != nil {
-            entries.append(.action("Status Page", .statusPage))
+            entries.append(.action("状态页面", .statusPage))
         }
 
         if let statusLine = self.statusLine(for: provider, store: store) {
@@ -410,13 +410,13 @@ struct MenuDescriptor {
     private static func metaSection(updateReady: Bool) -> Section {
         var entries: [Entry] = []
         if updateReady {
-            entries.append(.action("Update ready, restart now?", .installUpdate))
+            entries.append(.action("更新已就绪，立即重启？", .installUpdate))
         }
         entries.append(contentsOf: [
-            .action("Refresh", .refresh),
-            .action("Settings...", .settings),
-            .action("About CodexBar", .about),
-            .action("Quit", .quit),
+            .action("刷新", .refresh),
+            .action("设置...", .settings),
+            .action("关于 CodexBar", .about),
+            .action("退出", .quit),
         ])
         return Section(entries: entries)
     }

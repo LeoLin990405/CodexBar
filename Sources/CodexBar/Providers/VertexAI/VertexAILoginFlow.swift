@@ -7,20 +7,20 @@ extension StatusItemController {
     func runVertexAILoginFlow() async {
         // Show alert with instructions
         let alert = NSAlert()
-        alert.messageText = "Vertex AI Login"
+        alert.messageText = "Vertex AI 登录"
         alert.informativeText = """
-        To use Vertex AI tracking, you need to authenticate with Google Cloud.
+        要使用 Vertex AI 跟踪，需要先通过 Google Cloud 认证。
 
-        1. Open Terminal
-        2. Run: gcloud auth application-default login
-        3. Follow the browser prompts to sign in
-        4. Set your project: gcloud config set project PROJECT_ID
+        1. 打开终端
+        2. 运行：gcloud auth application-default login
+        3. 按浏览器提示完成登录
+        4. 设置项目：gcloud config set project PROJECT_ID
 
-        Would you like to open Terminal now?
+        现在要打开终端吗？
         """
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "Open Terminal")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "打开终端")
+        alert.addButton(withTitle: "取消")
 
         let response = alert.runModal()
 
@@ -49,7 +49,7 @@ extension StatusItemController {
             appleScript.executeAndReturnError(&error)
             if let error {
                 CodexBarLog.logger(LogCategories.terminal).error(
-                    "Failed to open Terminal",
+                    "打开终端失败",
                     metadata: ["error": String(describing: error)])
             }
         }

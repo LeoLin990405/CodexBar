@@ -10,13 +10,13 @@ public enum KiloProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .kilo,
                 displayName: "Kilo",
-                sessionLabel: "Credits",
+                sessionLabel: "Credits 余额",
                 weeklyLabel: "Kilo Pass",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Kilo usage",
+                toggleTitle: "显示 Kilo 用量",
                 cliName: "kilo",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum KiloProviderDescriptor {
                 color: ProviderColor(red: 242 / 255, green: 112 / 255, blue: 39 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Kilo cost summary is not supported." }),
+                noDataMessage: { "Kilo 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api, .cli],
                 pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),

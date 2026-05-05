@@ -112,7 +112,7 @@ public enum ProviderFetchError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case let .noAvailableStrategy(provider):
-            "No available fetch strategy for \(provider.rawValue)."
+            "\(provider.rawValue) 没有可用的抓取策略。"
         }
     }
 }

@@ -10,13 +10,13 @@ public enum ZaiProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .zai,
                 displayName: "z.ai",
-                sessionLabel: "Tokens",
+                sessionLabel: "Token",
                 weeklyLabel: "MCP",
                 opusLabel: "5-hour",
                 supportsOpus: true,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show z.ai usage",
+                toggleTitle: "显示 z.ai 用量",
                 cliName: "zai",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -29,7 +29,7 @@ public enum ZaiProviderDescriptor {
                 color: ProviderColor(red: 232 / 255, green: 90 / 255, blue: 106 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "z.ai cost summary is not supported." }),
+                noDataMessage: { "z.ai 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [ZaiAPIFetchStrategy()] })),

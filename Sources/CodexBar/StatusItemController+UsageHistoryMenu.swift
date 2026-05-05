@@ -15,7 +15,7 @@ extension StatusItemController {
         let width: CGFloat = 310
         let item = self.makeMenuCardItem(
             HStack(spacing: 0) {
-                Text("Subscription Utilization")
+                Text("订阅使用率")
                     .font(.system(size: NSFont.menuFont(ofSize: 0).pointSize))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)

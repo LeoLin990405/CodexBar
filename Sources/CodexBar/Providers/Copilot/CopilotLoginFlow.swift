@@ -16,14 +16,14 @@ struct CopilotLoginFlow {
             pb.setString(code.userCode, forType: .string)
 
             let alert = NSAlert()
-            alert.messageText = "GitHub Copilot Login"
+            alert.messageText = "GitHub Copilot 登录"
             alert.informativeText = """
-            A device code has been copied to your clipboard: \(code.userCode)
+            设备码已复制到剪贴板：\(code.userCode)
 
-            Please verify it at: \(code.verificationUri)
+            请在这里完成验证：\(code.verificationUri)
             """
-            alert.addButton(withTitle: "Open Browser")
-            alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: "打开浏览器")
+            alert.addButton(withTitle: "取消")
 
             let response = alert.runModal()
             if response == .alertSecondButtonReturn {
@@ -43,12 +43,12 @@ struct CopilotLoginFlow {
 
             // Let's show a "Waiting" alert that can be cancelled.
             let waitingAlert = NSAlert()
-            waitingAlert.messageText = "Waiting for Authentication..."
+            waitingAlert.messageText = "等待认证..."
             waitingAlert.informativeText = """
-            Please complete the login in your browser.
-            This window will close automatically when finished.
+            请在浏览器中完成登录。
+            完成后此窗口会自动关闭。
             """
-            waitingAlert.addButton(withTitle: "Cancel")
+            waitingAlert.addButton(withTitle: "取消")
             let parentWindow = Self.resolveWaitingParentWindow()
             let hostWindow = parentWindow ?? Self.makeWaitingHostWindow()
             let shouldCloseHostWindow = parentWindow == nil
@@ -87,19 +87,19 @@ struct CopilotLoginFlow {
                     enabled: true)
 
                 let success = NSAlert()
-                success.messageText = "Login Successful"
+                success.messageText = "登录成功"
                 success.runModal()
             case let .failure(error):
                 guard !(error is CancellationError) else { return }
                 let err = NSAlert()
-                err.messageText = "Login Failed"
+                err.messageText = "登录失败"
                 err.informativeText = error.localizedDescription
                 err.runModal()
             }
 
         } catch {
             let err = NSAlert()
-            err.messageText = "Login Failed"
+            err.messageText = "登录失败"
             err.informativeText = error.localizedDescription
             err.runModal()
         }

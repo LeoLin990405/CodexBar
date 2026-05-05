@@ -10,18 +10,18 @@ enum UpdateChannel: String, CaseIterable, Codable {
     var displayName: String {
         switch self {
         case .stable:
-            "Stable"
+            "稳定版"
         case .beta:
-            "Beta"
+            "测试版"
         }
     }
 
     var description: String {
         switch self {
         case .stable:
-            "Receive only stable, production-ready releases."
+            "只接收稳定、可用于日常使用的版本。"
         case .beta:
-            "Receive stable releases plus beta previews."
+            "接收稳定版以及测试预览版。"
         }
     }
 

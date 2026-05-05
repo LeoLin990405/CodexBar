@@ -215,36 +215,36 @@ public enum AntigravityStatusProbeError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .notRunning:
-            "Antigravity language server not detected. Launch Antigravity and retry."
+            "未检测到 Antigravity language server。请启动 Antigravity 后重试。"
         case .missingCSRFToken:
-            "Antigravity CSRF token not found. Restart Antigravity and retry."
+            "未找到 Antigravity CSRF token。请重启 Antigravity 后重试。"
         case let .portDetectionFailed(message):
             Self.portDetectionDescription(message)
         case let .apiError(message):
             Self.apiErrorDescription(message)
         case let .parseFailed(message):
-            "Could not parse Antigravity quota: \(message)"
+            "无法解析 Antigravity 额度：\(message)"
         case .timedOut:
-            "Antigravity quota request timed out."
+            "Antigravity 额度请求超时。"
         }
     }
 
     private static func portDetectionDescription(_ message: String) -> String {
         switch message {
         case "lsof not available":
-            "Antigravity port detection needs lsof. Install it, then retry."
+            "Antigravity 端口检测需要 lsof。请安装后重试。"
         case "no listening ports found":
-            "Antigravity is running but not exposing ports yet. Try again in a few seconds."
+            "Antigravity 正在运行，但尚未暴露端口。请几秒后重试。"
         default:
-            "Antigravity port detection failed: \(message)"
+            "Antigravity 端口检测失败：\(message)"
         }
     }
 
     private static func apiErrorDescription(_ message: String) -> String {
         if message.contains("HTTP 401") || message.contains("HTTP 403") {
-            return "Antigravity session expired. Restart Antigravity and retry."
+            return "Antigravity 会话已过期。请重启 Antigravity 后重试。"
         }
-        return "Antigravity API error: \(message)"
+        return "Antigravity API 错误：\(message)"
     }
 }
 

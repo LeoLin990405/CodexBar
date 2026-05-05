@@ -15,12 +15,12 @@ enum PreferencesTab: String, CaseIterable, Hashable {
 
     var title: String {
         switch self {
-        case .general: "General"
-        case .providers: "Providers"
-        case .display: "Display"
-        case .advanced: "Advanced"
-        case .about: "About"
-        case .debug: "Debug"
+        case .general: "通用"
+        case .providers: "服务"
+        case .display: "显示"
+        case .advanced: "高级"
+        case .about: "关于"
+        case .debug: "调试"
         }
     }
 
@@ -67,7 +67,7 @@ struct PreferencesView: View {
     var body: some View {
         TabView(selection: self.$selection.tab) {
             GeneralPane(settings: self.settings, store: self.store)
-                .tabItem { Label("General", systemImage: "gearshape") }
+                .tabItem { Label("通用", systemImage: "gearshape") }
                 .tag(PreferencesTab.general)
 
             ProvidersPane(
@@ -75,24 +75,24 @@ struct PreferencesView: View {
                 store: self.store,
                 managedCodexAccountCoordinator: self.managedCodexAccountCoordinator,
                 codexAccountPromotionCoordinator: self.codexAccountPromotionCoordinator)
-                .tabItem { Label("Providers", systemImage: "square.grid.2x2") }
+                .tabItem { Label("服务", systemImage: "square.grid.2x2") }
                 .tag(PreferencesTab.providers)
 
             DisplayPane(settings: self.settings, store: self.store)
-                .tabItem { Label("Display", systemImage: "eye") }
+                .tabItem { Label("显示", systemImage: "eye") }
                 .tag(PreferencesTab.display)
 
             AdvancedPane(settings: self.settings)
-                .tabItem { Label("Advanced", systemImage: "slider.horizontal.3") }
+                .tabItem { Label("高级", systemImage: "slider.horizontal.3") }
                 .tag(PreferencesTab.advanced)
 
             AboutPane(updater: self.updater)
-                .tabItem { Label("About", systemImage: "info.circle") }
+                .tabItem { Label("关于", systemImage: "info.circle") }
                 .tag(PreferencesTab.about)
 
             if self.settings.debugMenuEnabled {
                 DebugPane(settings: self.settings, store: self.store)
-                    .tabItem { Label("Debug", systemImage: "ladybug") }
+                    .tabItem { Label("调试", systemImage: "ladybug") }
                     .tag(PreferencesTab.debug)
             }
         }

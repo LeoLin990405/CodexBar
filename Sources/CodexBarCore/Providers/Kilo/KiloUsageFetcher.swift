@@ -211,25 +211,25 @@ public enum KiloUsageError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "Kilo API credentials missing. Set KILO_API_KEY."
+            "缺少 Kilo API 凭据。请设置 KILO_API_KEY。"
         case let .cliSessionMissing(path):
-            "Kilo CLI session not found at \(path). Run `kilo login` to create ~/.local/share/kilo/auth.json."
+            "未在 \(path) 找到 Kilo CLI 会话。请运行 `kilo login` 创建 ~/.local/share/kilo/auth.json。"
         case let .cliSessionUnreadable(path):
-            "Kilo CLI session file is unreadable at \(path). Fix permissions or run `kilo login` again."
+            "\(path) 的 Kilo CLI 会话文件不可读。请修复权限或重新运行 `kilo login`。"
         case let .cliSessionInvalid(path):
-            "Kilo CLI session file is invalid at \(path). Run `kilo login` to refresh auth.json."
+            "\(path) 的 Kilo CLI 会话文件无效。请运行 `kilo login` 刷新 auth.json。"
         case .unauthorized:
-            "Kilo authentication failed (401/403). Refresh KILO_API_KEY or run `kilo login`."
+            "Kilo 认证失败（401/403）。请刷新 KILO_API_KEY 或运行 `kilo login`。"
         case .endpointNotFound:
-            "Kilo API endpoint not found (404). Verify the tRPC batch path and procedure names."
+            "未找到 Kilo API endpoint（404）。请检查 tRPC batch 路径和 procedure 名称。"
         case let .serviceUnavailable(statusCode):
-            "Kilo API is currently unavailable (HTTP \(statusCode)). Try again later."
+            "Kilo API 当前不可用（HTTP \(statusCode)）。请稍后重试。"
         case let .networkError(message):
-            "Kilo network error: \(message)"
+            "Kilo 网络错误：\(message)"
         case .parseFailed:
-            "Failed to parse Kilo API response. Response format may have changed."
+            "解析 Kilo API 响应失败。响应格式可能已变化。"
         case let .apiError(statusCode):
-            "Kilo API request failed (HTTP \(statusCode))."
+            "Kilo API 请求失败（HTTP \(statusCode)）。"
         }
     }
 }

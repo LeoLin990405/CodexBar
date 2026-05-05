@@ -1107,7 +1107,7 @@ public enum AlibabaCodingPlanUsageError: LocalizedError, Sendable, Equatable {
         case let .apiError(message):
             "Alibaba Coding Plan API error: \(message)"
         case let .parseFailed(message):
-            "Failed to parse Alibaba Coding Plan response: \(message)"
+            "解析 Alibaba Coding Plan 响应失败：\(message)"
         }
     }
 }

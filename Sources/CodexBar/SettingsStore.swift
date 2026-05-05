@@ -28,12 +28,12 @@ enum RefreshFrequency: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .manual: "Manual"
-        case .oneMinute: "1 min"
-        case .twoMinutes: "2 min"
-        case .fiveMinutes: "5 min"
-        case .fifteenMinutes: "15 min"
-        case .thirtyMinutes: "30 min"
+        case .manual: "手动"
+        case .oneMinute: "1 分钟"
+        case .twoMinutes: "2 分钟"
+        case .fiveMinutes: "5 分钟"
+        case .fifteenMinutes: "15 分钟"
+        case .thirtyMinutes: "30 分钟"
         }
     }
 }
@@ -51,11 +51,11 @@ enum MenuBarMetricPreference: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .automatic: "Automatic"
-        case .primary: "Primary"
-        case .secondary: "Secondary"
-        case .tertiary: "Tertiary"
-        case .average: "Average"
+        case .automatic: "自动"
+        case .primary: "主要额度"
+        case .secondary: "次要额度"
+        case .tertiary: "第三额度"
+        case .average: "平均值"
         }
     }
 }

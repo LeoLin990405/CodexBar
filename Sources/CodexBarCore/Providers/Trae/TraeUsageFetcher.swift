@@ -449,13 +449,13 @@ public enum TraeAPIError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .invalidSession:
-            "Trae session expired. Please log in to trae.ai in your browser."
+            "Trae 会话已过期。请在浏览器中登录 trae.ai。"
         case let .networkError(msg):
-            "Trae network error: \(msg)"
+            "Trae 网络错误：\(msg)"
         case let .parseFailed(msg):
-            "Trae response parse failed: \(msg)"
+            "解析 Trae 响应失败：\(msg)"
         case let .apiError(msg):
-            "Trae API error: \(msg)"
+            "Trae API 错误：\(msg)"
         }
     }
 }

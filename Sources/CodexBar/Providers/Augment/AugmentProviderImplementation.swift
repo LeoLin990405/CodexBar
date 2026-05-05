@@ -52,16 +52,16 @@ struct AugmentProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.augmentCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "Automatic imports browser cookies.",
-                manual: "Paste a Cookie header or cURL capture from the Augment dashboard.",
-                off: "Augment cookies are disabled.")
+                auto: "自动导入浏览器 Cookie。",
+                manual: "粘贴来自 Augment 仪表盘的 Cookie header 或 cURL 抓取内容。",
+                off: "Augment Cookie 已禁用。")
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "augment-cookie-source",
-                title: "Cookie source",
-                subtitle: "Automatic imports browser cookies.",
+                title: "Cookie 来源",
+                subtitle: "自动导入浏览器 Cookie。",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -70,7 +70,7 @@ struct AugmentProviderImplementation: ProviderImplementation {
                 trailingText: {
                     guard let entry = CookieHeaderCache.load(provider: .augment) else { return nil }
                     let when = entry.storedAt.relativeDescription()
-                    return "Cached: \(entry.sourceLabel) • \(when)"
+                    return "已缓存：\(entry.sourceLabel) • \(when)"
                 }),
         ]
     }
@@ -83,14 +83,14 @@ struct AugmentProviderImplementation: ProviderImplementation {
 
     @MainActor
     func appendActionMenuEntries(context: ProviderMenuActionContext, entries: inout [ProviderMenuEntry]) {
-        entries.append(.action("Refresh Session", .refreshAugmentSession))
+        entries.append(.action("刷新会话", .refreshAugmentSession))
 
         if let error = context.store.error(for: .augment) {
             if error.contains("session has expired") ||
                 error.contains("No Augment session cookie found")
             {
                 entries.append(.action(
-                    "Open Augment (Log Out & Back In)",
+                    "打开 Augment（退出并重新登录）",
                     .loginToProvider(url: "https://app.augmentcode.com")))
             }
         }

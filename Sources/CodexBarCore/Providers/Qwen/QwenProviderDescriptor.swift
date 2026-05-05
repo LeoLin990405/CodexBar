@@ -10,13 +10,13 @@ public enum QwenProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .qwen,
                 displayName: "Qwen",
-                sessionLabel: "Requests",
-                weeklyLabel: "Monthly",
+                sessionLabel: "请求",
+                weeklyLabel: "每月",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Qwen usage",
+                toggleTitle: "显示 Qwen 用量",
                 cliName: "qwen",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum QwenProviderDescriptor {
                 color: ProviderColor(red: 106 / 255, green: 58 / 255, blue: 255 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Qwen cost summary is not available." }),
+                noDataMessage: { "Qwen 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [QwenAPIFetchStrategy()] })),

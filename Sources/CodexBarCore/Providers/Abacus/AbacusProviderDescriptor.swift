@@ -14,13 +14,13 @@ public enum AbacusProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .abacus,
                 displayName: "Abacus AI",
-                sessionLabel: "Credits",
-                weeklyLabel: "Weekly",
+                sessionLabel: "Credits 余额",
+                weeklyLabel: "每周",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Abacus AI usage",
+                toggleTitle: "显示 Abacus AI 用量",
                 cliName: "abacusai",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -35,7 +35,7 @@ public enum AbacusProviderDescriptor {
                 color: ProviderColor(red: 56 / 255, green: 189 / 255, blue: 248 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Abacus AI cost summary is not supported." }),
+                noDataMessage: { "Abacus AI 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in

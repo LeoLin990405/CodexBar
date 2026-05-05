@@ -7,12 +7,12 @@ public enum CostUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case let .unsupportedProvider(provider):
-            return "Cost summary is not supported for \(provider.rawValue)."
+            return "\(provider.rawValue) 暂不支持费用摘要。"
         case let .timedOut(seconds):
             if seconds >= 60, seconds % 60 == 0 {
-                return "Cost refresh timed out after \(seconds / 60)m."
+                return "费用刷新在 \(seconds / 60) 分钟后超时。"
             }
-            return "Cost refresh timed out after \(seconds)s."
+            return "费用刷新在 \(seconds) 秒后超时。"
         }
     }
 }

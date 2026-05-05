@@ -66,13 +66,13 @@ public enum KimiK2UsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "Missing Kimi K2 API key."
+            "缺少 Kimi K2 API key。"
         case let .networkError(message):
-            "Kimi K2 network error: \(message)"
+            "Kimi K2 网络错误：\(message)"
         case let .apiError(message):
-            "Kimi K2 API error: \(message)"
+            "Kimi K2 API 错误：\(message)"
         case let .parseFailed(message):
-            "Failed to parse Kimi K2 response: \(message)"
+            "解析 Kimi K2 响应失败：\(message)"
         }
     }
 }

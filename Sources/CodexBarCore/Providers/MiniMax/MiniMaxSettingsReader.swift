@@ -72,7 +72,7 @@ public enum MiniMaxSettingsError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCookie:
-            "MiniMax session not found. Sign in to platform.minimax.io or platform.minimaxi.com in your browser and try again."
+            "未找到 MiniMax 会话。请在浏览器中登录 platform.minimax.io 或 platform.minimaxi.com 后重试。"
         }
     }
 }

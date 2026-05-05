@@ -52,7 +52,7 @@ public enum MiniMaxAPISettingsError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingToken:
-            "MiniMax API token not found. Set apiKey in ~/.codexbar/config.json or MINIMAX_API_KEY."
+            "未找到 MiniMax API token。请在 ~/.codexbar/config.json 设置 apiKey，或设置 MINIMAX_API_KEY。"
         }
     }
 }

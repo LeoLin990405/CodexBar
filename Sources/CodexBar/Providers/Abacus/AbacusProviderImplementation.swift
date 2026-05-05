@@ -48,16 +48,16 @@ struct AbacusProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.abacusCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "Automatic imports browser cookies.",
-                manual: "Paste a Cookie header or cURL capture from the Abacus AI dashboard.",
-                off: "Abacus AI cookies are disabled.")
+                auto: "自动导入浏览器 Cookie。",
+                manual: "粘贴来自 Abacus AI 仪表盘的 Cookie header 或 cURL 抓取内容。",
+                off: "Abacus AI Cookie 已禁用。")
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "abacus-cookie-source",
-                title: "Cookie source",
-                subtitle: "Automatic imports browser cookies.",
+                title: "Cookie 来源",
+                subtitle: "自动导入浏览器 Cookie。",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -66,7 +66,7 @@ struct AbacusProviderImplementation: ProviderImplementation {
                 trailingText: {
                     guard let entry = CookieHeaderCache.load(provider: .abacus) else { return nil }
                     let when = entry.storedAt.relativeDescription()
-                    return "Cached: \(entry.sourceLabel) • \(when)"
+                    return "已缓存：\(entry.sourceLabel) • \(when)"
                 }),
         ]
     }
@@ -79,12 +79,12 @@ struct AbacusProviderImplementation: ProviderImplementation {
                 title: "",
                 subtitle: "",
                 kind: .secure,
-                placeholder: "Cookie: \u{2026}\n\nor paste a cURL capture from the Abacus AI dashboard",
+                placeholder: "Cookie: \u{2026}\n\n或粘贴 Abacus AI 仪表盘的 cURL 抓取内容",
                 binding: context.stringBinding(\.abacusCookieHeader),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "abacus-open-dashboard",
-                        title: "Open Dashboard",
+                        title: "打开仪表盘",
                         style: .link,
                         isVisible: nil,
                         perform: {

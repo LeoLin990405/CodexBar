@@ -18,15 +18,15 @@ struct AigoCodeProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "aigocode-api-token",
                 title: "API key",
-                subtitle: "Optional when using web dashboard mode. "
-                    + "Stored in ~/.codexbar/config.json.",
+                subtitle: "使用网页仪表盘模式时可不填。"
+                    + "保存在 ~/.codexbar/config.json。",
                 kind: .secure,
                 placeholder: "sk-...",
                 binding: context.stringBinding(\.aigocodeAPIToken),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "aigocode-open-dashboard",
-                        title: "Open AigoCode Dashboard",
+                        title: "打开 AigoCode 仪表盘",
                         style: .link,
                         isVisible: nil,
                         perform: {

@@ -201,7 +201,7 @@ enum TraeCookieImportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noCookies:
-            "No Trae session cookies found in browsers."
+            "浏览器中未找到 Trae 会话 Cookie。"
         }
     }
 }

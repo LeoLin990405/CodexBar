@@ -11,7 +11,7 @@ struct CodexProviderImplementation: ProviderImplementation {
     @MainActor
     func presentation(context _: ProviderPresentationContext) -> ProviderPresentation {
         ProviderPresentation { context in
-            context.store.version(for: context.provider) ?? "not detected"
+            context.store.version(for: context.provider) ?? "未检测到"
         }
     }
 
@@ -74,8 +74,8 @@ struct CodexProviderImplementation: ProviderImplementation {
         return [
             ProviderSettingsToggleDescriptor(
                 id: "codex-historical-tracking",
-                title: "Historical tracking",
-                subtitle: "Stores local Codex usage history (8 weeks) to personalize Pace predictions.",
+                title: "历史跟踪",
+                subtitle: "保存本地 Codex 用量历史（8 周），用于个性化节奏预测。",
                 binding: context.boolBinding(\.historicalTrackingEnabled),
                 statusText: nil,
                 actions: [],
@@ -85,10 +85,10 @@ struct CodexProviderImplementation: ProviderImplementation {
                 onAppearWhenEnabled: nil),
             ProviderSettingsToggleDescriptor(
                 id: "codex-openai-web-extras",
-                title: "OpenAI web extras",
+                title: "OpenAI 网页增强",
                 subtitle: [
-                    "Optional.",
-                    "Turn this on to show code review, usage breakdown, and credits history via chatgpt.com.",
+                    "可选。",
+                    "开启后通过 chatgpt.com 显示代码审查、用量明细和 Credits 历史。",
                 ].joined(separator: " "),
                 binding: extrasBinding,
                 statusText: nil,
@@ -99,10 +99,10 @@ struct CodexProviderImplementation: ProviderImplementation {
                 onAppearWhenEnabled: nil),
             ProviderSettingsToggleDescriptor(
                 id: "codex-openai-web-battery-saver",
-                title: "Battery Saver",
+                title: "省电模式",
                 subtitle: [
-                    "Limits background chatgpt.com refreshes to reduce battery and network usage.",
-                    "Dashboard extras may stay stale until you refresh them manually.",
+                    "限制后台 chatgpt.com 刷新，减少耗电和网络占用。",
+                    "仪表盘增强数据可能保持旧状态，直到你手动刷新。",
                 ].joined(separator: " "),
                 binding: batterySaverBinding,
                 statusText: nil,
@@ -138,16 +138,16 @@ struct CodexProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.codexCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "Automatic imports browser cookies for dashboard extras.",
-                manual: "Paste a Cookie header from a chatgpt.com request.",
-                off: "Disable OpenAI dashboard cookie usage.")
+                auto: "自动导入浏览器 Cookie，用于仪表盘增强数据。",
+                manual: "粘贴来自 chatgpt.com 请求的 Cookie header。",
+                off: "关闭 OpenAI 仪表盘 Cookie 使用。")
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "codex-usage-source",
-                title: "Usage source",
-                subtitle: "Auto falls back to the next source if the preferred one fails.",
+                title: "用量来源",
+                subtitle: "自动模式会在首选来源失败后切换到下一个来源。",
                 binding: usageBinding,
                 options: usageOptions,
                 isVisible: nil,
@@ -159,8 +159,8 @@ struct CodexProviderImplementation: ProviderImplementation {
                 }),
             ProviderSettingsPickerDescriptor(
                 id: "codex-cookie-source",
-                title: "OpenAI cookies",
-                subtitle: "Automatic imports browser cookies for dashboard extras.",
+                title: "OpenAI Cookie",
+                subtitle: "自动导入浏览器 Cookie，用于仪表盘增强数据。",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -169,7 +169,7 @@ struct CodexProviderImplementation: ProviderImplementation {
                 trailingText: {
                     guard let entry = CookieHeaderCache.load(provider: .codex) else { return nil }
                     let when = entry.storedAt.relativeDescription()
-                    return "Cached: \(entry.sourceLabel) • \(when)"
+                    return "已缓存：\(entry.sourceLabel) • \(when)"
                 }),
         ]
     }

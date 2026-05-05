@@ -54,16 +54,16 @@ struct OpenCodeGoProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.opencodegoCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "Automatic imports browser cookies from opencode.ai.",
-                manual: "Paste a Cookie header captured from the billing page.",
-                off: "OpenCode Go cookies are disabled.")
+                auto: "自动导入 opencode.ai 的浏览器 Cookie。",
+                manual: "粘贴从账单页面捕获的 Cookie header。",
+                off: "OpenCode Go Cookie 已禁用。")
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "opencodego-cookie-source",
-                title: "Cookie source",
-                subtitle: "Automatic imports browser cookies from opencode.ai.",
+                title: "Cookie 来源",
+                subtitle: "自动导入 opencode.ai 的浏览器 Cookie。",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -82,8 +82,8 @@ struct OpenCodeGoProviderImplementation: ProviderImplementation {
         [
             ProviderSettingsFieldDescriptor(
                 id: "opencodego-workspace-id",
-                title: "Workspace ID",
-                subtitle: "Optional override if workspace lookup fails.",
+                title: "工作区 ID",
+                subtitle: "工作区查找失败时可选填此覆盖值。",
                 kind: .plain,
                 placeholder: "wrk_…",
                 binding: context.stringBinding(\.opencodegoWorkspaceID),

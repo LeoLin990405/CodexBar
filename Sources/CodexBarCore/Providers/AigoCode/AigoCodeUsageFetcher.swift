@@ -51,13 +51,13 @@ public struct AigoCodeUsageSnapshot: Sendable {
         } else if self.limitRequests > 0 {
             let used = max(0, self.limitRequests - self.remainingRequests)
             usedPercent = min(100, max(0, Double(used) / Double(self.limitRequests) * 100))
-            resetDescription = "\(used)/\(self.limitRequests) requests"
+            resetDescription = "\(used)/\(self.limitRequests) 次请求"
         } else if self.apiKeyValid {
             usedPercent = 0
-            resetDescription = "Active — check dashboard for details"
+            resetDescription = "已激活 - 请到仪表盘查看详情"
         } else {
             usedPercent = 0
-            resetDescription = "No usage data"
+            resetDescription = "暂无用量数据"
         }
 
         let primary = RateWindow(
@@ -91,13 +91,13 @@ public enum AigoCodeUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "Missing AigoCode API key (AIGOCODE_API_KEY)."
+            "缺少 AigoCode API key（AIGOCODE_API_KEY）。"
         case let .networkError(message):
-            "AigoCode network error: \(message)"
+            "AigoCode 网络错误：\(message)"
         case let .apiError(code, message):
-            "AigoCode API error (\(code)): \(message)"
+            "AigoCode API 错误（\(code)）：\(message)"
         case let .parseFailed(message):
-            "Failed to parse AigoCode response: \(message)"
+            "解析 AigoCode 响应失败：\(message)"
         }
     }
 }

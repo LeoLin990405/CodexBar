@@ -10,13 +10,13 @@ public enum KiroProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .kiro,
                 displayName: "Kiro",
-                sessionLabel: "Credits",
-                weeklyLabel: "Bonus",
+                sessionLabel: "Credits 余额",
+                weeklyLabel: "奖励",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Kiro usage",
+                toggleTitle: "显示 Kiro 用量",
                 cliName: "kiro",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum KiroProviderDescriptor {
                 color: ProviderColor(red: 255 / 255, green: 153 / 255, blue: 0 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Kiro cost summary is not supported." }),
+                noDataMessage: { "Kiro 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .cli],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [KiroCLIFetchStrategy()] })),

@@ -220,7 +220,7 @@ struct ProviderSettingsTokenAccountsRowView: View {
 
             let accounts = self.descriptor.accounts()
             if accounts.isEmpty {
-                Text("No token accounts yet.")
+                Text("还没有 token 账号。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
@@ -237,7 +237,7 @@ struct ProviderSettingsTokenAccountsRowView: View {
                 .pickerStyle(.menu)
                 .controlSize(.small)
 
-                Button("Remove selected account") {
+                Button("移除所选账号") {
                     let account = accounts[selectedIndex]
                     self.descriptor.removeAccount(account.id)
                 }
@@ -246,13 +246,13 @@ struct ProviderSettingsTokenAccountsRowView: View {
             }
 
             HStack(spacing: 8) {
-                TextField("Label", text: self.$newLabel)
+                TextField("标签", text: self.$newLabel)
                     .textFieldStyle(.roundedBorder)
                     .font(.footnote)
                 SecureField(self.descriptor.placeholder, text: self.$newToken)
                     .textFieldStyle(.roundedBorder)
                     .font(.footnote)
-                Button("Add") {
+                Button("添加") {
                     let label = self.newLabel.trimmingCharacters(in: .whitespacesAndNewlines)
                     let token = self.newToken.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !label.isEmpty, !token.isEmpty else { return }
@@ -267,12 +267,12 @@ struct ProviderSettingsTokenAccountsRowView: View {
             }
 
             HStack(spacing: 10) {
-                Button("Open token file") {
+                Button("打开 token 文件") {
                     self.descriptor.openConfigFile()
                 }
                 .buttonStyle(.link)
                 .controlSize(.small)
-                Button("Reload") {
+                Button("重新加载") {
                     self.descriptor.reloadFromDisk()
                 }
                 .buttonStyle(.link)

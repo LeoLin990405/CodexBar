@@ -48,16 +48,16 @@ struct FactoryProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.factoryCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "Automatic imports browser cookies and WorkOS tokens.",
-                manual: "Paste a Cookie header from app.factory.ai.",
-                off: "Factory cookies are disabled.")
+                auto: "自动导入浏览器 Cookie 和 WorkOS token。",
+                manual: "粘贴来自 app.factory.ai 的 Cookie header。",
+                off: "Factory Cookie 已禁用。")
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "factory-cookie-source",
-                title: "Cookie source",
-                subtitle: "Automatic imports browser cookies and WorkOS tokens.",
+                title: "Cookie 来源",
+                subtitle: "自动导入浏览器 Cookie 和 WorkOS token。",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -66,7 +66,7 @@ struct FactoryProviderImplementation: ProviderImplementation {
                 trailingText: {
                     guard let entry = CookieHeaderCache.load(provider: .factory) else { return nil }
                     let when = entry.storedAt.relativeDescription()
-                    return "Cached: \(entry.sourceLabel) • \(when)"
+                    return "已缓存：\(entry.sourceLabel) • \(when)"
                 }),
         ]
     }

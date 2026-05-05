@@ -10,13 +10,13 @@ public enum SyntheticProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .synthetic,
                 displayName: "Synthetic",
-                sessionLabel: "Five-hour quota",
-                weeklyLabel: "Weekly tokens",
-                opusLabel: "Search hourly",
+                sessionLabel: "5 小时额度",
+                weeklyLabel: "每周 token",
+                opusLabel: "搜索小时额度",
                 supportsOpus: true,
                 supportsCredits: false,
                 creditsHint: "Weekly token quota regenerates continuously.",
-                toggleTitle: "Show Synthetic usage",
+                toggleTitle: "显示 Synthetic 用量",
                 cliName: "synthetic",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -29,7 +29,7 @@ public enum SyntheticProviderDescriptor {
                 color: ProviderColor(red: 20 / 255, green: 20 / 255, blue: 20 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Synthetic cost summary is not supported." }),
+                noDataMessage: { "Synthetic 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [SyntheticAPIFetchStrategy()] })),

@@ -48,8 +48,8 @@ struct ZaiProviderImplementation: ProviderImplementation {
         return [
             ProviderSettingsPickerDescriptor(
                 id: "zai-api-region",
-                title: "API region",
-                subtitle: "Use BigModel for the China mainland endpoints (open.bigmodel.cn).",
+                title: "API 区域",
+                subtitle: "中国大陆端点（open.bigmodel.cn）请使用 BigModel。",
                 binding: binding,
                 options: options,
                 isVisible: nil,

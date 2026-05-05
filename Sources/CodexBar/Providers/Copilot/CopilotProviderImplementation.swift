@@ -29,15 +29,15 @@ struct CopilotProviderImplementation: ProviderImplementation {
         [
             ProviderSettingsFieldDescriptor(
                 id: "copilot-api-token",
-                title: "GitHub Login",
-                subtitle: "Requires authentication via GitHub Device Flow.",
+                title: "GitHub 登录",
+                subtitle: "需要通过 GitHub Device Flow 认证。",
                 kind: .secure,
-                placeholder: "Sign in via button below",
+                placeholder: "通过下方按钮登录",
                 binding: context.stringBinding(\.copilotAPIToken),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "copilot-login",
-                        title: "Sign in with GitHub",
+                        title: "使用 GitHub 登录",
                         style: .bordered,
                         isVisible: { context.settings.copilotAPIToken.isEmpty },
                         perform: {
@@ -45,7 +45,7 @@ struct CopilotProviderImplementation: ProviderImplementation {
                         }),
                     ProviderSettingsActionDescriptor(
                         id: "copilot-relogin",
-                        title: "Sign in again",
+                        title: "重新登录",
                         style: .link,
                         isVisible: { !context.settings.copilotAPIToken.isEmpty },
                         perform: {

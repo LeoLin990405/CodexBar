@@ -73,36 +73,36 @@ final class CodexAccountPromotionCoordinator {
 
     private static func interactionBlockedError() -> CodexSystemAccountPromotionUserFacingError {
         CodexSystemAccountPromotionUserFacingError(
-            title: "Could not switch system account",
-            message: "Finish the current managed account change before switching the system account.")
+            title: "无法切换系统账号",
+            message: "请先完成当前托管账号变更，再切换系统账号。")
     }
 
     static func mapUserFacingError(_ error: Error) -> CodexSystemAccountPromotionUserFacingError {
-        let title = "Could not switch system account"
+        let title = "无法切换系统账号"
 
         if let error = error as? CodexAccountPromotionError {
             let message = switch error {
             case .targetManagedAccountNotFound:
-                "That account is no longer available in CodexBar. Refresh the account list and try again."
+                "该账号已不在 CodexBar 中。请刷新账号列表后重试。"
             case .targetManagedAccountAuthMissing:
-                "CodexBar could not find saved auth for that account. Re-authenticate it and try again."
+                "CodexBar 找不到该账号保存的认证信息。请重新认证后重试。"
             case .targetManagedAccountAuthUnreadable:
-                "CodexBar could not read saved auth for that account. Re-authenticate it and try again."
+                "CodexBar 无法读取该账号保存的认证信息。请重新认证后重试。"
             case .liveAccountUnreadable:
-                "CodexBar could not read the current system account on this Mac."
+                "CodexBar 无法读取这台 Mac 上的当前系统账号。"
             case .liveAccountMissingIdentityForPreservation:
-                "CodexBar could not safely preserve the current system account before switching."
+                "切换前，CodexBar 无法安全保留当前系统账号。"
             case .liveAccountAPIKeyOnlyUnsupported:
-                "CodexBar can't replace a system account that is signed in with an API key only setup."
+                "CodexBar 无法替换仅使用 API key 登录的系统账号。"
             case .displacedLiveManagedAccountConflict:
-                "CodexBar found another managed account that already uses the current system account. "
-                    + "Resolve the duplicate account before switching."
+                "CodexBar 发现另一个托管账号已使用当前系统账号。" +
+                    "请先处理重复账号，再切换。"
             case .displacedLiveImportFailed:
-                "CodexBar could not save the current system account before switching."
+                "切换前，CodexBar 无法保存当前系统账号。"
             case .managedStoreCommitFailed:
-                "CodexBar could not update managed account storage."
+                "CodexBar 无法更新托管账号存储。"
             case .liveAuthSwapFailed:
-                "CodexBar could not replace the live Codex auth on this Mac."
+                "CodexBar 无法替换这台 Mac 上正在使用的 Codex 认证。"
             }
 
             return CodexSystemAccountPromotionUserFacingError(title: title, message: message)

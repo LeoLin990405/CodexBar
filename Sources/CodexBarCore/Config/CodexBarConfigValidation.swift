@@ -37,7 +37,7 @@ public enum CodexBarConfigValidator {
                 provider: nil,
                 field: "version",
                 code: "version_mismatch",
-                message: "Unsupported config version \(config.version)."))
+                message: "不支持的配置版本 \(config.version)。"))
         }
 
         for entry in config.providers {
@@ -60,7 +60,7 @@ public enum CodexBarConfigValidator {
                 provider: provider,
                 field: "source",
                 code: "unsupported_source",
-                message: "Source \(source.rawValue) is not supported for \(provider.rawValue)."))
+                message: "\(provider.rawValue) 不支持来源 \(source.rawValue)。"))
         }
 
         if let apiKey = entry.apiKey, !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !supportsAPI {
@@ -69,7 +69,7 @@ public enum CodexBarConfigValidator {
                 provider: provider,
                 field: "apiKey",
                 code: "api_key_unused",
-                message: "apiKey is set but \(provider.rawValue) does not support api source."))
+                message: "已设置 apiKey，但 \(provider.rawValue) 不支持 api 来源。"))
         }
 
         if let source = entry.source, source == .api, !supportsAPI {
@@ -78,7 +78,7 @@ public enum CodexBarConfigValidator {
                 provider: provider,
                 field: "source",
                 code: "api_source_unsupported",
-                message: "Source api is not supported for \(provider.rawValue)."))
+                message: "\(provider.rawValue) 不支持 api 来源。"))
         }
 
         if let source = entry.source, source == .api,
@@ -89,7 +89,7 @@ public enum CodexBarConfigValidator {
                 provider: provider,
                 field: "apiKey",
                 code: "api_key_missing",
-                message: "Source api is selected but apiKey is missing for \(provider.rawValue)."))
+                message: "已选择 api 来源，但 \(provider.rawValue) 缺少 apiKey。"))
         }
 
         if entry.cookieSource != nil, !supportsWeb {
@@ -98,7 +98,7 @@ public enum CodexBarConfigValidator {
                 provider: provider,
                 field: "cookieSource",
                 code: "cookie_source_unused",
-                message: "cookieSource is set but \(provider.rawValue) does not use web cookies."))
+                message: "已设置 cookieSource，但 \(provider.rawValue) 不使用网页 Cookie。"))
         }
 
         if let cookieHeader = entry.cookieHeader,
@@ -110,7 +110,7 @@ public enum CodexBarConfigValidator {
                 provider: provider,
                 field: "cookieHeader",
                 code: "cookie_header_unused",
-                message: "cookieHeader is set but \(provider.rawValue) does not use web cookies."))
+                message: "已设置 cookieHeader，但 \(provider.rawValue) 不使用网页 Cookie。"))
         }
 
         if let cookieSource = entry.cookieSource,
@@ -122,7 +122,7 @@ public enum CodexBarConfigValidator {
                 provider: provider,
                 field: "cookieHeader",
                 code: "cookie_header_missing",
-                message: "cookieSource manual is set but cookieHeader is missing for \(provider.rawValue)."))
+                message: "cookieSource 已设为 manual，但 \(provider.rawValue) 缺少 cookieHeader。"))
         }
 
         if let region = entry.region, !region.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -134,7 +134,7 @@ public enum CodexBarConfigValidator {
                         provider: provider,
                         field: "region",
                         code: "invalid_region",
-                        message: "Region \(region) is not a valid MiniMax region."))
+                        message: "\(region) 不是有效的 MiniMax 区域。"))
                 }
             case .zai:
                 if ZaiAPIRegion(rawValue: region) == nil {
@@ -143,7 +143,7 @@ public enum CodexBarConfigValidator {
                         provider: provider,
                         field: "region",
                         code: "invalid_region",
-                        message: "Region \(region) is not a valid z.ai region."))
+                        message: "\(region) 不是有效的 z.ai 区域。"))
                 }
             case .alibaba:
                 if AlibabaCodingPlanAPIRegion(rawValue: region) == nil {
@@ -152,7 +152,7 @@ public enum CodexBarConfigValidator {
                         provider: provider,
                         field: "region",
                         code: "invalid_region",
-                        message: "Region \(region) is not a valid Alibaba Coding Plan region."))
+                        message: "\(region) 不是有效的 Alibaba Coding Plan 区域。"))
                 }
             default:
                 issues.append(CodexBarConfigIssue(
@@ -160,7 +160,7 @@ public enum CodexBarConfigValidator {
                     provider: provider,
                     field: "region",
                     code: "region_unused",
-                    message: "region is set but \(provider.rawValue) does not use regions."))
+                    message: "已设置 region，但 \(provider.rawValue) 不使用区域。"))
             }
         }
 
@@ -174,7 +174,7 @@ public enum CodexBarConfigValidator {
                 provider: provider,
                 field: "workspaceID",
                 code: "workspace_unused",
-                message: "workspaceID is set but only opencode and opencodego support workspaceID."))
+                message: "已设置 workspaceID，但只有 opencode 和 opencodego 支持 workspaceID。"))
         }
 
         if let tokenAccounts = entry.tokenAccounts, !tokenAccounts.accounts.isEmpty,
@@ -185,7 +185,7 @@ public enum CodexBarConfigValidator {
                 provider: provider,
                 field: "tokenAccounts",
                 code: "token_accounts_unused",
-                message: "tokenAccounts are set but \(provider.rawValue) does not support token accounts."))
+                message: "已设置 tokenAccounts，但 \(provider.rawValue) 不支持 token 账号。"))
         }
     }
 }

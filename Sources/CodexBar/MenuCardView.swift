@@ -11,15 +11,15 @@ struct UsageMenuCardView: View {
 
             var labelSuffix: String {
                 switch self {
-                case .left: "left"
-                case .used: "used"
+                case .left: "剩余"
+                case .used: "已用"
                 }
             }
 
             var accessibilityLabel: String {
                 switch self {
-                case .left: "Usage remaining"
-                case .used: "Usage used"
+                case .left: "剩余用量"
+                case .used: "已用用量"
                 }
             }
         }
@@ -177,7 +177,7 @@ struct UsageMenuCardView: View {
                     }
                     if let tokenUsage = self.model.tokenUsage {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Cost")
+                            Text("费用")
                                 .font(.body)
                                 .fontWeight(.medium)
                             Text(tokenUsage.sessionLine)
@@ -310,7 +310,7 @@ private struct CopyIconButton: View {
                 .frame(width: 18, height: 18)
         }
         .buttonStyle(CopyIconButtonStyle(isHighlighted: self.isHighlighted))
-        .accessibilityLabel(self.didCopy ? "Copied" : "Copy error")
+        .accessibilityLabel(self.didCopy ? "已复制" : "复制错误")
     }
 
     private func copyToPasteboard() {
@@ -333,12 +333,12 @@ private struct ProviderCostContent: View {
             UsageProgressBar(
                 percent: self.section.percentUsed,
                 tint: self.progressColor,
-                accessibilityLabel: "Extra usage spent")
+                accessibilityLabel: "已花费额外用量")
             HStack(alignment: .firstTextBaseline) {
                 Text(self.section.spendLine)
                     .font(.footnote)
                 Spacer()
-                Text(String(format: "%.0f%% used", min(100, max(0, self.section.percentUsed))))
+                Text(String(format: "已用 %.0f%%", min(100, max(0, self.section.percentUsed))))
                     .font(.footnote)
                     .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
             }
@@ -536,19 +536,19 @@ private struct CreditsBarContent: View {
 
     private var scaleText: String {
         let scale = UsageFormatter.tokenCountString(Int(Self.fullScaleTokens))
-        return "\(scale) tokens"
+        return "\(scale) token"
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Credits")
+            Text("Credits 余额")
                 .font(.body)
                 .fontWeight(.medium)
             if let percentLeft {
                 UsageProgressBar(
                     percent: percentLeft,
                     tint: self.progressColor,
-                    accessibilityLabel: "Credits remaining")
+                    accessibilityLabel: "剩余 Credits")
                 HStack(alignment: .firstTextBaseline) {
                     Text(self.creditsText)
                         .font(.caption)
@@ -589,7 +589,7 @@ struct UsageMenuCardCostSectionView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     if let tokenUsage = self.model.tokenUsage {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Cost")
+                            Text("费用")
                                 .font(.body)
                                 .fontWeight(.medium)
                             Text(tokenUsage.sessionLine)
@@ -752,7 +752,7 @@ extension UsageMenuCardView.Model {
             isRefreshing: input.isRefreshing,
             lastError: input.lastError)
         let redacted = Self.redactedText(input: input, subtitle: subtitle)
-        let placeholder = input.snapshot == nil && !input.isRefreshing && input.lastError == nil ? "No usage yet" : nil
+        let placeholder = input.snapshot == nil && !input.isRefreshing && input.lastError == nil ? "暂无用量" : nil
 
         return UsageMenuCardView.Model(
             provider: input.provider,
@@ -781,9 +781,9 @@ extension UsageMenuCardView.Model {
                 .lowercased()
             if input.kiloAutoMode,
                resolvedSource == "cli",
-               !notes.contains(where: { $0.caseInsensitiveCompare("Using CLI fallback") == .orderedSame })
+               !notes.contains(where: { $0.caseInsensitiveCompare("正在使用 CLI 回退") == .orderedSame })
             {
-                notes.append("Using CLI fallback")
+                notes.append("正在使用 CLI 回退")
             }
             return notes
         }
@@ -796,8 +796,8 @@ extension UsageMenuCardView.Model {
 
         return switch openRouter.keyQuotaStatus {
         case .available: []
-        case .noLimitConfigured: ["No limit set for the API key"]
-        case .unavailable: ["API key limit unavailable right now"]
+        case .noLimitConfigured: ["未设置 API key 限额"]
+        case .unavailable: ["API key 限额暂不可用"]
         }
     }
 
@@ -885,14 +885,14 @@ extension UsageMenuCardView.Model {
         }
 
         if isRefreshing, snapshot == nil {
-            return ("Refreshing...", .loading)
+            return ("刷新中...", .loading)
         }
 
         if let updated = snapshot?.updatedAt {
             return (UsageFormatter.updatedString(from: updated), .info)
         }
 
-        return ("Not fetched yet", .info)
+        return ("尚未获取", .info)
     }
 
     private struct RedactedText {
@@ -1015,7 +1015,7 @@ extension UsageMenuCardView.Model {
             }
             metrics.append(Metric(
                 id: "code-review",
-                title: "Code review",
+                title: "代码审查",
                 percent: Self.clamped(percent),
                 percentStyle: percentStyle,
                 resetText: resetText,
@@ -1304,7 +1304,7 @@ extension UsageMenuCardView.Model {
 
         let remaining = UsageFormatter.usdString(keyRemaining)
         let limit = UsageFormatter.usdString(keyLimit)
-        return "\(remaining)/\(limit) left"
+        return "剩余 \(remaining)/\(limit)"
     }
 
     private struct PaceDetail {
@@ -1350,20 +1350,20 @@ extension UsageMenuCardView.Model {
         else { return nil }
 
         let countdown = UsageFormatter.resetCountdownDescription(from: resetsAt, now: now)
-        let resetText = "Regenerates \(countdown)"
+        let resetText = "\(countdown)恢复"
 
         let nextRegenPercent = (nextRegenAmount / cost.limit) * 100
         let afterNextRegenRemaining = min(100, weekly.remainingPercent + nextRegenPercent)
         let afterNextRegen = showUsed ? max(0, 100 - afterNextRegenRemaining) : afterNextRegenRemaining
-        let suffix = showUsed ? "used after next regen" : "after next regen"
+        let suffix = showUsed ? "下次恢复后已用" : "下次恢复后"
         let ticksToFull = max(0, cost.used) / nextRegenAmount
         let left = String(format: "%.0f%% %@", afterNextRegen, suffix)
         let right = if ticksToFull <= 0.1 {
-            "Near full"
+            "接近全满"
         } else if ticksToFull < 1.5 {
-            "Full in ~1 regen"
+            "约 1 次恢复后全满"
         } else {
-            String(format: "Full in ~%.0f regens", ceil(ticksToFull))
+            String(format: "约 %.0f 次恢复后全满", ceil(ticksToFull))
         }
         return (resetText, PaceDetail(leftLabel: left, rightLabel: right, pacePercent: nil, paceOnTop: true))
     }
@@ -1379,21 +1379,21 @@ extension UsageMenuCardView.Model {
         else { return nil }
 
         let countdown = UsageFormatter.resetCountdownDescription(from: resetsAt, now: now)
-        let resetText = "Regenerates \(countdown)"
+        let resetText = "\(countdown)恢复"
 
         let afterNextRegenRemaining = min(100, window.remainingPercent + nextRegenPercent)
         let afterNextRegen = showUsed ? max(0, 100 - afterNextRegenRemaining) : afterNextRegenRemaining
-        let suffix = showUsed ? "used after next regen" : "after next regen"
+        let suffix = showUsed ? "下次恢复后已用" : "下次恢复后"
         let left = String(format: "%.0f%% %@", afterNextRegen, suffix)
 
         let missingPercent = max(0, window.usedPercent)
         let ticksToFull = missingPercent / nextRegenPercent
         let right = if ticksToFull <= 0.1 {
-            "Near full"
+            "接近全满"
         } else if ticksToFull < 1.5 {
-            "Full in ~1 regen"
+            "约 1 次恢复后全满"
         } else {
-            String(format: "Full in ~%.0f regens", ceil(ticksToFull))
+            String(format: "约 %.0f 次恢复后全满", ceil(ticksToFull))
         }
 
         return (resetText, PaceDetail(leftLabel: left, rightLabel: right, pacePercent: nil, paceOnTop: true))

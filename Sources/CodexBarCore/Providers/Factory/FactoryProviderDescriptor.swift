@@ -10,13 +10,13 @@ public enum FactoryProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .factory,
                 displayName: "Droid",
-                sessionLabel: "Standard",
-                weeklyLabel: "Premium",
+                sessionLabel: "标准",
+                weeklyLabel: "高级",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Droid usage",
+                toggleTitle: "显示 Droid 用量",
                 cliName: "factory",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -31,7 +31,7 @@ public enum FactoryProviderDescriptor {
                 color: ProviderColor(red: 255 / 255, green: 107 / 255, blue: 53 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Droid cost summary is not supported." }),
+                noDataMessage: { "Droid 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .cli],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [FactoryStatusFetchStrategy()] })),

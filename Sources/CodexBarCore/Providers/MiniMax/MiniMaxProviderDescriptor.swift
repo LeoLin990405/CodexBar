@@ -10,13 +10,13 @@ public enum MiniMaxProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .minimax,
                 displayName: "MiniMax",
-                sessionLabel: "Prompts",
-                weeklyLabel: "Window",
+                sessionLabel: "提示词",
+                weeklyLabel: "窗口",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show MiniMax usage",
+                toggleTitle: "显示 MiniMax 用量",
                 cliName: "minimax",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum MiniMaxProviderDescriptor {
                 color: ProviderColor(red: 254 / 255, green: 96 / 255, blue: 60 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "MiniMax cost summary is not supported." }),
+                noDataMessage: { "MiniMax 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),
