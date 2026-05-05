@@ -3,7 +3,7 @@ import Foundation
 import FoundationNetworking
 #endif
 
-public enum MiMoSettingsError: LocalizedError, Sendable {
+public enum MiMoSettingsError: LocalizedError, Equatable, Sendable {
     case missingCookie
     case invalidCookie
     case missingAPIKey
