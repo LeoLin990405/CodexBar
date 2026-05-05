@@ -1,14 +1,14 @@
 ---
-summary: "Alibaba Coding Plan provider data sources: browser-session baseline, secondary API mode, and honest quota fallback behavior."
+summary: "阿里云百炼 Coding Plan provider data sources: browser-session baseline, secondary API mode, and honest quota fallback behavior."
 read_when:
-  - Debugging Alibaba Coding Plan API key handling or quota parsing
-  - Updating Alibaba Coding Plan endpoints or region behavior
-  - Adjusting Alibaba Coding Plan provider UI/menu behavior
+  - Debugging 阿里云百炼 Coding Plan API key handling or quota parsing
+  - Updating 阿里云百炼 Coding Plan endpoints or region behavior
+  - Adjusting 阿里云百炼 Coding Plan provider UI/menu behavior
 ---
 
-# Alibaba Coding Plan provider
+# 阿里云百炼 Coding Plan provider
 
-Alibaba Coding Plan supports both browser-session and API-key paths, but the supported baseline is browser-session fetching from the Model Studio/Bailian console. API mode remains secondary and may still be limited by account/region behavior.
+阿里云百炼 Coding Plan supports both browser-session and API-key paths, but the supported baseline is browser-session fetching from the Model Studio/Bailian console. API mode remains secondary and may still be limited by account/region behavior.
 
 ## Cookie sources (web mode)
 1) Automatic browser import (Model Studio/Bailian cookies).
@@ -26,12 +26,12 @@ When the RPC endpoint returns `ConsoleNeedLogin`, CodexBar treats that as a cons
 - China mainland host: `https://bailian.console.aliyun.com`
 - Quota request path:
   - `POST /data/api.json?action=zeldaEasy.broadscope-bailian.codingPlan.queryCodingPlanInstanceInfoV2&product=broadscope-bailian&api=queryCodingPlanInstanceInfoV2`
-- Region is selected in Preferences -> Providers -> Alibaba Coding Plan -> Gateway region.
+- Region is selected in Preferences -> Providers -> 阿里云百炼 Coding Plan -> Gateway region.
 - Auto fallback behavior:
   - If International fails with credential/host-style API errors, CodexBar retries China mainland once.
 
 ### CN API-key limitation (known)
-- In some China mainland accounts/environments, the current Alibaba `/data/api.json` coding-plan endpoint can still return console-login-required responses (`ConsoleNeedLogin`) even when an API key is configured.
+- In some China mainland accounts/environments, the current 阿里云百炼 `/data/api.json` coding-plan endpoint can still return console-login-required responses (`ConsoleNeedLogin`) even when an API key is configured.
 - In that case, API-key mode may not be functionally available for that account/endpoint, and web session mode is required.
 - CodexBar now surfaces this as an API error in API mode (instead of a cookie-login-required message) so the limitation is explicit.
 

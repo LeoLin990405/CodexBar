@@ -1,5 +1,5 @@
 ---
-summary: "Provider data sources and parsing overview (Codex, Claude, Gemini, Antigravity, Cursor, OpenCode, Alibaba Coding Plan, Droid/Factory, z.ai, Copilot, Kimi, Kilo, Kimi K2, Kiro, Warp, Vertex AI, Augment, Amp, Ollama, JetBrains AI, OpenRouter, Abacus AI)."
+summary: "Provider data sources and parsing overview (Codex, Claude, Gemini, Antigravity, Cursor, OpenCode, 阿里云百炼 Coding Plan, Droid/Factory, 智谱 z.ai, Copilot, 月之暗面 Kimi, Kilo, 月之暗面 Kimi K2, Kiro, Warp, Vertex AI, Augment, Amp, Ollama, JetBrains AI, OpenRouter, Abacus AI)."
 read_when:
   - Adding or modifying provider fetch/parsing
   - Adjusting provider labels, toggles, or metadata
@@ -24,14 +24,14 @@ until the session is invalid, to avoid repeated Keychain prompts.
 | Antigravity | Local LSP/HTTP probe (`local`). |
 | Cursor | Web API via cookies → stored WebKit session (`web`). |
 | OpenCode | Web dashboard via cookies (`web`). |
-| Alibaba Coding Plan | Console RPC via web cookies (auto/manual) with API key fallback (`web`, `api`). |
+| 阿里云百炼 Coding Plan | Console RPC via web cookies (auto/manual) with API key fallback (`web`, `api`). |
 | Droid/Factory | Web cookies → stored tokens → local storage → WorkOS cookies (`web`). |
-| z.ai | API token (Keychain/env) → quota API (`api`). |
+| 智谱 z.ai | API token (Keychain/env) → quota API (`api`). |
 | MiniMax | Manual cookie header (Keychain/env) → browser cookies (+ local storage access token) → coding plan page (HTML) with remains API fallback (`web`). |
-| Kimi | API token (JWT from `kimi-auth` cookie) → usage API (`api`). |
+| 月之暗面 Kimi | API token (JWT from `kimi-auth` cookie) → usage API (`api`). |
 | Kilo | API token (`KILO_API_KEY`) → usage API (`api`); auto falls back to CLI session auth (`cli`). |
 | Copilot | API token (device flow/env) → copilot_internal API (`api`). |
-| Kimi K2 | API key (Keychain/env) → credit endpoint (`api`). |
+| 月之暗面 Kimi K2 | API key (Keychain/env) → credit endpoint (`api`). |
 | Kiro | CLI command via `kiro-cli chat --no-interactive "/usage"` (`cli`). |
 | Vertex AI | Google ADC OAuth (gcloud) → Cloud Monitoring quota usage (`oauth`). |
 | JetBrains AI | Local XML quota file (`local`). |
@@ -57,7 +57,7 @@ until the session is invalid, to avoid repeated Keychain prompts.
 - Status: Statuspage.io (Anthropic).
 - Details: `docs/claude.md`.
 
-## z.ai
+## 智谱 z.ai
 - API token from Keychain or `Z_AI_API_KEY` env var.
 - Quota endpoint: `https://api.z.ai/api/monitor/usage/quota/limit` (global) or `https://open.bigmodel.cn/api/monitor/usage/quota/limit` (BigModel CN); override with `Z_AI_API_HOST` or `Z_AI_QUOTA_URL`.
 - Status: none yet.
@@ -70,7 +70,7 @@ until the session is invalid, to avoid repeated Keychain prompts.
 - Status: none yet.
 - Details: `docs/minimax.md`.
 
-## Kimi
+## 月之暗面 Kimi
 - Auth token (JWT from `kimi-auth` cookie) via manual entry or `KIMI_AUTH_TOKEN` env var.
 - `POST https://www.kimi.com/apiv2/kimi.gateway.billing.v1.BillingService/GetUsages`.
 - Shows weekly quota and 5-hour rate limit (300 minutes).
@@ -85,7 +85,7 @@ until the session is invalid, to avoid repeated Keychain prompts.
 - Status: none yet.
 - Details: `docs/kilo.md`.
 
-## Kimi K2
+## 月之暗面 Kimi K2
 - API key via Settings (Keychain) or `KIMI_K2_API_KEY`/`KIMI_API_KEY` env var.
 - `GET https://kimi-k2.ai/api/user/credits`.
 - Shows credit usage based on consumed/remaining totals.
@@ -117,7 +117,7 @@ until the session is invalid, to avoid repeated Keychain prompts.
 - Status: none yet.
 - Details: `docs/opencode.md`.
 
-## Alibaba Coding Plan
+## 阿里云百炼 Coding Plan
 - Web mode uses console RPC host (`bailian-singapore-cs.alibabacloud.com` for intl) with form payload + `sec_token`.
 - Cookie sources: browser import (`auto`) or manual header (`cookieSource: manual`).
 - API key fallback from Settings (`providerConfig.alibaba.apiKey`) or `ALIBABA_CODING_PLAN_API_KEY` env var.

@@ -1098,16 +1098,15 @@ public enum AlibabaCodingPlanUsageError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .loginRequired:
-            "Alibaba Coding Plan console login is required. " +
-                "Sign in to Model Studio in a supported browser or paste a Cookie header."
+            "阿里云百炼 Coding Plan 需要登录控制台。请在支持的浏览器中登录 Model Studio，或手动粘贴 Cookie header。"
         case .invalidCredentials:
-            "Alibaba Coding Plan API credentials are invalid or expired."
+            "阿里云百炼 Coding Plan API 凭据无效或已过期。"
         case let .networkError(message):
-            "Alibaba Coding Plan network error: \(message)"
+            "阿里云百炼 Coding Plan 网络错误：\(message)"
         case let .apiError(message):
-            "Alibaba Coding Plan API error: \(message)"
+            "阿里云百炼 Coding Plan API 错误：\(message)"
         case let .parseFailed(message):
-            "解析 Alibaba Coding Plan 响应失败：\(message)"
+            "解析阿里云百炼 Coding Plan 响应失败：\(message)"
         }
     }
 }

@@ -85,13 +85,13 @@ public enum QwenUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "缺少 Qwen API key（DASHSCOPE_API_KEY）。"
+            "缺少千问 API key（DASHSCOPE_API_KEY）。"
         case let .networkError(message):
-            "Qwen 网络错误：\(message)"
+            "千问网络错误：\(message)"
         case let .apiError(code, message):
-            "Qwen API 错误（\(code)）：\(message)"
+            "千问 API 错误（\(code)）：\(message)"
         case let .parseFailed(message):
-            "解析 Qwen 响应失败：\(message)"
+            "解析千问响应失败：\(message)"
         }
     }
 }

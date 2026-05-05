@@ -12,13 +12,13 @@ public enum MiMoSettingsError: LocalizedError, Equatable, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCookie:
-            "未找到 Xiaomi MiMo 浏览器会话。请先登录 platform.xiaomimimo.com。"
+            "未找到小米的 Mihomo 浏览器会话。请先登录 platform.xiaomimimo.com。"
         case .invalidCookie:
-            "Xiaomi MiMo 需要 api-platform_serviceToken 和 userId Cookie。"
+            "小米的 Mihomo 需要 api-platform_serviceToken 和 userId Cookie。"
         case .missingAPIKey:
-            "未找到 Xiaomi MiMo API key。请在 ~/.codexbar/config.json 设置 apiKey，或设置 MIMO_API_KEY。"
+            "未找到小米的 Mihomo API key。请在 ~/.codexbar/config.json 设置 apiKey，或设置 MIMO_API_KEY。"
         case let .invalidAPIKey(region):
-            "\(region) 的 Xiaomi MiMo API key 无效。请检查 ~/.codexbar/config.json 里的 apiKey 和 region。"
+            "\(region) 的小米的 Mihomo API key 无效。请检查 ~/.codexbar/config.json 里的 apiKey 和 region。"
         }
     }
 }
@@ -32,13 +32,13 @@ public enum MiMoUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .invalidCredentials:
-            "Xiaomi MiMo 浏览器会话已过期。请重新登录。"
+            "小米的 Mihomo 浏览器会话已过期。请重新登录。"
         case .loginRequired:
-            "需要登录 Xiaomi MiMo。"
+            "需要登录小米的 Mihomo。"
         case let .parseFailed(message):
-            "无法解析 Xiaomi MiMo 余额：\(message)"
+            "无法解析小米的 Mihomo 余额：\(message)"
         case let .networkError(message):
-            "Xiaomi MiMo 请求失败：\(message)"
+            "小米的 Mihomo 请求失败：\(message)"
         }
     }
 }

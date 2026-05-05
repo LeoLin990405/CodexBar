@@ -1,13 +1,13 @@
 ---
-summary: "z.ai provider data sources: API token in config/env and quota API response parsing."
+summary: "智谱 z.ai provider data sources: API token in config/env and quota API response parsing."
 read_when:
   - Debugging z.ai token storage or quota parsing
   - Updating z.ai API endpoints
 ---
 
-# z.ai provider
+# 智谱 z.ai provider
 
-z.ai is API-token based. No browser cookies.
+智谱 z.ai is API-token based. No browser cookies.
 
 ## Token sources (fallback order)
 1) Config token (`~/.codexbar/config.json` → `providers[].apiKey`).
@@ -19,7 +19,7 @@ z.ai is API-token based. No browser cookies.
 ## API endpoint
 - `GET https://api.z.ai/api/monitor/usage/quota/limit`
 - BigModel (China mainland) host: `https://open.bigmodel.cn`
-- Override host via Providers → z.ai → *API region* or `Z_AI_API_HOST=open.bigmodel.cn`.
+- Override host via Providers → 智谱 z.ai → *API region* or `Z_AI_API_HOST=open.bigmodel.cn`.
 - Override the full quota URL (e.g. coding plan endpoint) via `Z_AI_QUOTA_URL=https://open.bigmodel.cn/api/coding/paas/v4`.
 - Headers:
   - `authorization: Bearer <token>`

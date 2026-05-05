@@ -880,14 +880,14 @@ extension UsageStore {
                 .gemini: "Gemini debug log not yet implemented",
                 .antigravity: "Antigravity debug log not yet implemented",
                 .opencode: "OpenCode debug log not yet implemented",
-                .alibaba: "Alibaba Coding Plan debug log not yet implemented",
+                .alibaba: "阿里云百炼 Coding Plan debug log not yet implemented",
                 .factory: "Droid debug log not yet implemented",
                 .copilot: "Copilot debug log not yet implemented",
                 .vertexai: "Vertex AI debug log not yet implemented",
                 .kilo: "Kilo debug log not yet implemented",
                 .kiro: "Kiro debug log not yet implemented",
-                .kimi: "Kimi debug log not yet implemented",
-                .kimik2: "Kimi K2 debug log not yet implemented",
+                .kimi: "月之暗面 Kimi debug log not yet implemented",
+                .kimik2: "月之暗面 Kimi K2 debug log not yet implemented",
                 .jetbrains: "JetBrains AI debug log not yet implemented",
             ]
             let buildText = {

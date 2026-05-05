@@ -9,14 +9,14 @@ public enum KimiProviderDescriptor {
             id: .kimi,
             metadata: ProviderMetadata(
                 id: .kimi,
-                displayName: "Kimi",
+                displayName: "月之暗面 Kimi",
                 sessionLabel: "每周",
                 weeklyLabel: "速率限制",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "显示 Kimi 用量",
+                toggleTitle: "显示月之暗面 Kimi 用量",
                 cliName: "kimi",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum KimiProviderDescriptor {
                 color: ProviderColor(red: 254 / 255, green: 96 / 255, blue: 60 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Kimi 暂不支持费用摘要。" }),
+                noDataMessage: { "月之暗面 Kimi 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),

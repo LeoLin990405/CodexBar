@@ -1,12 +1,12 @@
 ---
-summary: "Kimi provider notes: cookie auth, quotas, and rate-limit parsing."
+summary: "月之暗面 Kimi provider notes: cookie auth, quotas, and rate-limit parsing."
 read_when:
-  - Adding or modifying the Kimi provider
+  - Adding or modifying the 月之暗面 Kimi provider
   - Debugging Kimi cookie import or usage parsing
   - Adjusting Kimi menu labels or settings
 ---
 
-# Kimi Provider
+# 月之暗面 Kimi Provider
 
 Tracks usage for [Kimi For Coding](https://www.kimi.com/code) in CodexBar.
 
@@ -25,9 +25,9 @@ Choose one of two authentication methods:
 
 **No setup needed!** If you're already logged in to Kimi in Arc, Chrome, Safari, Edge, Brave, or Chromium:
 
-1. Open CodexBar settings → Providers → Kimi
+1. Open CodexBar settings → Providers → 月之暗面 Kimi
 2. Set "Cookie source" to "Automatic"
-3. Enable the Kimi provider toggle
+3. Enable the 月之暗面 Kimi provider toggle
 4. CodexBar will automatically find your session
 
 **Note**: Requires Full Disk Access to read browser cookies (System Settings → Privacy & Security → Full Disk Access → CodexBar).
@@ -36,7 +36,7 @@ Choose one of two authentication methods:
 
 For advanced users or when automatic import fails:
 
-1. Open CodexBar settings → Providers → Kimi
+1. Open CodexBar settings → Providers → 月之暗面 Kimi
 2. Set "Cookie source" to "Manual"
 3. Visit `https://www.kimi.com/code/console` in your browser
 4. Open Developer Tools (F12 or Cmd+Option+I)
