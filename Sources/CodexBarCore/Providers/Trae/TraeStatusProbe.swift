@@ -57,10 +57,13 @@ public enum TraeStatusProbeError: LocalizedError, Sendable {
 public struct TraeStatusProbe: Sendable {
     private static let log = CodexBarLog.logger(LogCategories.traeUsage)
 
+    static func isInstalled(appPath: String = "/Applications/Trae.app") -> Bool {
+        FileManager.default.fileExists(atPath: appPath)
+    }
+
     public static func probe() async throws -> TraeStatusSnapshot {
         let appPath = "/Applications/Trae.app"
-        let fm = FileManager.default
-        guard fm.fileExists(atPath: appPath) else {
+        guard self.isInstalled(appPath: appPath) else {
             throw TraeStatusProbeError.notInstalled
         }
 

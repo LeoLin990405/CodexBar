@@ -131,7 +131,24 @@ struct ProviderFetchBackgroundPolicyTests {
         #expect(traeStrategies[2].requiresBrowserSession == false)
 
         let traeLocal = try #require(traeStrategies[2] as? TraeLocalFetchStrategy)
-        #expect(await traeLocal.isAvailable(Self.makeContext(sourceMode: .auto)))
+        let localAvailable = await traeLocal.isAvailable(Self.makeContext(sourceMode: .auto))
+        #expect(localAvailable == TraeStatusProbe.isInstalled())
+    }
+
+    @Test
+    func `trae web is available for user initiated auto refresh`() async throws {
+        let strategies = await ProviderDescriptorRegistry
+            .descriptor(for: .trae)
+            .fetchPlan
+            .pipeline
+            .resolveStrategies(Self.makeContext(sourceMode: .auto))
+        let traeWeb = try #require(strategies[1] as? TraeWebFetchStrategy)
+
+        let available = await ProviderInteractionContext.$current.withValue(.userInitiated) {
+            await traeWeb.isAvailable(Self.makeContext(sourceMode: .auto))
+        }
+
+        #expect(available)
     }
 
     @Test
