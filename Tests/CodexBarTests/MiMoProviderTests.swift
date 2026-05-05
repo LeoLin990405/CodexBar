@@ -248,7 +248,20 @@ struct MiMoProviderTests {
         #expect(sgpURL.absoluteString == "https://token-plan-sgp.xiaomimimo.com/anthropic")
         #expect(cnURL.absoluteString == "https://token-plan-cn.xiaomimimo.com/anthropic")
         #expect(amsURL.absoluteString == "https://token-plan-ams.xiaomimimo.com/anthropic")
-        #expect(fallbackURLs.map(\.label) == ["sgp", "cn", "ams", "global"])
+        #expect(fallbackURLs.map(\.label) == [
+            "sgp anthropic x-api-key",
+            "sgp anthropic bearer",
+            "sgp openai",
+            "cn anthropic x-api-key",
+            "cn anthropic bearer",
+            "cn openai",
+            "ams anthropic x-api-key",
+            "ams anthropic bearer",
+            "ams openai",
+            "global anthropic bearer",
+            "global anthropic x-api-key",
+            "global openai",
+        ])
     }
 
     @Test
@@ -334,6 +347,8 @@ struct MiMoProviderTests {
         ]))
 
         #expect(requestedHosts == [
+            "token-plan-sgp.xiaomimimo.com",
+            "token-plan-sgp.xiaomimimo.com",
             "token-plan-sgp.xiaomimimo.com",
             "token-plan-cn.xiaomimimo.com",
         ])
