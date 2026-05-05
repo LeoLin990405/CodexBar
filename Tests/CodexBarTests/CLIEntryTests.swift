@@ -253,4 +253,14 @@ struct CLIEntryTests {
         #expect(!CodexBarCLI.sourceModeRequiresWebSupport(.auto, provider: .kilo))
         #expect(!CodexBarCLI.sourceModeRequiresWebSupport(.api, provider: .kilo))
     }
+
+    @Test
+    func `explicit web source is treated as user initiated`() {
+        #expect(CodexBarCLI.interactionContext(for: .web) == .userInitiated)
+        #expect(CodexBarCLI.interactionContext(for: nil) == .background)
+        #expect(CodexBarCLI.interactionContext(for: .auto) == .background)
+        #expect(CodexBarCLI.interactionContext(for: .cli) == .background)
+        #expect(CodexBarCLI.interactionContext(for: .api) == .background)
+        #expect(CodexBarCLI.interactionContext(for: .oauth) == .background)
+    }
 }
