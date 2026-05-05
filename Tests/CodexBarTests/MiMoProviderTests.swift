@@ -239,7 +239,18 @@ struct MiMoProviderTests {
     }
 
     @Test
-    func `mimo api strategy validates key through chat endpoint`() async throws {
+    func `mimo token plan regions use anthropic base url`() {
+        let sgpURL = MiMoSettingsReader.apiBaseURL(environment: ["MIMO_REGION": "sgp"])
+        let cnURL = MiMoSettingsReader.apiBaseURL(environment: ["MIMO_REGION": "cn"])
+        let amsURL = MiMoSettingsReader.apiBaseURL(environment: ["MIMO_REGION": "ams"])
+
+        #expect(sgpURL.absoluteString == "https://token-plan-sgp.xiaomimimo.com/anthropic")
+        #expect(cnURL.absoluteString == "https://token-plan-cn.xiaomimimo.com/anthropic")
+        #expect(amsURL.absoluteString == "https://token-plan-ams.xiaomimimo.com/anthropic")
+    }
+
+    @Test
+    func `mimo token plan api strategy validates key through anthropic messages endpoint`() async throws {
         let registered = URLProtocol.registerClass(MiMoStubURLProtocol.self)
         defer {
             if registered {
@@ -249,10 +260,12 @@ struct MiMoProviderTests {
         }
 
         var requestedPath: String?
-        var requestedAuthorization: String?
+        var requestedAPIKey: String?
+        var requestedAnthropicVersion: String?
         MiMoStubURLProtocol.handler = { request in
             requestedPath = request.url?.path
-            requestedAuthorization = request.value(forHTTPHeaderField: "Authorization")
+            requestedAPIKey = request.value(forHTTPHeaderField: "x-api-key")
+            requestedAnthropicVersion = request.value(forHTTPHeaderField: "anthropic-version")
             let response = HTTPURLResponse(
                 url: request.url!,
                 statusCode: 200,
@@ -260,10 +273,11 @@ struct MiMoProviderTests {
                 headerFields: ["Content-Type": "application/json"])!
             let body = """
             {
-              "id": "chatcmpl-test",
+              "id": "msg-test",
               "model": "mimo-v2.5",
               "usage": {
-                "total_tokens": 3
+                "input_tokens": 2,
+                "output_tokens": 1
               }
             }
             """
@@ -273,11 +287,12 @@ struct MiMoProviderTests {
         let strategy = MiMoAPIFetchStrategy()
         let result = try await strategy.fetch(self.makeContext(environment: [
             "MIMO_API_KEY": "mimo-token",
-            "MIMO_API_BASE_URL": "https://mimo.test/v1",
+            "MIMO_API_BASE_URL": "https://mimo.test/anthropic",
         ]))
 
-        #expect(requestedPath == "/v1/chat/completions")
-        #expect(requestedAuthorization == "Bearer mimo-token")
+        #expect(requestedPath == "/anthropic/v1/messages")
+        #expect(requestedAPIKey == "mimo-token")
+        #expect(requestedAnthropicVersion == "2023-06-01")
         #expect(result.strategyID == "mimo.api")
         #expect(result.usage.primary?.usedPercent == 0)
         #expect(result.usage.primary?.resetDescription == "Validation used 3 tokens")
