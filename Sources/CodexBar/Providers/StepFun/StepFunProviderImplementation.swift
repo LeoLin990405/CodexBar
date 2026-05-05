@@ -24,14 +24,14 @@ struct StepFunProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "stepfun-api-token",
                 title: "API key",
-                subtitle: "保存在 ~/.codexbar/config.json。可在 StepFun 平台获取 API key。",
+                subtitle: "保存在 ~/.codexbar/config.json。可在阶跃星辰平台获取 API key。",
                 kind: .secure,
                 placeholder: "sf-...",
                 binding: context.stringBinding(\.stepfunAPIToken),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "stepfun-open-dashboard",
-                        title: "打开 StepFun 平台",
+                        title: "打开阶跃星辰平台",
                         style: .link,
                         isVisible: nil,
                         perform: {

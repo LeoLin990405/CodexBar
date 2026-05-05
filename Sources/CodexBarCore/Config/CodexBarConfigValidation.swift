@@ -152,7 +152,7 @@ public enum CodexBarConfigValidator {
                         provider: provider,
                         field: "region",
                         code: "invalid_region",
-                        message: "\(region) 不是有效的 Alibaba Coding Plan 区域。"))
+                        message: "\(region) 不是有效的阿里云百炼 Coding Plan 区域。"))
                 }
             default:
                 issues.append(CodexBarConfigIssue(

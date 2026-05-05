@@ -1,6 +1,6 @@
 # CodexBar 中文汉化版
 
-这是 [steipete/CodexBar](https://github.com/steipete/CodexBar) 的中文汉化 fork，由 Leo 维护，用来在 macOS 菜单栏里实时查看 Codex、Claude、Kimi、Qwen、Doubao、Trae、Xiaomi MiMo、z.ai、Cursor、Gemini、Copilot、OpenRouter 等 AI 工具的额度、余额、重置时间和服务状态。
+这是 [steipete/CodexBar](https://github.com/steipete/CodexBar) 的中文汉化 fork，由 Leo 维护，用来在 macOS 菜单栏里实时查看 Codex、Claude、月之暗面 Kimi、千问、豆包、Trae、小米的 Mihomo、智谱 z.ai、Cursor、Gemini、Copilot、OpenRouter 等 AI 工具的额度、余额、重置时间和服务状态。
 
 这个 fork 的目标很明确：让中文用户打开应用后能直接看懂、直接配置、直接排查，不再在英文设置项、英文错误提示和 provider 名称之间来回猜。
 
@@ -9,7 +9,7 @@
 ## 这个 fork 是什么
 
 - 中文汉化版 CodexBar：菜单栏、设置页、Overview、Provider 配置、错误提示、CLI 输出、测试快照里的用户可见文案都已中文化。
-- 面向中文和亚洲常用 AI 服务：额外关注 Kimi、Qwen、Doubao、Trae、Xiaomi MiMo、z.ai、MiniMax、StepFun、Alibaba Coding Plan 等 provider。
+- 面向中文和亚洲常用 AI 服务：额外关注月之暗面 Kimi、千问、豆包、Trae、小米的 Mihomo、智谱 z.ai、MiniMax、阶跃星辰、阿里云百炼 Coding Plan 等 provider。
 - 保留原版隐私模型：默认本机解析；浏览器 Cookie、API key、OAuth 等数据源都需要用户主动配置。
 - 仍然是轻量菜单栏应用：没有 Dock 图标，主要通过菜单栏图标、合并图标模式和 Overview 查看多个 provider。
 
@@ -20,21 +20,21 @@
 - 应用菜单、设置页、Provider 列表、按钮、状态、错误提示改为中文。
 - Overview、多 provider 切换、余额/额度说明、刷新状态、登录提示都使用中文表达。
 - CLI 输出中的状态、账号、错误、用量字段也改成中文。
-- 保留必要技术词和品牌名，例如 `API key`、`Cookie`、`Token`、Codex、Claude、Kimi、Qwen。
+- 保留必要技术词和品牌名，例如 `API key`、`Cookie`、`Token`、Codex、Claude、Kimi、z.ai。
 
 ### 2. Provider 覆盖更偏中文用户
 
 在原版 Codex、Claude、Cursor、Gemini、Copilot、z.ai、Kiro、Vertex AI、Augment、Amp、JetBrains AI、OpenRouter、Perplexity、Abacus AI 等基础上，这个 fork 额外补充或强化了这些方向：
 
-- Qwen/千问：面向阿里云百炼/千问相关额度入口。
-- Alibaba Coding Plan：阿里 Coding Plan，和 Qwen 不是同一个 provider，配置和数据源分开。
-- Doubao/豆包：火山方舟/豆包相关订阅或额度入口。
+- 千问：面向阿里云百炼/千问相关额度入口。
+- 阿里云百炼 Coding Plan：阿里 Coding Plan，和千问不是同一个 provider，配置和数据源分开。
+- 豆包：火山方舟/豆包相关订阅或额度入口。
 - Trae：Trae 账号用量入口。
-- Xiaomi MiMo：小米 MiMo 余额读取，支持浏览器 Cookie 或手动 Cookie。
+- 小米的 Mihomo：小米 Mihomo 余额读取，支持浏览器 Cookie 或手动 Cookie。
 - MiniMax：MiniMax Coding Plan 用量读取。
-- Kimi：Kimi 周额度和 5 小时窗口。
-- Kimi K2：Kimi K2 credit 用量。
-- StepFun、Zenmux、AigoCode：补充国内/亚洲开发者常见平台入口。
+- 月之暗面 Kimi：Kimi 周额度和 5 小时窗口。
+- 月之暗面 Kimi K2：Kimi K2 credit 用量。
+- 阶跃星辰、Zenmux、AigoCode：补充国内/亚洲开发者常见平台入口。
 - OpenCode、OpenCode Go、Kilo、Ollama、Warp：补充其他开发工具和额度来源。
 
 部分 provider 受账号地区、服务端接口和登录状态影响，可能需要 Cookie、API key 或对应 CLI 已登录。遇到失败时优先看设置页里的中文错误提示。
@@ -100,16 +100,16 @@ Linux 只支持 CLI。可以从本 fork 的 GitHub Actions/Release 下载 `Codex
 
 ### 中文和亚洲服务
 
-- [Kimi](docs/kimi.md)：从 `kimi-auth` Cookie/JWT 读取 weekly quota 和 5 小时 rate limit。
-- [Kimi K2](docs/kimi-k2.md)：API key 读取 credit 用量。
-- [z.ai](docs/zai.md)：API token 读取 quota 和 MCP window；智谱/BigModel CN 入口可按配置切换。
-- [Alibaba Coding Plan](docs/alibaba-coding-plan.md)：阿里 Coding Plan，支持浏览器 session 和 API key fallback。
-- Qwen/千问：阿里云百炼/千问相关入口；和 Alibaba Coding Plan 分开配置。
-- Doubao/豆包：火山方舟/豆包相关订阅和额度入口。
+- [月之暗面 Kimi](docs/kimi.md)：从 `kimi-auth` Cookie/JWT 读取 weekly quota 和 5 小时 rate limit。
+- [月之暗面 Kimi K2](docs/kimi-k2.md)：API key 读取 credit 用量。
+- [智谱 z.ai](docs/zai.md)：API token 读取 quota 和 MCP window；智谱/BigModel CN 入口可按配置切换。
+- [阿里云百炼 Coding Plan](docs/alibaba-coding-plan.md)：阿里 Coding Plan，支持浏览器 session 和 API key fallback。
+- 千问：阿里云百炼/千问相关入口；和阿里云百炼 Coding Plan 分开配置。
+- 豆包：火山方舟/豆包相关订阅和额度入口。
 - Trae：Trae 账号用量入口。
-- [Xiaomi MiMo](docs/mimo.md)：读取小米 MiMo 余额，支持自动浏览器 Cookie 或手动 Cookie。
+- [小米的 Mihomo](docs/mimo.md)：读取小米 Mihomo 余额，支持自动浏览器 Cookie 或手动 Cookie。
 - [MiniMax](docs/minimax.md)：MiniMax Coding Plan。
-- StepFun：阶跃星辰平台入口。
+- 阶跃星辰：阶跃星辰平台入口。
 - Zenmux：Zenmux 平台入口。
 - AigoCode：AigoCode 平台入口。
 

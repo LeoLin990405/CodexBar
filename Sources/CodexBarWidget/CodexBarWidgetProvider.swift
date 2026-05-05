@@ -77,9 +77,9 @@ enum ProviderChoice: String, AppEnum {
         case .warp: return nil // Warp not yet supported in widgets
         case .perplexity: return nil // Perplexity not yet supported in widgets
         case .abacus: return nil // Abacus AI not yet supported in widgets
-        case .qwen: return nil // Qwen not yet supported in widgets
-        case .doubao: return nil // Doubao not yet supported in widgets
-        case .stepfun: return nil // StepFun not yet supported in widgets
+        case .qwen: return nil // 千问 not yet supported in widgets
+        case .doubao: return nil // 豆包 not yet supported in widgets
+        case .stepfun: return nil // 阶跃星辰 not yet supported in widgets
         case .trae: return nil // Trae not yet supported in widgets
         case .mimo: return nil // MiMo not yet supported in widgets
         case .zenmux: return nil // Zenmux not yet supported in widgets

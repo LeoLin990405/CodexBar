@@ -27,14 +27,14 @@ public enum AlibabaCodingPlanProviderDescriptor {
             id: .alibaba,
             metadata: ProviderMetadata(
                 id: .alibaba,
-                displayName: "Alibaba",
+                displayName: "阿里云百炼",
                 sessionLabel: "5-hour",
                 weeklyLabel: "每周",
                 opusLabel: "每月",
                 supportsOpus: true,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "显示 Alibaba 用量",
+                toggleTitle: "显示阿里云百炼用量",
                 cliName: "alibaba-coding-plan",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -49,7 +49,7 @@ public enum AlibabaCodingPlanProviderDescriptor {
                 color: ProviderColor(red: 1.0, green: 106 / 255, blue: 0)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Alibaba Coding Plan 暂不支持费用摘要。" }),
+                noDataMessage: { "阿里云百炼 Coding Plan 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),

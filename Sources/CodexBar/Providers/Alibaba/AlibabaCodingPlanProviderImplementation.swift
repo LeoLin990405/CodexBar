@@ -55,7 +55,7 @@ struct AlibabaCodingPlanProviderImplementation: ProviderImplementation {
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
                 auto: "自动导入 Model Studio/百炼的浏览器 Cookie。",
                 manual: "粘贴来自 modelstudio.console.alibabacloud.com 的 Cookie header。",
-                off: "Alibaba Cookie 已禁用。")
+                off: "阿里云百炼 Cookie 已禁用。")
         }
 
         return [

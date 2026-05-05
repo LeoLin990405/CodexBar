@@ -174,7 +174,7 @@ enum StepFunCookieImportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noCookies:
-            "No StepFun session cookies found in browsers."
+            "浏览器中未找到阶跃星辰会话 Cookie。"
         }
     }
 }

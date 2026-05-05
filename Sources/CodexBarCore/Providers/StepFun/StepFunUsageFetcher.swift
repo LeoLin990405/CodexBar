@@ -137,13 +137,13 @@ public enum StepFunUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "缺少 StepFun API key（STEPFUN_API_KEY）。"
+            "缺少阶跃星辰 API key（STEPFUN_API_KEY）。"
         case let .networkError(message):
-            "StepFun 网络错误：\(message)"
+            "阶跃星辰网络错误：\(message)"
         case let .apiError(code, message):
-            "StepFun API 错误（\(code)）：\(message)"
+            "阶跃星辰 API 错误（\(code)）：\(message)"
         case let .parseFailed(message):
-            "解析 StepFun 响应失败：\(message)"
+            "解析阶跃星辰响应失败：\(message)"
         }
     }
 }
@@ -251,13 +251,13 @@ public struct StepFunUsageFetcher: Sendable {
             let summary = Self.errorSummary(data: data)
             Self.log.error("StepFun accounts API returned \(httpResponse.statusCode): \(summary)")
             if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-                throw StepFunUsageError.apiError(httpResponse.statusCode, "Invalid API key")
+                throw StepFunUsageError.apiError(httpResponse.statusCode, "API key 无效")
             }
             throw StepFunUsageError.apiError(httpResponse.statusCode, summary)
         }
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw StepFunUsageError.parseFailed("Invalid JSON response")
+            throw StepFunUsageError.parseFailed("JSON 响应无效")
         }
 
         let balance = (json["balance"] as? Double) ?? 0

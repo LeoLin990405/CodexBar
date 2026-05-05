@@ -467,7 +467,7 @@ struct CLISnapshotTests {
             snapshot: snap,
             credits: nil,
             context: RenderContext(
-                header: "z.ai 0.0.0 (zai)",
+                header: "智谱 z.ai 0.0.0 (zai)",
                 status: nil,
                 useColor: false,
                 resetStyle: .absolute))

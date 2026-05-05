@@ -141,13 +141,13 @@ public enum DoubaoUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "缺少 Doubao API key（ARK_API_KEY）。"
+            "缺少豆包 API key（ARK_API_KEY）。"
         case let .networkError(message):
-            "Doubao 网络错误：\(message)"
+            "豆包网络错误：\(message)"
         case let .apiError(code, message):
-            "Doubao API 错误（\(code)）：\(message)"
+            "豆包 API 错误（\(code)）：\(message)"
         case let .parseFailed(message):
-            "解析 Doubao 响应失败：\(message)"
+            "解析豆包响应失败：\(message)"
         }
     }
 }

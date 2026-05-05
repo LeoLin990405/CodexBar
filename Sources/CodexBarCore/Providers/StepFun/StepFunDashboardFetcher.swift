@@ -17,11 +17,11 @@ public struct StepFunDashboardFetcher {
         public var errorDescription: String? {
             switch self {
             case .loginRequired:
-                "StepFun web access requires login. Open Settings → StepFun → Login in Browser."
+                "阶跃星辰网页访问需要登录。请打开设置 → 阶跃星辰 → 在浏览器中登录。"
             case let .noUsageData(body):
-                "StepFun dashboard data not found. Body sample: \(body.prefix(200))"
+                "未找到阶跃星辰仪表盘数据。Body sample: \(body.prefix(200))"
             case .timeout:
-                "StepFun dashboard loading timed out."
+                "阶跃星辰仪表盘加载超时。"
             }
         }
     }

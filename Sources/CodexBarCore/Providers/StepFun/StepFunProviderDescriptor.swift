@@ -9,14 +9,14 @@ public enum StepFunProviderDescriptor {
             id: .stepfun,
             metadata: ProviderMetadata(
                 id: .stepfun,
-                displayName: "StepFun",
+                displayName: "阶跃星辰",
                 sessionLabel: "5h Rate",
                 weeklyLabel: "每周",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "显示 StepFun 用量",
+                toggleTitle: "显示阶跃星辰用量",
                 cliName: "stepfun",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum StepFunProviderDescriptor {
                 color: ProviderColor(red: 99 / 255, green: 102 / 255, blue: 241 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "StepFun 费用摘要暂不可用。" }),
+                noDataMessage: { "阶跃星辰费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api, .web],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { context in
