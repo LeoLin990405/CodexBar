@@ -301,8 +301,8 @@ struct KimiTokenResolverTests {
 struct KimiAPIErrorTests {
     @Test
     func `error descriptions are helpful`() {
-        #expect(KimiAPIError.missingToken.errorDescription?.contains("missing") == true)
-        #expect(KimiAPIError.invalidToken.errorDescription?.contains("invalid") == true)
+        #expect(KimiAPIError.missingToken.errorDescription?.contains("缺少") == true)
+        #expect(KimiAPIError.invalidToken.errorDescription?.contains("无效") == true)
         #expect(KimiAPIError.invalidRequest("Bad request").errorDescription?.contains("Bad request") == true)
         #expect(KimiAPIError.networkError("Timeout").errorDescription?.contains("Timeout") == true)
         #expect(KimiAPIError.apiError("HTTP 500").errorDescription?.contains("HTTP 500") == true)

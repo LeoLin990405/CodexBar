@@ -782,7 +782,7 @@ extension PlanUtilizationHistoryChartMenuView {
             return "\(dateLabel): -"
         }
         let usedText = used.formatted(.number.precision(.fractionLength(0...1)))
-        return "\(dateLabel): \(usedText)% used"
+        return "\(dateLabel): 已用 \(usedText)%"
     }
 
     private nonisolated static func detailDateLabel(for date: Date, windowMinutes: Int) -> String {

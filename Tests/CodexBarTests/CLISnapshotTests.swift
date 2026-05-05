@@ -33,13 +33,13 @@ struct CLISnapshotTests {
                 resetStyle: .absolute))
 
         #expect(output.contains("Codex 1.2.3 (codex-cli)"))
-        #expect(output.contains("Status: Partial outage – Degraded performance"))
+        #expect(output.contains("状态：部分中断 – Degraded performance"))
         #expect(output.contains("Codex"))
-        #expect(output.contains("Session: 88% left"))
-        #expect(output.contains("Weekly: 75% left"))
-        #expect(output.contains("Credits: 42"))
-        #expect(output.contains("Account: user@example.com"))
-        #expect(output.contains("Plan: Pro"))
+        #expect(output.contains("会话: 88% 剩余"))
+        #expect(output.contains("每周: 75% 剩余"))
+        #expect(output.contains("Credits: 剩余 42"))
+        #expect(output.contains("账号: user@example.com"))
+        #expect(output.contains("方案: Pro"))
     }
 
     @Test
@@ -66,8 +66,8 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .absolute))
 
-        #expect(output.contains("Plan: Pro Lite"))
-        #expect(!output.contains("Plan: Prolite"))
+        #expect(output.contains("方案: Pro Lite"))
+        #expect(!output.contains("方案: Prolite"))
     }
 
     @Test
@@ -88,8 +88,8 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .absolute))
 
-        #expect(output.contains("Session: 98% left"))
-        #expect(!output.contains("Weekly:"))
+        #expect(output.contains("会话: 98% 剩余"))
+        #expect(!output.contains("每周:"))
     }
 
     @Test
@@ -116,8 +116,8 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .absolute))
 
-        #expect(output.contains("\(meta.sessionLabel): 100% left"))
-        #expect(!output.contains("Resets Unlimited"))
+        #expect(output.contains("\(meta.sessionLabel): 100% 剩余"))
+        #expect(!output.contains("重置 Unlimited"))
         #expect(output.contains("Unlimited"))
     }
 
@@ -150,10 +150,10 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .absolute))
 
-        #expect(output.contains("\(meta.sessionLabel): 90% left"))
-        #expect(output.contains("Resets"))
+        #expect(output.contains("\(meta.sessionLabel): 90% 剩余"))
+        #expect(output.contains("重置"))
         #expect(output.contains("10/100 credits"))
-        #expect(!output.contains("Resets 10/100 credits"))
+        #expect(!output.contains("重置 10/100 credits"))
     }
 
     @Test
@@ -182,12 +182,12 @@ struct CLISnapshotTests {
                 resetStyle: .absolute,
                 notes: ["Using CLI fallback"]))
 
-        #expect(output.contains("Credits: 60% left"))
+        #expect(output.contains("Credits 余额: 60% 剩余"))
         #expect(output.contains("40/100 credits"))
-        #expect(!output.contains("Resets 40/100 credits"))
-        #expect(output.contains("Plan: Kilo Pass Pro"))
-        #expect(output.contains("Activity: Auto top-up: visa"))
-        #expect(output.contains("Note: Using CLI fallback"))
+        #expect(!output.contains("重置 40/100 credits"))
+        #expect(output.contains("方案: Kilo Pass Pro"))
+        #expect(output.contains("活动: Auto top-up: visa"))
+        #expect(output.contains("备注: Using CLI fallback"))
     }
 
     @Test
@@ -212,9 +212,9 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .absolute))
 
-        #expect(output.contains("Credits: 0% left"))
+        #expect(output.contains("Credits 余额: 0% 剩余"))
         #expect(output.contains("0/0 credits"))
-        #expect(!output.contains("Resets 0/0 credits"))
+        #expect(!output.contains("重置 0/0 credits"))
     }
 
     @Test
@@ -242,8 +242,8 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .absolute))
 
-        #expect(output.contains("Activity: Auto top-up: off"))
-        #expect(!output.contains("Plan: Auto top-up: off"))
+        #expect(output.contains("活动: Auto top-up: off"))
+        #expect(!output.contains("方案: Auto top-up: off"))
     }
 
     @Test
@@ -269,7 +269,7 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .countdown))
 
-        #expect(output.contains("Pace:"))
+        #expect(output.contains("节奏:"))
     }
 
     @Test
@@ -374,7 +374,7 @@ struct CLISnapshotTests {
                 resetStyle: .absolute))
 
         let lines = output.split(separator: "\n")
-        #expect(lines.last?.contains("Status: Critical issue – Major outage") == true)
+        #expect(lines.last?.contains("状态：严重问题 – Major outage") == true)
         #expect(output.contains("\u{001B}[31mStatus")) // red for critical
     }
 
@@ -418,8 +418,8 @@ struct CLISnapshotTests {
                 resetStyle: .absolute))
 
         #expect(output.contains("\u{001B}[1;95m== Codex 0.0.0 (codex-cli) ==\u{001B}[0m"))
-        #expect(output.contains("Session: \u{001B}[31m5% left\u{001B}[0m")) // red <10% left
-        #expect(output.contains("Weekly: \u{001B}[33m20% left\u{001B}[0m")) // yellow <25% left
+        #expect(output.contains("会话: \u{001B}[31m5% 剩余\u{001B}[0m")) // red <10% left
+        #expect(output.contains("每周: \u{001B}[33m20% 剩余\u{001B}[0m")) // yellow <25% left
     }
 
     @Test
@@ -451,7 +451,7 @@ struct CLISnapshotTests {
                 resetStyle: .absolute))
 
         #expect(!output.contains("\u{001B}["))
-        #expect(output.contains("Status: Operational – Operational"))
+        #expect(output.contains("状态：运行正常 – Operational"))
     }
 
     @Test
@@ -473,7 +473,7 @@ struct CLISnapshotTests {
                 resetStyle: .absolute))
 
         #expect(output.contains("5-hour:"))
-        #expect(output.contains("Tokens:"))
+        #expect(output.contains("Token:"))
         #expect(output.contains("MCP:"))
     }
 }

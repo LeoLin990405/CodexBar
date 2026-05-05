@@ -26,8 +26,8 @@ struct ProvidersPaneCoverageTests {
             MenuBarMetricPreference.primary.rawValue,
         ])
         #expect(picker?.options.map(\.title) == [
-            "Automatic",
-            "Primary (API key limit)",
+            "自动",
+            "主要额度（API key 限制）",
         ])
     }
 
@@ -59,7 +59,7 @@ struct ProvidersPaneCoverageTests {
         let ids = picker?.options.map(\.id) ?? []
         #expect(ids.contains(MenuBarMetricPreference.tertiary.rawValue))
         let tertiaryOption = picker?.options.first { $0.id == MenuBarMetricPreference.tertiary.rawValue }
-        #expect(tertiaryOption?.title == "Tertiary (API)")
+        #expect(tertiaryOption?.title == "第三额度（API）")
     }
 
     @Test
@@ -94,7 +94,7 @@ struct ProvidersPaneCoverageTests {
         let ids = picker?.options.map(\.id) ?? []
         #expect(ids.contains(MenuBarMetricPreference.tertiary.rawValue))
         let tertiaryOption = picker?.options.first { $0.id == MenuBarMetricPreference.tertiary.rawValue }
-        #expect(tertiaryOption?.title == "Tertiary (5-hour)")
+        #expect(tertiaryOption?.title == "第三额度（5-hour）")
     }
 
     @Test
@@ -112,7 +112,7 @@ struct ProvidersPaneCoverageTests {
     func `provider detail plan row formats open router as balance`() {
         let row = ProviderDetailView<EmptyView>.planRow(provider: .openrouter, planText: "Balance: $4.61")
 
-        #expect(row?.label == "Balance")
+        #expect(row?.label == "余额")
         #expect(row?.value == "$4.61")
     }
 
@@ -120,7 +120,7 @@ struct ProvidersPaneCoverageTests {
     func `provider detail plan row keeps plan label for non open router`() {
         let row = ProviderDetailView<EmptyView>.planRow(provider: .codex, planText: "Pro")
 
-        #expect(row?.label == "Plan")
+        #expect(row?.label == "方案")
         #expect(row?.value == "Pro")
     }
 
@@ -135,7 +135,7 @@ struct ProvidersPaneCoverageTests {
         let pane = ProvidersPane(settings: settings, store: store)
         let picker = pane._test_settingsPickers(for: .opencode).first { $0.id == "opencode-cookie-source" }
 
-        #expect(picker?.dynamicSubtitle?() == "Paste a Cookie header captured from the billing page.")
+        #expect(picker?.dynamicSubtitle?() == "粘贴从账单页面捕获的 Cookie header。")
         #expect(picker?.trailingText?() == nil)
     }
 
@@ -150,7 +150,7 @@ struct ProvidersPaneCoverageTests {
         let pane = ProvidersPane(settings: settings, store: store)
         let picker = pane._test_settingsPickers(for: .opencodego).first { $0.id == "opencodego-cookie-source" }
 
-        #expect(picker?.dynamicSubtitle?() == "Paste a Cookie header captured from the billing page.")
+        #expect(picker?.dynamicSubtitle?() == "粘贴从账单页面捕获的 Cookie header。")
         #expect(picker?.trailingText?() == nil)
     }
 

@@ -12,8 +12,8 @@ struct WidgetSnapshotTests {
             secondary: RateWindow(usedPercent: 20, windowMinutes: nil, resetsAt: nil, resetDescription: nil),
             tertiary: nil,
             usageRows: [
-                WidgetSnapshot.WidgetUsageRowSnapshot(id: "session", title: "Session", percentLeft: 90),
-                WidgetSnapshot.WidgetUsageRowSnapshot(id: "weekly", title: "Weekly", percentLeft: 80),
+                WidgetSnapshot.WidgetUsageRowSnapshot(id: "session", title: "会话", percentLeft: 90),
+                WidgetSnapshot.WidgetUsageRowSnapshot(id: "weekly", title: "每周", percentLeft: 80),
             ],
             creditsRemaining: 123.4,
             codeReviewRemainingPercent: 80,

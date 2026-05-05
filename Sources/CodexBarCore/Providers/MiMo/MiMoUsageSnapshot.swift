@@ -65,7 +65,7 @@ extension MiMoUsageSnapshot {
             providerID: .mimo,
             accountEmail: nil,
             accountOrganization: nil,
-            loginMethod: planLabel ?? "Balance: \(balanceText)")
+            loginMethod: planLabel ?? "余额：\(balanceText)")
 
         return UsageSnapshot(
             primary: primary,

@@ -99,10 +99,10 @@ extension TraeUsageSnapshot {
         } ?? pack.entitlementBaseInfo?.endTime.flatMap {
             $0 > 0 ? Date(timeIntervalSince1970: $0) : nil
         }
-        let label = pack.displayDesc ?? "Plan"
+        let label = pack.displayDesc ?? "方案"
         let description = limit > 0
             ? String(format: "%@: $%.2f / $%.2f", label, used, limit)
-            : String(format: "%@: $%.2f used", label, used)
+            : String(format: "%@: 已用 $%.2f", label, used)
         return RateWindow(
             usedPercent: percent,
             windowMinutes: nil,

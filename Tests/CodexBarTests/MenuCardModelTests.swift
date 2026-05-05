@@ -75,7 +75,7 @@ struct MenuCardModelTests {
         #expect(model.metrics.count == 2)
         #expect(model.metrics.first?.percent == 78)
         #expect(model.planText == "Plus")
-        #expect(model.subtitleText.hasPrefix("Updated"))
+        #expect(model.subtitleText.hasPrefix("刚刚更新"))
         #expect(model.progressColor != Color.clear)
         #expect(model.metrics[1].resetText?.isEmpty == false)
     }
@@ -120,7 +120,7 @@ struct MenuCardModelTests {
             now: now))
 
         #expect(model.metrics.count == 1)
-        #expect(model.metrics.first?.title == "Session")
+        #expect(model.metrics.first?.title == "会话")
         #expect(model.planText == "Max")
     }
 
@@ -301,8 +301,8 @@ struct MenuCardModelTests {
         let popupTitle = UsageMenuCardView.popupMetricTitle(
             provider: .openrouter,
             metric: metric)
-        #expect(popupTitle == "API key limit")
-        #expect(metric.resetText == "$19.50/$20.00 left")
+        #expect(popupTitle == "API key 限额")
+        #expect(metric.resetText == "剩余 $19.50/$20.00")
         #expect(metric.detailRightText == nil)
     }
 
@@ -344,7 +344,7 @@ struct MenuCardModelTests {
         #expect(model.metrics.isEmpty)
         #expect(model.creditsText == nil)
         #expect(model.placeholder == nil)
-        #expect(model.usageNotes == ["No limit set for the API key"])
+        #expect(model.usageNotes == ["未设置 API key 限额"])
     }
 
     @Test
@@ -383,7 +383,7 @@ struct MenuCardModelTests {
             now: now))
 
         #expect(model.metrics.isEmpty)
-        #expect(model.usageNotes == ["API key limit unavailable right now"])
+        #expect(model.usageNotes == ["API key 限额暂不可用"])
     }
 
     @Test
@@ -422,7 +422,7 @@ struct MenuCardModelTests {
             hidePersonalInfo: true,
             now: now))
 
-        #expect(model.email == "Hidden")
+        #expect(model.email == "已隐藏")
         #expect(model.subtitleText.contains("codex@example.com") == false)
         #expect(model.creditsHintCopyText?.isEmpty == true)
         #expect(model.creditsHintText?.contains("codex@example.com") == false)

@@ -375,7 +375,7 @@ struct UsageStoreCoverageTests {
     func `status indicators and failure gate`() {
         #expect(!ProviderStatusIndicator.none.hasIssue)
         #expect(ProviderStatusIndicator.maintenance.hasIssue)
-        #expect(ProviderStatusIndicator.unknown.label == "Status unknown")
+        #expect(ProviderStatusIndicator.unknown.label == "状态未知")
 
         var gate = ConsecutiveFailureGate()
         let first = gate.shouldSurfaceError(onFailureWithPriorData: true)

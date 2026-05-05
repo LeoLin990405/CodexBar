@@ -16,8 +16,8 @@ struct UsagePaceTextTests {
 
         let detail = UsagePaceText.weeklyDetail(pace: pace, now: now)
 
-        #expect(detail.leftLabel == "7% in deficit")
-        #expect(detail.rightLabel == "Runs out in 3d")
+        #expect(detail.leftLabel == "超额 7%")
+        #expect(detail.rightLabel == "3 天后 用尽")
     }
 
     @Test
@@ -32,8 +32,8 @@ struct UsagePaceTextTests {
 
         let detail = UsagePaceText.weeklyDetail(pace: pace, now: now)
 
-        #expect(detail.leftLabel == "33% in reserve")
-        #expect(detail.rightLabel == "Lasts until reset")
+        #expect(detail.leftLabel == "余量 33%")
+        #expect(detail.rightLabel == "可撑到重置")
     }
 
     @Test
@@ -48,7 +48,7 @@ struct UsagePaceTextTests {
 
         let summary = UsagePaceText.weeklySummary(pace: pace, now: now)
 
-        #expect(summary == "Pace: 7% in deficit · Runs out in 3d")
+        #expect(summary == "节奏：超额 7% · 3 天后 用尽")
     }
 
     @Test
@@ -65,6 +65,6 @@ struct UsagePaceTextTests {
 
         let detail = UsagePaceText.weeklyDetail(pace: pace, now: now)
 
-        #expect(detail.rightLabel == "Runs out in 2d · ≈ 70% run-out risk")
+        #expect(detail.rightLabel == "2 天后 用尽 · 约 70% 用尽风险")
     }
 }

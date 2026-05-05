@@ -74,10 +74,10 @@ struct MenuCardModelCodexProjectionTests {
             hidePersonalInfo: false,
             now: now))
 
-        #expect(model.metrics.first?.title == "Session")
+        #expect(model.metrics.first?.title == "会话")
         #expect(model.metrics.first?.percent == 22)
-        #expect(model.metrics.first?.percentLabel.contains("used") == true)
-        #expect(model.metrics.contains { $0.title == "Code review" && $0.percent == 27 })
+        #expect(model.metrics.first?.percentLabel.contains("已用") == true)
+        #expect(model.metrics.contains { $0.title == "代码审查" && $0.percent == 27 })
     }
 
     @Test
@@ -141,9 +141,9 @@ struct MenuCardModelCodexProjectionTests {
             hidePersonalInfo: false,
             now: now))
 
-        #expect(model.metrics.contains { $0.title == "Code review" && $0.percent == 73 })
+        #expect(model.metrics.contains { $0.title == "代码审查" && $0.percent == 73 })
         let codeReviewMetric = model.metrics.first { $0.id == "code-review" }
-        #expect(codeReviewMetric?.resetText?.contains("Resets") == true)
+        #expect(codeReviewMetric?.resetText?.contains("重置") == true)
     }
 
     @Test
@@ -201,7 +201,7 @@ struct MenuCardModelCodexProjectionTests {
 
         #expect(model.metrics.count == 1)
         #expect(model.metrics.first?.id == "secondary")
-        #expect(model.metrics.first?.title == "Weekly")
+        #expect(model.metrics.first?.title == "每周")
         #expect(model.metrics.first?.percent == 75)
     }
 

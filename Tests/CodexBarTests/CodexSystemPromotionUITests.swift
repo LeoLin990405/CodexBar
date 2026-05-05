@@ -67,8 +67,8 @@ struct CodexSystemPromotionUITests {
             error = value
         }
 
-        #expect(error.title == "Could not switch system account")
-        #expect(error.message == "Finish the current managed account change before switching the system account.")
+        #expect(error.title == "无法切换系统账号")
+        #expect(error.message == "请先完成当前托管账号变更，再切换系统账号。")
         #expect(coordinator.userFacingError == error)
         #expect(coordinator.isInteractionBlocked())
         #expect(container.settings.codexActiveSource == .managedAccount(id: target.id))

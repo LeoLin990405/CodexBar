@@ -307,7 +307,7 @@ private struct SwitcherSmallUsageView: View {
             }
             if let codeReview = entry.codeReviewRemainingPercent {
                 UsageBarRow(
-                    title: "Code review",
+                    title: "代码审查",
                     percentLeft: codeReview,
                     color: WidgetColors.color(for: self.entry.provider))
             }
@@ -351,7 +351,7 @@ private struct SwitcherLargeUsageView: View {
             }
             if let codeReview = entry.codeReviewRemainingPercent {
                 UsageBarRow(
-                    title: "Code review",
+                    title: "代码审查",
                     percentLeft: codeReview,
                     color: WidgetColors.color(for: self.entry.provider))
             }
@@ -390,7 +390,7 @@ private struct SmallUsageView: View {
             }
             if let codeReview = entry.codeReviewRemainingPercent {
                 UsageBarRow(
-                    title: "Code review",
+                    title: "代码审查",
                     percentLeft: codeReview,
                     color: WidgetColors.color(for: self.entry.provider))
             }
@@ -438,7 +438,7 @@ private struct LargeUsageView: View {
             }
             if let codeReview = entry.codeReviewRemainingPercent {
                 UsageBarRow(
-                    title: "Code review",
+                    title: "代码审查",
                     percentLeft: codeReview,
                     color: WidgetColors.color(for: self.entry.provider))
             }

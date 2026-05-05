@@ -18,12 +18,12 @@ enum ProviderStatusIndicator: String {
 
     var label: String {
         switch self {
-        case .none: "Operational"
-        case .minor: "Partial outage"
-        case .major: "Major outage"
-        case .critical: "Critical issue"
-        case .maintenance: "Maintenance"
-        case .unknown: "Status unknown"
+        case .none: "运行正常"
+        case .minor: "部分中断"
+        case .major: "重大中断"
+        case .critical: "严重问题"
+        case .maintenance: "维护中"
+        case .unknown: "状态未知"
         }
     }
 }

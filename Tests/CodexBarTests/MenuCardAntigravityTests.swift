@@ -47,11 +47,11 @@ struct MenuCardAntigravityTests {
         #expect(model.metrics.count == 3)
         #expect(model.metrics.map(\.title) == ["Claude", "Gemini Pro", "Gemini Flash"])
         #expect(model.metrics[1].percent == 0)
-        #expect(model.metrics[1].percentLabel == "0% left")
+        #expect(model.metrics[1].percentLabel == "0% 剩余")
         #expect(model.metrics[1].statusText == nil)
         #expect(model.metrics[1].detailText == nil)
         #expect(model.metrics[2].percent == 0)
-        #expect(model.metrics[2].percentLabel == "0% left")
+        #expect(model.metrics[2].percentLabel == "0% 剩余")
         #expect(model.metrics[2].statusText == nil)
         #expect(model.metrics[2].detailText == nil)
     }
@@ -107,7 +107,7 @@ struct MenuCardAntigravityTests {
             now: now))
 
         #expect(model.metrics[1].percent == 0)
-        #expect(model.metrics[1].percentLabel == "0% left")
+        #expect(model.metrics[1].percentLabel == "0% 剩余")
         #expect(model.metrics[1].resetText != nil)
     }
 
@@ -152,8 +152,8 @@ struct MenuCardAntigravityTests {
             now: now))
 
         #expect(model.metrics[1].percent == 100)
-        #expect(model.metrics[1].percentLabel == "100% used")
+        #expect(model.metrics[1].percentLabel == "100% 已用")
         #expect(model.metrics[2].percent == 100)
-        #expect(model.metrics[2].percentLabel == "100% used")
+        #expect(model.metrics[2].percentLabel == "100% 已用")
     }
 }

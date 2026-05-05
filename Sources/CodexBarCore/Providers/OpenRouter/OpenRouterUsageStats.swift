@@ -168,7 +168,7 @@ extension OpenRouterUsageSnapshot {
             providerID: .openrouter,
             accountEmail: nil,
             accountOrganization: nil,
-            loginMethod: "Balance: \(balanceStr)")
+            loginMethod: "余额：\(balanceStr)")
 
         return UsageSnapshot(
             primary: primary,

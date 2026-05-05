@@ -41,7 +41,7 @@ enum CLIRenderer {
             lines: &lines)
 
         if let status = context.status {
-            let statusLine = "Status: \(status.indicator.label)\(status.descriptionSuffix)"
+            let statusLine = "状态：\(status.indicator.label)\(status.descriptionSuffix)"
             lines.append(self.colorize(statusLine, indicator: status.indicator, useColor: context.useColor))
         }
 
@@ -81,7 +81,7 @@ enum CLIRenderer {
 
         guard let cost = snapshot.providerCost else { return }
         // Fallback to cost/quota display if no primary rate window.
-        let label = cost.currencyCode == "Quota" ? "Quota" : "Cost"
+        let label = cost.currencyCode == "Quota" ? "额度" : "费用"
         let value = "\(String(format: "%.1f", cost.used)) / \(String(format: "%.1f", cost.limit))"
         lines.append(self.labelValueLine(label, value: value, useColor: context.useColor))
     }
@@ -140,17 +140,17 @@ enum CLIRenderer {
         lines: inout [String])
     {
         if let email = snapshot.accountEmail(for: provider), !email.isEmpty {
-            lines.append(self.labelValueLine("Account", value: email, useColor: context.useColor))
+            lines.append(self.labelValueLine("账号", value: email, useColor: context.useColor))
         }
 
         if provider == .kilo {
             let kiloLogin = self.kiloLoginParts(snapshot: snapshot)
             if let pass = kiloLogin.pass {
                 let cleaned = UsageFormatter.cleanPlanName(pass)
-                lines.append(self.labelValueLine("Plan", value: cleaned, useColor: context.useColor))
+                lines.append(self.labelValueLine("方案", value: cleaned, useColor: context.useColor))
             }
             for detail in kiloLogin.details {
-                lines.append(self.labelValueLine("Activity", value: detail, useColor: context.useColor))
+                lines.append(self.labelValueLine("活动", value: detail, useColor: context.useColor))
             }
         } else if let plan = snapshot.loginMethod(for: provider), !plan.isEmpty {
             let displayPlan = if provider == .codex {
@@ -158,13 +158,13 @@ enum CLIRenderer {
             } else {
                 plan.capitalized
             }
-            lines.append(self.labelValueLine("Plan", value: displayPlan, useColor: context.useColor))
+            lines.append(self.labelValueLine("方案", value: displayPlan, useColor: context.useColor))
         }
 
         for note in context.notes {
             let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { continue }
-            lines.append(self.labelValueLine("Note", value: trimmed, useColor: context.useColor))
+            lines.append(self.labelValueLine("备注", value: trimmed, useColor: context.useColor))
         }
     }
 
@@ -308,11 +308,11 @@ enum CLIRenderer {
         let expected = Int(pace.expectedUsedPercent.rounded())
         var parts: [String] = []
         parts.append(Self.paceLeftLabel(for: pace))
-        parts.append("Expected \(expected)% used")
+        parts.append("预计已用 \(expected)%")
         if let rightLabel = Self.paceRightLabel(for: pace, now: now) {
             parts.append(rightLabel)
         }
-        let label = self.label("Pace", useColor: useColor)
+        let label = self.label("节奏", useColor: useColor)
         return "\(label): \(parts.joined(separator: " | "))"
     }
 
@@ -320,27 +320,26 @@ enum CLIRenderer {
         let deltaValue = Int(abs(pace.deltaPercent).rounded())
         switch pace.stage {
         case .onTrack:
-            return "On pace"
+            return "按节奏"
         case .slightlyAhead, .ahead, .farAhead:
-            return "\(deltaValue)% in deficit"
+            return "超额 \(deltaValue)%"
         case .slightlyBehind, .behind, .farBehind:
-            return "\(deltaValue)% in reserve"
+            return "余量 \(deltaValue)%"
         }
     }
 
     private static func paceRightLabel(for pace: UsagePace, now: Date) -> String? {
-        if pace.willLastToReset { return "Lasts until reset" }
+        if pace.willLastToReset { return "可撑到重置" }
         guard let etaSeconds = pace.etaSeconds else { return nil }
         let etaText = Self.paceDurationText(seconds: etaSeconds, now: now)
-        if etaText == "now" { return "Runs out now" }
-        return "Runs out in \(etaText)"
+        if etaText == "现在" { return "现在用尽" }
+        return "\(etaText) 用尽"
     }
 
     private static func paceDurationText(seconds: TimeInterval, now: Date) -> String {
         let date = now.addingTimeInterval(seconds)
         let countdown = UsageFormatter.resetCountdownDescription(from: date, now: now)
-        if countdown == "now" { return "now" }
-        if countdown.hasPrefix("in ") { return String(countdown.dropFirst(3)) }
+        if countdown == "现在" { return "现在" }
         return countdown
     }
 
