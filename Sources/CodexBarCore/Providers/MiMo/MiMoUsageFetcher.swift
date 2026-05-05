@@ -44,6 +44,11 @@ public enum MiMoUsageError: LocalizedError, Sendable {
 }
 
 public enum MiMoSettingsReader {
+    public enum APIAuthStyle: Sendable {
+        case bearer
+        case xAPIKey
+    }
+
     public static let apiURLKey = "MIMO_API_URL"
     public static let apiBaseURLKey = "MIMO_API_BASE_URL"
     public static let apiRegionKey = "MIMO_REGION"
@@ -71,17 +76,24 @@ public enum MiMoSettingsReader {
     }
 
     public static func apiBaseURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL {
-        self.apiBaseURLs(environment: environment).first?.url ?? URL(string: "https://api.xiaomimimo.com/v1")!
+        self.apiBaseURLs(environment: environment).first?.url ?? self.globalOpenAIBaseURL
     }
 
     public static func apiBaseURLs(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> [(label: String, url: URL)]
+        environment: [String: String] = ProcessInfo.processInfo.environment)
+        -> [(label: String, url: URL, authStyle: APIAuthStyle)]
     {
         if let override = environment[self.apiBaseURLKey],
            let url = URL(string: override.trimmingCharacters(in: .whitespacesAndNewlines)),
            let scheme = url.scheme, !scheme.isEmpty
         {
-            return [(label: "configured endpoint", url: url)]
+            if url.pathComponents.contains("anthropic") {
+                return [
+                    (label: "configured anthropic x-api-key", url: url, authStyle: .xAPIKey),
+                    (label: "configured anthropic bearer", url: url, authStyle: .bearer),
+                ]
+            }
+            return [(label: "configured openai", url: url, authStyle: .bearer)]
         }
 
         let region = self.cleaned(environment[self.apiRegionKey])?.lowercased()
@@ -91,23 +103,53 @@ public enum MiMoSettingsReader {
             self.tokenPlanRegions
         }
 
-        var endpoints = orderedRegions.map { region in
-            (
-                label: region,
-                url: self.tokenPlanAPIBaseURL(region: region))
+        var endpoints = orderedRegions.flatMap { region in
+            [
+                (
+                    label: "\(region) anthropic x-api-key",
+                    url: self.tokenPlanAnthropicBaseURL(region: region),
+                    authStyle: APIAuthStyle.xAPIKey),
+                (
+                    label: "\(region) anthropic bearer",
+                    url: self.tokenPlanAnthropicBaseURL(region: region),
+                    authStyle: APIAuthStyle.bearer),
+                (
+                    label: "\(region) openai",
+                    url: self.tokenPlanOpenAIBaseURL(region: region),
+                    authStyle: APIAuthStyle.bearer),
+            ]
         }
-        endpoints.append((
-            label: "global",
-            url: self.globalAPIBaseURL))
+        endpoints.append(contentsOf: [
+            (
+                label: "global anthropic bearer",
+                url: self.globalAnthropicBaseURL,
+                authStyle: .bearer),
+            (
+                label: "global anthropic x-api-key",
+                url: self.globalAnthropicBaseURL,
+                authStyle: .xAPIKey),
+            (
+                label: "global openai",
+                url: self.globalOpenAIBaseURL,
+                authStyle: .bearer),
+        ])
         return endpoints
     }
 
-    private static var globalAPIBaseURL: URL {
+    private static var globalAnthropicBaseURL: URL {
+        URL(string: "https://api.xiaomimimo.com/anthropic")!
+    }
+
+    private static var globalOpenAIBaseURL: URL {
         URL(string: "https://api.xiaomimimo.com/v1")!
     }
 
-    private static func tokenPlanAPIBaseURL(region: String) -> URL {
+    private static func tokenPlanAnthropicBaseURL(region: String) -> URL {
         URL(string: "https://token-plan-\(region).xiaomimimo.com/anthropic")!
+    }
+
+    private static func tokenPlanOpenAIBaseURL(region: String) -> URL {
+        URL(string: "https://token-plan-\(region).xiaomimimo.com/v1")!
     }
 
     private static func cleaned(_ raw: String?) -> String? {
@@ -161,7 +203,10 @@ public enum MiMoUsageFetcher {
 
         for endpoint in MiMoSettingsReader.apiBaseURLs(environment: environment) {
             do {
-                let request = try self.makeAPIValidationRequest(baseURL: endpoint.url, apiKey: cleanedKey)
+                let request = try self.makeAPIValidationRequest(
+                    baseURL: endpoint.url,
+                    apiKey: cleanedKey,
+                    authStyle: endpoint.authStyle)
                 let (data, response) = try await URLSession.shared.data(for: request)
                 guard let httpResponse = response as? HTTPURLResponse else {
                     throw MiMoUsageError.networkError("Invalid response")
@@ -216,12 +261,21 @@ public enum MiMoUsageFetcher {
             identity: identity)
     }
 
-    private static func makeAPIValidationRequest(baseURL: URL, apiKey: String) throws -> URLRequest {
+    private static func makeAPIValidationRequest(
+        baseURL: URL,
+        apiKey: String,
+        authStyle: MiMoSettingsReader.APIAuthStyle) throws -> URLRequest
+    {
         if self.usesAnthropicMessagesAPI(baseURL: baseURL) {
             var request = URLRequest(url: baseURL.appendingPathComponent("v1").appendingPathComponent("messages"))
             request.httpMethod = "POST"
             request.timeoutInterval = Self.requestTimeout
-            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+            switch authStyle {
+            case .bearer:
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            case .xAPIKey:
+                request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+            }
             request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONSerialization.data(withJSONObject: [
@@ -250,10 +304,7 @@ public enum MiMoUsageFetcher {
     }
 
     private static func usesAnthropicMessagesAPI(baseURL: URL) -> Bool {
-        if baseURL.pathComponents.contains("anthropic") {
-            return true
-        }
-        return baseURL.host?.hasPrefix("token-plan-") == true
+        baseURL.pathComponents.contains("anthropic")
     }
 
     private static func fetchAuthenticated(
