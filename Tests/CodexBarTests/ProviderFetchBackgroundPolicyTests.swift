@@ -99,7 +99,7 @@ struct ProviderFetchBackgroundPolicyTests {
         #expect(kimiStrategies[0].kind == .apiToken)
         #expect(kimiStrategies[0].requiresBrowserSession == false)
         #expect(kimiStrategies[1].kind == .web)
-        #expect(kimiStrategies[1].backgroundPolicy == .userInitiatedOnly)
+        #expect(kimiStrategies[1].backgroundPolicy == .allowed)
         #expect(kimiStrategies[1].requiresKeychainAccess)
 
         let perplexityStrategies = await ProviderDescriptorRegistry
@@ -213,7 +213,8 @@ struct ProviderFetchBackgroundPolicyTests {
         }
         #expect(kimiStrategies.map(\.id) == ["kimi.token", "kimi.web"])
         #expect(kimiStrategies[0].minimumBackgroundRefreshInterval == nil)
-        #expect(kimiStrategies[1].backgroundPolicy == .userInitiatedOnly)
+        #expect(kimiStrategies[1].backgroundPolicy == .allowed)
+        #expect(kimiStrategies[1].minimumBackgroundRefreshInterval == 5.0 * 60.0)
 
         let perplexityContext = Self.makeContext(env: ["PERPLEXITY_SESSION_TOKEN": "pplx-token"])
         let perplexityStrategies = await ProviderInteractionContext.$current.withValue(.background) {
