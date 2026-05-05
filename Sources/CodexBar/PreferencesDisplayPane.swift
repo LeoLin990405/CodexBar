@@ -144,7 +144,7 @@ struct DisplayPane: View {
 
     private var overviewProviderPopover: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Choose up to \(Self.maxOverviewProviders) providers")
+            Text("Choose providers")
                 .font(.headline)
             Text("Overview rows always follow provider order.")
                 .font(.footnote)
@@ -163,9 +163,6 @@ struct DisplayPane: View {
                                 .font(.body)
                         }
                         .toggleStyle(.checkbox)
-                        .disabled(
-                            !self.overviewSelectedProviders.contains(provider) &&
-                                self.overviewSelectedProviders.count >= Self.maxOverviewProviders)
                     }
                 }
             }
