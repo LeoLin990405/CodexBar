@@ -22,6 +22,7 @@ public enum KeychainCacheStore {
         case found(Entry)
         case missing
         case temporarilyUnavailable
+        case unsupported
         case invalid
     }
 
@@ -29,6 +30,7 @@ public enum KeychainCacheStore {
     private static let cacheService = "com.steipete.codexbar.cache"
     private static let cacheLabel = "CodexBar Cache"
     private nonisolated(unsafe) static var globalServiceOverride: String?
+    private nonisolated(unsafe) static var keychainUnsupported = false
     @TaskLocal private static var serviceOverride: String?
     #if DEBUG && os(macOS)
     @TaskLocal private static var loadFailureStatusOverride: OSStatus?
@@ -48,7 +50,7 @@ public enum KeychainCacheStore {
     {
         #if DEBUG && os(macOS)
         if let status = self.loadFailureStatusOverride {
-            return self.loadResultForKeychainReadFailure(status: status, key: key)
+            return self.loadResultForKeychainReadFailure(status: status, key: key, recordUnsupported: false)
         }
         #endif
         if let testResult = loadFromTestStore(key: key, as: type) {
@@ -86,15 +88,20 @@ public enum KeychainCacheStore {
         #endif
     }
 
-    public static func store(key: Key, entry: some Codable) {
+    @discardableResult
+    public static func store(key: Key, entry: some Codable) -> Bool {
         if self.storeInTestStore(key: key, entry: entry) {
-            return
+            return true
+        }
+        guard !self.keychainUnsupported else {
+            self.log.debug("Skipping keychain cache store after unsupported query (\(key.account))")
+            return false
         }
         #if os(macOS)
         let encoder = Self.makeEncoder()
         guard let data = try? encoder.encode(entry) else {
             self.log.error("Failed to encode keychain cache (\(key.account))")
-            return
+            return false
         }
 
         let query: [String: Any] = [
@@ -108,11 +115,11 @@ public enum KeychainCacheStore {
 
         let updateStatus = SecItemUpdate(query as CFDictionary, updateAttrs as CFDictionary)
         if updateStatus == errSecSuccess {
-            return
+            return true
         }
         if updateStatus != errSecItemNotFound {
             self.log.error("Keychain cache update failed (\(key.account)): \(updateStatus)")
-            return
+            return false
         }
 
         var addQuery = query
@@ -123,13 +130,22 @@ public enum KeychainCacheStore {
         let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
         if addStatus != errSecSuccess {
             self.log.error("Keychain cache add failed (\(key.account)): \(addStatus)")
+            return false
         }
+        return true
+        #else
+        return false
         #endif
     }
 
-    public static func clear(key: Key) {
+    @discardableResult
+    public static func clear(key: Key) -> Bool {
         if self.clearTestStore(key: key) {
-            return
+            return true
+        }
+        guard !self.keychainUnsupported else {
+            self.log.debug("Skipping keychain cache clear after unsupported query (\(key.account))")
+            return false
         }
         #if os(macOS)
         let query: [String: Any] = [
@@ -140,7 +156,11 @@ public enum KeychainCacheStore {
         let status = SecItemDelete(query as CFDictionary)
         if status != errSecSuccess, status != errSecItemNotFound {
             self.log.error("Keychain cache delete failed (\(key.account)): \(status)")
+            return false
         }
+        return true
+        #else
+        return false
         #endif
     }
 
@@ -225,7 +245,8 @@ public enum KeychainCacheStore {
     #if os(macOS)
     static func loadResultForKeychainReadFailure<Entry>(
         status: OSStatus,
-        key: Key) -> LoadResult<Entry>
+        key: Key,
+        recordUnsupported: Bool = true) -> LoadResult<Entry>
     {
         switch status {
         case errSecItemNotFound:
@@ -234,6 +255,12 @@ public enum KeychainCacheStore {
             // Keychain is temporarily locked, e.g. immediately after wake from sleep.
             self.log.info("Keychain cache temporarily locked (\(key.account)), will retry on next access")
             return .temporarilyUnavailable
+        case errSecParam:
+            if recordUnsupported {
+                self.keychainUnsupported = true
+            }
+            self.log.warning("Keychain cache query unsupported (\(key.account)): \(status)")
+            return .unsupported
         default:
             self.log.error("Keychain cache read failed (\(key.account)): \(status)")
             return .invalid

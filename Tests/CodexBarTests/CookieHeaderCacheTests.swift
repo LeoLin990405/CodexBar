@@ -141,9 +141,36 @@ struct CookieHeaderCacheTests {
         switch KeychainCacheStore.load(key: .cookie(provider: provider), as: CookieHeaderCache.Entry.self) {
         case .missing:
             #expect(true)
-        case .found, .temporarilyUnavailable, .invalid:
+        case .found, .temporarilyUnavailable, .unsupported, .invalid:
             #expect(Bool(false), "Expected temporary miss not to migrate legacy cache")
         }
+    }
+
+    @Test
+    func `unsupported keychain falls back to legacy file without migrating`() {
+        KeychainCacheStore.setTestStoreForTesting(true)
+        defer { KeychainCacheStore.setTestStoreForTesting(false) }
+
+        let legacyBase = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        CookieHeaderCache.setLegacyBaseURLOverrideForTesting(legacyBase)
+        defer { CookieHeaderCache.setLegacyBaseURLOverrideForTesting(nil) }
+
+        let provider: UsageProvider = .trae
+        let legacyURL = legacyBase.appendingPathComponent("\(provider.rawValue)-cookie.json")
+        CookieHeaderCache.store(
+            CookieHeaderCache.Entry(
+                cookieHeader: "session=legacy",
+                storedAt: Date(timeIntervalSince1970: 0),
+                sourceLabel: "Legacy"),
+            to: legacyURL)
+
+        let loaded = KeychainCacheStore.withLoadFailureStatusOverrideForTesting(errSecParam) {
+            CookieHeaderCache.load(provider: provider)
+        }
+
+        #expect(loaded?.cookieHeader == "session=legacy")
+        #expect(FileManager.default.fileExists(atPath: legacyURL.path) == true)
     }
     #endif
 
@@ -166,7 +193,7 @@ struct CookieHeaderCacheTests {
         switch KeychainCacheStore.load(key: key, as: CookieHeaderCache.Entry.self) {
         case .missing:
             #expect(true)
-        case .found, .temporarilyUnavailable, .invalid:
+        case .found, .temporarilyUnavailable, .unsupported, .invalid:
             #expect(Bool(false), "Expected invalid cookie cache to be cleared")
         }
     }
