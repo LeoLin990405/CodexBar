@@ -39,16 +39,16 @@ struct MiMoProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.miMoCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "自动导入“小米的 Mihomo”的 Chrome 浏览器 Cookie。",
+                auto: "自动导入“小米 Mimo”的 Chrome 浏览器 Cookie。",
                 manual: "粘贴来自 platform.xiaomimimo.com 的 Cookie header。",
-                off: "小米的 Mihomo Cookie 已关闭。")
+                off: "小米 Mimo Cookie 已关闭。")
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "mimo-cookie-source",
                 title: "Cookie 来源",
-                subtitle: "自动导入“小米的 Mihomo”的 Chrome 浏览器 Cookie。",
+                subtitle: "自动导入“小米 Mimo”的 Chrome 浏览器 Cookie。",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -75,7 +75,7 @@ struct MiMoProviderImplementation: ProviderImplementation {
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "mimo-open-balance",
-                        title: "打开小米的 Mihomo 余额",
+                        title: "打开小米 Mimo 余额",
                         style: .link,
                         isVisible: nil,
                         perform: {
