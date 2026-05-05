@@ -163,11 +163,12 @@ public enum MiMoUsageFetcher {
         }
 
         let apiResponse = try? JSONDecoder().decode(APIUsageResponse.self, from: data)
-        let detail: String? = if let usage = apiResponse?.usage {
+        let detail: String?
+        if let usage = apiResponse?.usage {
             let total = usage.totalTokens ?? 0
-            total > 0 ? "Validation used \(total.formatted()) tokens" : nil
+            detail = total > 0 ? "Validation used \(total.formatted()) tokens" : nil
         } else {
-            nil
+            detail = nil
         }
 
         let primary = RateWindow(
@@ -180,7 +181,11 @@ public enum MiMoUsageFetcher {
             accountEmail: nil,
             accountOrganization: nil,
             loginMethod: "Token Plan")
-        return UsageSnapshot(primary: primary, updatedAt: now, identity: identity)
+        return UsageSnapshot(
+            primary: primary,
+            secondary: nil,
+            updatedAt: now,
+            identity: identity)
     }
 
     private static func fetchAuthenticated(
