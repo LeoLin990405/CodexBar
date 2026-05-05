@@ -58,7 +58,7 @@ struct ProviderFetchBackgroundPolicyTests {
     }
 
     @Test
-    func `doubao and stepfun split web dashboard from api strategy`() async {
+    func `doubao and stepfun split web dashboard from api strategy`() async throws {
         let doubaoStrategies = await ProviderDescriptorRegistry
             .descriptor(for: .doubao)
             .fetchPlan
@@ -121,11 +121,17 @@ struct ProviderFetchBackgroundPolicyTests {
             .pipeline
             .resolveStrategies(Self.makeContext(sourceMode: .auto))
 
-        #expect(traeStrategies.map(\.id) == ["trae.web", "trae.local"])
-        #expect(traeStrategies[0].kind == .web)
-        #expect(traeStrategies[0].backgroundPolicy == .userInitiatedOnly)
-        #expect(traeStrategies[1].kind == .localProbe)
-        #expect(traeStrategies[1].requiresBrowserSession == false)
+        #expect(traeStrategies.map(\.id) == ["trae.cached-session", "trae.web", "trae.local"])
+        #expect(traeStrategies[0].kind == .apiToken)
+        #expect(traeStrategies[0].backgroundPolicy == .allowed)
+        #expect(traeStrategies[0].requiresBrowserSession == false)
+        #expect(traeStrategies[1].kind == .web)
+        #expect(traeStrategies[1].backgroundPolicy == .userInitiatedOnly)
+        #expect(traeStrategies[2].kind == .localProbe)
+        #expect(traeStrategies[2].requiresBrowserSession == false)
+
+        let traeLocal = try #require(traeStrategies[2] as? TraeLocalFetchStrategy)
+        #expect(await traeLocal.isAvailable(Self.makeContext(sourceMode: .auto)))
     }
 
     @Test
@@ -203,6 +209,18 @@ struct ProviderFetchBackgroundPolicyTests {
         #expect(perplexityStrategies.map(\.id) == ["perplexity.session", "perplexity.web"])
         #expect(perplexityStrategies[0].minimumBackgroundRefreshInterval == nil)
         #expect(perplexityStrategies[1].backgroundPolicy == .userInitiatedOnly)
+
+        let traeStrategies = await ProviderInteractionContext.$current.withValue(.background) {
+            await ProviderDescriptorRegistry
+                .descriptor(for: .trae)
+                .fetchPlan
+                .pipeline
+                .resolveStrategies(Self.makeContext(sourceMode: .auto))
+        }
+        #expect(traeStrategies.map(\.id) == ["trae.cached-session", "trae.web", "trae.local"])
+        #expect(traeStrategies[0].minimumBackgroundRefreshInterval == nil)
+        #expect(traeStrategies[1].backgroundPolicy == .userInitiatedOnly)
+        #expect(traeStrategies[2].kind == .localProbe)
     }
 
     @Test
