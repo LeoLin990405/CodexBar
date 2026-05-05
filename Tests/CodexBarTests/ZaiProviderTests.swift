@@ -10,6 +10,14 @@ struct ZaiSettingsReaderTests {
     }
 
     @Test
+    func `api token reads from zhipu and bigmodel aliases`() {
+        #expect(ZaiSettingsReader.apiToken(environment: ["ZHIPU_API_KEY": "zhipu"]) == "zhipu")
+        #expect(ZaiSettingsReader.apiToken(environment: ["ZHIPUAI_API_KEY": "zhipuai"]) == "zhipuai")
+        #expect(ZaiSettingsReader.apiToken(environment: ["GLM_API_KEY": "glm"]) == "glm")
+        #expect(ZaiSettingsReader.apiToken(environment: ["BIGMODEL_API_KEY": "bigmodel"]) == "bigmodel")
+    }
+
+    @Test
     func `api token strips quotes`() {
         let token = ZaiSettingsReader.apiToken(environment: ["Z_AI_API_KEY": "\"token-xyz\""])
         #expect(token == "token-xyz")

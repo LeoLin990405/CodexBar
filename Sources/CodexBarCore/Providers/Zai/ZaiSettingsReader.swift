@@ -4,6 +4,12 @@ public struct ZaiSettingsReader: Sendable {
     private static let log = CodexBarLog.logger(LogCategories.zaiSettings)
 
     public static let apiTokenKey = "Z_AI_API_KEY"
+    public static let apiTokenAliasKeys = [
+        "ZHIPU_API_KEY",
+        "ZHIPUAI_API_KEY",
+        "GLM_API_KEY",
+        "BIGMODEL_API_KEY",
+    ]
     public static let apiHostKey = "Z_AI_API_HOST"
     public static let quotaURLKey = "Z_AI_QUOTA_URL"
 
@@ -11,6 +17,9 @@ public struct ZaiSettingsReader: Sendable {
         environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
     {
         if let token = self.cleaned(environment[apiTokenKey]) { return token }
+        for key in self.apiTokenAliasKeys {
+            if let token = self.cleaned(environment[key]) { return token }
+        }
         return nil
     }
 
@@ -53,7 +62,7 @@ public enum ZaiSettingsError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingToken:
-            "z.ai API token not found. Set apiKey in ~/.codexbar/config.json or Z_AI_API_KEY."
+            "z.ai API token not found. Set apiKey in ~/.codexbar/config.json or Z_AI_API_KEY/ZHIPU_API_KEY/GLM_API_KEY/BIGMODEL_API_KEY."
         }
     }
 }
