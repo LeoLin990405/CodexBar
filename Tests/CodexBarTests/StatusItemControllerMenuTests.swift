@@ -96,6 +96,22 @@ struct StatusItemControllerMenuTests {
     }
 
     @Test
+    func `mimo balance snapshot still provides switcher indicator`() {
+        let snapshot = MiMoUsageSnapshot(
+            balance: 25.51,
+            currency: "USD",
+            updatedAt: Date())
+            .toUsageSnapshot()
+
+        let percent = StatusItemController.switcherWeeklyMetricPercent(
+            for: .mimo,
+            snapshot: snapshot,
+            showUsed: false)
+
+        #expect(percent == 100)
+    }
+
+    @Test
     func `open router brand fallback enabled when no key limit configured`() {
         let snapshot = OpenRouterUsageSnapshot(
             totalCredits: 50,

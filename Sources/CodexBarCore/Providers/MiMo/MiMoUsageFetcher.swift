@@ -6,6 +6,8 @@ import FoundationNetworking
 public enum MiMoSettingsError: LocalizedError, Sendable {
     case missingCookie
     case invalidCookie
+    case missingAPIKey
+    case invalidAPIKey(String)
 
     public var errorDescription: String? {
         switch self {
@@ -13,6 +15,10 @@ public enum MiMoSettingsError: LocalizedError, Sendable {
             "No Xiaomi MiMo browser session found. Log in at platform.xiaomimimo.com first."
         case .invalidCookie:
             "Xiaomi MiMo requires the api-platform_serviceToken and userId cookies."
+        case .missingAPIKey:
+            "Xiaomi MiMo API key not found. Set apiKey in ~/.codexbar/config.json or MIMO_API_KEY."
+        case let .invalidAPIKey(region):
+            "Invalid Xiaomi MiMo API key for \(region). Check apiKey and region in ~/.codexbar/config.json."
         }
     }
 }
@@ -39,9 +45,18 @@ public enum MiMoUsageError: LocalizedError, Sendable {
 
 public enum MiMoSettingsReader {
     public static let apiURLKey = "MIMO_API_URL"
+    public static let apiBaseURLKey = "MIMO_API_BASE_URL"
+    public static let apiRegionKey = "MIMO_REGION"
+    public static let apiKeyEnvironmentKeys = [
+        "MIMO_API_KEY",
+        "XIAOMI_API_KEY",
+    ]
 
     public static func apiKey(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
-        environment["MIMO_API_KEY"]
+        for key in self.apiKeyEnvironmentKeys {
+            if let token = self.cleaned(environment[key]) { return token }
+        }
+        return nil
     }
 
     public static func apiURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL {
@@ -52,6 +67,29 @@ public enum MiMoSettingsReader {
             return url
         }
         return URL(string: "https://platform.xiaomimimo.com/api/v1")!
+    }
+
+    public static func apiBaseURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL {
+        if let override = environment[self.apiBaseURLKey],
+           let url = URL(string: override.trimmingCharacters(in: .whitespacesAndNewlines)),
+           let scheme = url.scheme, !scheme.isEmpty
+        {
+            return url
+        }
+
+        let region = self.cleaned(environment[self.apiRegionKey])?.lowercased()
+        switch region {
+        case let region? where ["cn", "sgp", "ams"].contains(region):
+            return URL(string: "https://token-plan-\(region).xiaomimimo.com/v1")!
+        default:
+            return URL(string: "https://api.xiaomimimo.com/v1")!
+        }
+    }
+
+    private static func cleaned(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
 }
 
@@ -82,6 +120,67 @@ public enum MiMoUsageFetcher {
             tokenDetailData: tokenDetailData,
             tokenUsageData: tokenUsageData,
             now: now)
+    }
+
+    public static func fetchAPIUsage(
+        apiKey: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        now: Date = Date()) async throws -> UsageSnapshot
+    {
+        let cleanedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedKey.isEmpty else {
+            throw MiMoSettingsError.missingAPIKey
+        }
+
+        let baseURL = MiMoSettingsReader.apiBaseURL(environment: environment)
+        let chatURL = baseURL.appendingPathComponent("chat/completions")
+        var request = URLRequest(url: chatURL)
+        request.httpMethod = "POST"
+        request.timeoutInterval = Self.requestTimeout
+        request.setValue("Bearer \(cleanedKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "model": "mimo-v2.5",
+            "messages": [
+                ["role": "user", "content": "hi"],
+            ],
+            "max_tokens": 1,
+        ])
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw MiMoUsageError.networkError("Invalid response")
+        }
+        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+            let region = environment[MiMoSettingsReader.apiRegionKey] ?? baseURL.host ?? "configured endpoint"
+            throw MiMoSettingsError.invalidAPIKey(region)
+        }
+        switch httpResponse.statusCode {
+        case 200...299, 400, 422, 429:
+            break
+        default:
+            throw MiMoUsageError.networkError("HTTP \(httpResponse.statusCode)")
+        }
+
+        let apiResponse = try? JSONDecoder().decode(APIUsageResponse.self, from: data)
+        let detail: String? = if let usage = apiResponse?.usage {
+            let total = usage.totalTokens ?? 0
+            total > 0 ? "Validation used \(total.formatted()) tokens" : nil
+        } else {
+            nil
+        }
+
+        let primary = RateWindow(
+            usedPercent: 0,
+            windowMinutes: nil,
+            resetsAt: nil,
+            resetDescription: detail ?? "API key active")
+        let identity = ProviderIdentitySnapshot(
+            providerID: .mimo,
+            accountEmail: nil,
+            accountOrganization: nil,
+            loginMethod: "Token Plan")
+        return UsageSnapshot(primary: primary, updatedAt: now, identity: identity)
     }
 
     private static func fetchAuthenticated(
@@ -263,5 +362,24 @@ public enum MiMoUsageFetcher {
         let used: Int
         let limit: Int
         let percent: Double
+    }
+
+    private struct APIUsageResponse: Decodable {
+        let usage: APIUsage?
+    }
+
+    private struct APIUsage: Decodable {
+        let totalTokens: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case totalTokens
+            case totalTokensSnake = "total_tokens"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.totalTokens = try container.decodeIfPresent(Int.self, forKey: .totalTokens) ??
+                container.decodeIfPresent(Int.self, forKey: .totalTokensSnake)
+        }
     }
 }
