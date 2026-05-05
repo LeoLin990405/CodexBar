@@ -471,7 +471,7 @@ struct MenuCardModelTests {
 
         #expect(model.planText == "Kilo Pass Pro")
         #expect(model.usageNotes.contains("Auto top-up: visa"))
-        #expect(model.usageNotes.contains("Using CLI fallback"))
+        #expect(model.usageNotes.contains("正在使用 CLI 回退"))
     }
 
     @Test

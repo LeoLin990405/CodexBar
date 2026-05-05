@@ -89,9 +89,9 @@ struct CodexPresentationCharacterizationTests {
             includeContextualActions: false)
 
         let lines = self.textLines(from: descriptor)
-        #expect(lines.contains("Account: codex@example.com"))
+        #expect(lines.contains("账号：codex@example.com"))
         #expect(lines.contains("方案：Free"))
-        #expect(!lines.contains("Account: claude@example.com"))
+        #expect(!lines.contains("账号：claude@example.com"))
         #expect(!lines.contains("方案：Max"))
     }
 
@@ -185,9 +185,9 @@ struct CodexPresentationCharacterizationTests {
             includeContextualActions: false)
 
         let lines = self.textLines(from: descriptor)
-        #expect(lines.contains("Account: snapshot@example.com"))
+        #expect(lines.contains("账号：snapshot@example.com"))
         #expect(lines.contains("方案：Enterprise"))
-        #expect(!lines.contains("Account: fallback@example.com"))
+        #expect(!lines.contains("账号：fallback@example.com"))
         #expect(!lines.contains("方案：Plus"))
     }
 
@@ -241,9 +241,9 @@ struct CodexPresentationCharacterizationTests {
             includeContextualActions: false)
 
         let lines = self.textLines(from: descriptor)
-        #expect(lines.contains("Account: snapshot@example.com"))
+        #expect(lines.contains("账号：snapshot@example.com"))
         #expect(lines.contains("方案：Plus"))
-        #expect(!lines.contains("Account: fallback@example.com"))
+        #expect(!lines.contains("账号：fallback@example.com"))
     }
 
     @Test
