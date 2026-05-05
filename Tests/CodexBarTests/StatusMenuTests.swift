@@ -1042,7 +1042,7 @@ extension StatusMenuTests {
 
 extension StatusMenuTests {
     @Test
-    func `overview tab renders overview rows for all active providers when three or fewer`() {
+    func `overview tab renders overview rows for all active providers`() {
         self.disableMenuCardsForTesting()
         let settings = self.makeSettings()
         settings.statusChecksEnabled = false
@@ -1054,7 +1054,10 @@ extension StatusMenuTests {
         let registry = ProviderRegistry.shared
         for provider in UsageProvider.allCases {
             guard let metadata = registry.metadata[provider] else { continue }
-            let shouldEnable = provider == .codex || provider == .claude || provider == .cursor
+            let shouldEnable = provider == .codex ||
+                provider == .claude ||
+                provider == .cursor ||
+                provider == .opencode
             settings.setProviderEnabled(provider: provider, metadata: metadata, enabled: shouldEnable)
         }
 
@@ -1073,15 +1076,16 @@ extension StatusMenuTests {
 
         let ids = self.representedIDs(in: menu)
         let overviewRows = ids.filter { $0.hasPrefix("overviewRow-") }
-        #expect(overviewRows.count == 3)
+        #expect(overviewRows.count == 4)
         #expect(overviewRows.contains("overviewRow-codex"))
         #expect(overviewRows.contains("overviewRow-claude"))
         #expect(overviewRows.contains("overviewRow-cursor"))
+        #expect(overviewRows.contains("overviewRow-opencode"))
         #expect(ids.contains("menuCard") == false)
     }
 
     @Test
-    func `overview tab honors stored subset when three or fewer`() {
+    func `overview tab honors stored subset`() {
         self.disableMenuCardsForTesting()
         let settings = self.makeSettings()
         settings.statusChecksEnabled = false

@@ -64,7 +64,7 @@ enum MenuBarMetricPreference: String, CaseIterable, Identifiable {
 @Observable
 final class SettingsStore {
     static let sharedDefaults = AppGroupSupport.sharedDefaults()
-    static let mergedOverviewProviderLimit = 3
+    static let mergedOverviewProviderLimit = UsageProvider.allCases.count
     static let isRunningTests: Bool = {
         let env = ProcessInfo.processInfo.environment
         if env["XCTestConfigurationFilePath"] != nil { return true }

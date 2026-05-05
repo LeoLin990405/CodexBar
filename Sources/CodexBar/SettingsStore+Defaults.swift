@@ -394,6 +394,9 @@ extension SettingsStore {
         guard self.hasMergedOverviewSelectionPreference else {
             return Array(normalizedActive.prefix(maxVisibleProviders))
         }
+        if self.mergedOverviewSelectedProviders.isEmpty {
+            return []
+        }
         if normalizedActive.count <= maxVisibleProviders,
            !self.mergedOverviewSelectionApplies(to: normalizedActive)
         {
