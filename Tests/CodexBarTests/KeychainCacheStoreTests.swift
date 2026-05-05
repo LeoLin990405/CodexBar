@@ -24,7 +24,7 @@ struct KeychainCacheStoreTests {
         switch KeychainCacheStore.load(key: key, as: TestEntry.self) {
         case let .found(loaded):
             #expect(loaded == entry)
-        case .missing, .temporarilyUnavailable, .invalid:
+        case .missing, .temporarilyUnavailable, .unsupported, .invalid:
             #expect(Bool(false), "Expected keychain cache entry")
         }
     }
@@ -45,7 +45,7 @@ struct KeychainCacheStoreTests {
         switch KeychainCacheStore.load(key: key, as: TestEntry.self) {
         case let .found(loaded):
             #expect(loaded == second)
-        case .missing, .temporarilyUnavailable, .invalid:
+        case .missing, .temporarilyUnavailable, .unsupported, .invalid:
             #expect(Bool(false), "Expected overwritten keychain cache entry")
         }
     }
@@ -64,7 +64,7 @@ struct KeychainCacheStoreTests {
         switch KeychainCacheStore.load(key: key, as: TestEntry.self) {
         case .missing:
             #expect(true)
-        case .found, .temporarilyUnavailable, .invalid:
+        case .found, .temporarilyUnavailable, .unsupported, .invalid:
             #expect(Bool(false), "Expected keychain cache entry to be cleared")
         }
     }
@@ -80,7 +80,7 @@ struct KeychainCacheStoreTests {
         switch result {
         case .temporarilyUnavailable:
             #expect(true)
-        case .found, .missing, .invalid:
+        case .found, .missing, .unsupported, .invalid:
             #expect(Bool(false), "Expected temporary keychain lock to be retry-later")
         }
     }
@@ -99,7 +99,7 @@ struct KeychainCacheStoreTests {
             switch KeychainCacheStore.load(key: key, as: TestEntry.self) {
             case .temporarilyUnavailable:
                 #expect(true)
-            case .found, .missing, .invalid:
+            case .found, .missing, .unsupported, .invalid:
                 #expect(Bool(false), "Expected override to run before test store")
             }
         }
@@ -107,7 +107,7 @@ struct KeychainCacheStoreTests {
         switch KeychainCacheStore.load(key: key, as: TestEntry.self) {
         case let .found(loaded):
             #expect(loaded == entry)
-        case .missing, .temporarilyUnavailable, .invalid:
+        case .missing, .temporarilyUnavailable, .unsupported, .invalid:
             #expect(Bool(false), "Expected override not to mutate test store")
         }
     }

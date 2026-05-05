@@ -242,6 +242,8 @@ public enum ClaudeOAuthCredentialsStore {
                     KeychainCacheStore.clear(key: ClaudeOAuthCredentialsStore.cacheKey)
                 case .temporarilyUnavailable:
                     cacheTemporarilyUnavailable = true
+                case .unsupported:
+                    break
                 case .missing:
                     break
                 }
@@ -452,7 +454,7 @@ public enum ClaudeOAuthCredentialsStore {
                             if entry.storedAt < modifiedAt {
                                 shouldClearKeychainCache = true
                             }
-                        case .missing, .invalid:
+                        case .missing, .unsupported, .invalid:
                             shouldClearKeychainCache = true
                         case .temporarilyUnavailable:
                             shouldClearKeychainCache = false

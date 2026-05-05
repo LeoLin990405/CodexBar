@@ -78,7 +78,7 @@ struct ClaudeOAuthCredentialsStoreTemporaryKeychainCacheTests {
                         case let .found(entry):
                             let parsed = try ClaudeOAuthCredentials.parse(data: entry.data)
                             #expect(parsed.accessToken == "cached-token")
-                        case .missing, .temporarilyUnavailable, .invalid:
+                        case .missing, .temporarilyUnavailable, .unsupported, .invalid:
                             #expect(Bool(false), "Expected temporary unavailability not to clear Claude cache")
                         }
 
@@ -90,7 +90,7 @@ struct ClaudeOAuthCredentialsStoreTemporaryKeychainCacheTests {
                         {
                         case .missing:
                             #expect(true)
-                        case .found, .temporarilyUnavailable, .invalid:
+                        case .found, .temporarilyUnavailable, .unsupported, .invalid:
                             #expect(Bool(false), "Expected pending invalidation to clear stale Claude cache")
                         }
                     }
@@ -148,7 +148,7 @@ struct ClaudeOAuthCredentialsStoreTemporaryKeychainCacheTests {
                             case let .found(entry):
                                 let parsed = try ClaudeOAuthCredentials.parse(data: entry.data)
                                 #expect(parsed.accessToken == "cached-token")
-                            case .missing, .temporarilyUnavailable, .invalid:
+                            case .missing, .temporarilyUnavailable, .unsupported, .invalid:
                                 #expect(Bool(false), "Expected file fallback not to overwrite unavailable cache")
                             }
                         }
@@ -225,7 +225,7 @@ struct ClaudeOAuthCredentialsStoreTemporaryKeychainCacheTests {
                             {
                             case .missing:
                                 #expect(true)
-                            case .found, .temporarilyUnavailable, .invalid:
+                            case .found, .temporarilyUnavailable, .unsupported, .invalid:
                                 #expect(Bool(false), "Expected invalid Claude cache to be cleared")
                             }
                         }

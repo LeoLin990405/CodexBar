@@ -32,6 +32,7 @@ public enum CookieHeaderCache {
 
     public static func load(provider: UsageProvider, scope: Scope? = nil) -> Entry? {
         let key = self.key(for: provider, scope: scope)
+        let shouldMigrateLegacy: Bool
         switch KeychainCacheStore.load(key: key, as: Entry.self) {
         case let .found(entry):
             self.log.debug("Cookie cache hit", metadata: ["provider": provider.rawValue])
@@ -39,17 +40,23 @@ public enum CookieHeaderCache {
         case .temporarilyUnavailable:
             self.log.debug("Cookie cache temporarily unavailable", metadata: ["provider": provider.rawValue])
             return nil
+        case .unsupported:
+            self.log.debug("Cookie cache keychain unsupported", metadata: ["provider": provider.rawValue])
+            shouldMigrateLegacy = false
         case .invalid:
             self.log.warning("Cookie cache invalid; clearing", metadata: ["provider": provider.rawValue])
             KeychainCacheStore.clear(key: key)
+            shouldMigrateLegacy = true
         case .missing:
             self.log.debug("Cookie cache miss", metadata: ["provider": provider.rawValue])
+            shouldMigrateLegacy = true
         }
 
         guard scope == nil else { return nil }
         guard let legacy = self.loadLegacyEntry(for: provider) else { return nil }
-        KeychainCacheStore.store(key: key, entry: legacy)
-        self.removeLegacyEntry(for: provider)
+        if shouldMigrateLegacy, KeychainCacheStore.store(key: key, entry: legacy) {
+            self.removeLegacyEntry(for: provider)
+        }
         self.log.debug("Cookie cache migrated from legacy store", metadata: ["provider": provider.rawValue])
         return legacy
     }
@@ -68,9 +75,17 @@ public enum CookieHeaderCache {
         }
         let entry = Entry(cookieHeader: normalized, storedAt: now, sourceLabel: sourceLabel)
         let key = self.key(for: provider, scope: scope)
-        KeychainCacheStore.store(key: key, entry: entry)
+        let keychainStored = KeychainCacheStore.store(key: key, entry: entry)
         if scope == nil {
-            self.removeLegacyEntry(for: provider)
+            if keychainStored {
+                self.removeLegacyEntry(for: provider)
+            } else {
+                self.store(entry, to: self.legacyURL(for: provider))
+            }
+        } else if !keychainStored {
+            self.log.warning("Scoped cookie cache could not be stored in keychain", metadata: [
+                "provider": provider.rawValue,
+            ])
         }
         self.log.debug("Cookie cache stored", metadata: ["provider": provider.rawValue, "source": sourceLabel])
     }
@@ -99,6 +114,11 @@ public enum CookieHeaderCache {
             encoder.dateEncodingStrategy = .iso8601
             let data = try encoder.encode(entry)
             try data.write(to: url, options: [.atomic])
+            #if os(macOS) || os(Linux)
+            try FileManager.default.setAttributes(
+                [.posixPermissions: NSNumber(value: Int16(0o600))],
+                ofItemAtPath: url.path)
+            #endif
         } catch {
             self.log.error("Failed to persist cookie cache: \(error)")
         }
