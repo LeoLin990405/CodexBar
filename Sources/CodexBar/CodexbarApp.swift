@@ -38,7 +38,10 @@ struct CodexBarApp: App {
                 "built": buildTimestamp,
             ])
 
-        KeychainAccessGate.isDisabled = UserDefaults.standard.bool(forKey: "debugDisableKeychainAccess")
+        LocalSafetyMode.apply(to: .standard, sharedDefaults: SettingsStore.sharedDefaults)
+        KeychainAccessGate.isDisabled = LocalSafetyMode.isEnabled
+            ? LocalSafetyMode.debugDisableKeychainAccess
+            : UserDefaults.standard.bool(forKey: "debugDisableKeychainAccess")
         KeychainPromptCoordinator.install()
 
         let preferencesSelection = PreferencesSelection()

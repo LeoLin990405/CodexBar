@@ -141,6 +141,7 @@ final class SettingsStore {
 
         let hasStoredOpenAIWebAccessPreference = userDefaults.object(forKey: "openAIWebAccessEnabled") != nil
         let hadExistingConfig = (try? configStore.load()) != nil
+        LocalSafetyMode.apply(to: userDefaults, sharedDefaults: Self.sharedDefaults)
         let legacyStores = CodexBarConfigMigrator.LegacyStores(
             zaiTokenStore: zaiTokenStore,
             syntheticTokenStore: syntheticTokenStore,
@@ -208,9 +209,14 @@ extension SettingsStore {
         if refreshDefault == nil {
             userDefaults.set(refreshFrequency.rawValue, forKey: "refreshFrequency")
         }
-        let launchAtLogin = userDefaults.object(forKey: "launchAtLogin") as? Bool ?? false
+        let launchAtLogin = LocalSafetyMode.isEnabled
+            ? LocalSafetyMode.launchAtLogin
+            : userDefaults.object(forKey: "launchAtLogin") as? Bool ?? false
         let debugMenuEnabled = userDefaults.object(forKey: "debugMenuEnabled") as? Bool ?? false
         let debugDisableKeychainAccess: Bool = {
+            if LocalSafetyMode.isEnabled {
+                return LocalSafetyMode.debugDisableKeychainAccess
+            }
             if let stored = userDefaults.object(forKey: "debugDisableKeychainAccess") as? Bool {
                 return stored
             }
@@ -256,7 +262,9 @@ extension SettingsStore {
         let hidePersonalInfo = userDefaults.object(forKey: "hidePersonalInfo") as? Bool ?? false
         let randomBlinkEnabled = userDefaults.object(forKey: "randomBlinkEnabled") as? Bool ?? false
         let menuBarShowsHighestUsage = userDefaults.object(forKey: "menuBarShowsHighestUsage") as? Bool ?? false
-        let claudeOAuthKeychainPromptModeRaw = userDefaults.string(forKey: "claudeOAuthKeychainPromptMode")
+        let claudeOAuthKeychainPromptModeRaw = LocalSafetyMode.isEnabled
+            ? LocalSafetyMode.claudeOAuthKeychainPromptMode.rawValue
+            : userDefaults.string(forKey: "claudeOAuthKeychainPromptMode")
         let claudeOAuthKeychainReadStrategyRaw = userDefaults.string(forKey: "claudeOAuthKeychainReadStrategy")
         let claudeWebExtrasEnabledRaw = userDefaults.object(forKey: "claudeWebExtrasEnabled") as? Bool ?? false
         let creditsExtrasDefault = userDefaults.object(forKey: "showOptionalCreditsAndExtraUsage") as? Bool
