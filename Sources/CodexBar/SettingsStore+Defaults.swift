@@ -16,9 +16,10 @@ extension SettingsStore {
     var launchAtLogin: Bool {
         get { self.defaultsState.launchAtLogin }
         set {
-            self.defaultsState.launchAtLogin = newValue
-            self.userDefaults.set(newValue, forKey: "launchAtLogin")
-            LaunchAtLoginManager.setEnabled(newValue)
+            let resolvedValue = LocalSafetyMode.isEnabled ? LocalSafetyMode.launchAtLogin : newValue
+            self.defaultsState.launchAtLogin = resolvedValue
+            self.userDefaults.set(resolvedValue, forKey: "launchAtLogin")
+            LaunchAtLoginManager.setEnabled(resolvedValue)
         }
     }
 
@@ -33,12 +34,13 @@ extension SettingsStore {
     var debugDisableKeychainAccess: Bool {
         get { self.defaultsState.debugDisableKeychainAccess }
         set {
-            self.defaultsState.debugDisableKeychainAccess = newValue
-            self.userDefaults.set(newValue, forKey: "debugDisableKeychainAccess")
+            let resolvedValue = LocalSafetyMode.isEnabled ? LocalSafetyMode.debugDisableKeychainAccess : newValue
+            self.defaultsState.debugDisableKeychainAccess = resolvedValue
+            self.userDefaults.set(resolvedValue, forKey: "debugDisableKeychainAccess")
             if Self.shouldBridgeSharedDefaults(for: self.userDefaults) {
-                Self.sharedDefaults?.set(newValue, forKey: "debugDisableKeychainAccess")
+                Self.sharedDefaults?.set(resolvedValue, forKey: "debugDisableKeychainAccess")
             }
-            KeychainAccessGate.isDisabled = newValue
+            KeychainAccessGate.isDisabled = resolvedValue
         }
     }
 
@@ -202,12 +204,16 @@ extension SettingsStore {
 
     var claudeOAuthKeychainPromptMode: ClaudeOAuthKeychainPromptMode {
         get {
+            if LocalSafetyMode.isEnabled {
+                return LocalSafetyMode.claudeOAuthKeychainPromptMode
+            }
             let raw = self.defaultsState.claudeOAuthKeychainPromptModeRaw
             return ClaudeOAuthKeychainPromptMode(rawValue: raw ?? "") ?? .onlyOnUserAction
         }
         set {
-            self.defaultsState.claudeOAuthKeychainPromptModeRaw = newValue.rawValue
-            self.userDefaults.set(newValue.rawValue, forKey: "claudeOAuthKeychainPromptMode")
+            let resolvedValue = LocalSafetyMode.isEnabled ? LocalSafetyMode.claudeOAuthKeychainPromptMode : newValue
+            self.defaultsState.claudeOAuthKeychainPromptModeRaw = resolvedValue.rawValue
+            self.userDefaults.set(resolvedValue.rawValue, forKey: "claudeOAuthKeychainPromptMode")
         }
     }
 

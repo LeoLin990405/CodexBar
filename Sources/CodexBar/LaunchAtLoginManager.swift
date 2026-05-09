@@ -14,7 +14,7 @@ enum LaunchAtLoginManager {
         if self.isRunningTests { return }
         let service = SMAppService.mainApp
         do {
-            if enabled {
+            if enabled, !LocalSafetyMode.isEnabled {
                 try service.register()
             } else {
                 try service.unregister()
