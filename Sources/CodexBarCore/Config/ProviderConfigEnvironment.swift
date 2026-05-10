@@ -15,6 +15,8 @@ public enum ProviderConfigEnvironment {
             env["COPILOT_API_TOKEN"] = apiKey
         case .minimax:
             env[MiniMaxAPISettingsReader.apiTokenKey] = apiKey
+        case .alibaba:
+            env[AlibabaCodingPlanSettingsReader.apiTokenKey] = apiKey
         case .kilo:
             env[KiloSettingsReader.apiTokenKey] = apiKey
         case .kimik2:
@@ -29,6 +31,21 @@ public enum ProviderConfigEnvironment {
             }
         case .openrouter:
             env[OpenRouterSettingsReader.envKey] = apiKey
+        case .venice:
+            env[VeniceSettingsReader.apiKeyEnvironmentKey] = apiKey
+        case .codebuff:
+            // Preserve a token already present in the process environment so that
+            // runtime/CI overrides win over a key saved in Settings (matches the
+            // precedence used by `ProviderTokenResolver.codebuffResolution`).
+            if CodebuffSettingsReader.apiKey(environment: base) == nil {
+                env[CodebuffSettingsReader.apiTokenKey] = apiKey
+            }
+        case .crof:
+            if CrofSettingsReader.apiKey(environment: base) == nil,
+               let key = CrofSettingsReader.apiKeyEnvironmentKeys.first
+            {
+                env[key] = apiKey
+            }
         case .doubao:
             if let key = DoubaoSettingsReader.apiKeyEnvironmentKeys.first {
                 env[key] = apiKey

@@ -36,7 +36,7 @@ public struct DoubaoUsageSnapshot: Sendable {
             resetDescription = "\(used)/\(self.limitRequests) requests"
         } else if self.apiKeyValid {
             usedPercent = 0
-            resetDescription = "Active — check dashboard for details"
+            resetDescription = "Active - check dashboard for details"
         } else {
             usedPercent = 0
             resetDescription = "No usage data"
@@ -176,7 +176,10 @@ public struct DoubaoUsageFetcher: Sendable {
             totalTokens: totalTokens)
 
         Self.log.debug(
-            "Doubao usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)")
+            """
+            Doubao usage parsed remaining=\(snapshot.remainingRequests) \
+            limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)
+            """)
 
         return snapshot
     }
@@ -255,7 +258,7 @@ public struct DoubaoUsageFetcher: Sendable {
                 .trimmingCharacters(in: .whitespacesAndNewlines),
                 !text.isEmpty
             {
-                return Self.compactText(text)
+                return self.compactText(text)
             }
             return "Unexpected response body (\(data.count) bytes)."
         }

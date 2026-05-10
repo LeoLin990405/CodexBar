@@ -1,30 +1,46 @@
+import AppKit
 import CodexBarCore
 import Foundation
 import Testing
 @testable import CodexBar
 
-@Suite
 struct StatusItemControllerMenuTests {
-    private func makeSnapshot(primary: RateWindow?, secondary: RateWindow?) -> UsageSnapshot {
-        UsageSnapshot(primary: primary, secondary: secondary, updatedAt: Date())
+    private func makeSnapshot(
+        primary: RateWindow?,
+        secondary: RateWindow?,
+        tertiary: RateWindow? = nil,
+        providerCost: ProviderCostSnapshot? = nil)
+        -> UsageSnapshot
+    {
+        UsageSnapshot(
+            primary: primary,
+            secondary: secondary,
+            tertiary: tertiary,
+            providerCost: providerCost,
+            updatedAt: Date())
     }
 
     @Test
-    func cursorSwitcherFallsBackToSecondaryWhenPlanExhaustedAndShowingRemaining() {
+    func `cursor switcher falls back to on demand budget when plan exhausted and showing remaining`() {
         let primary = RateWindow(usedPercent: 100, windowMinutes: nil, resetsAt: nil, resetDescription: nil)
         let secondary = RateWindow(usedPercent: 36, windowMinutes: nil, resetsAt: nil, resetDescription: nil)
-        let snapshot = self.makeSnapshot(primary: primary, secondary: secondary)
+        let providerCost = ProviderCostSnapshot(
+            used: 12,
+            limit: 200,
+            currencyCode: "USD",
+            updatedAt: Date())
+        let snapshot = self.makeSnapshot(primary: primary, secondary: secondary, providerCost: providerCost)
 
         let percent = StatusItemController.switcherWeeklyMetricPercent(
             for: .cursor,
             snapshot: snapshot,
             showUsed: false)
 
-        #expect(percent == 64)
+        #expect(percent == 94)
     }
 
     @Test
-    func cursorSwitcherUsesPrimaryWhenShowingUsed() {
+    func `cursor switcher uses primary when showing used`() {
         let primary = RateWindow(usedPercent: 100, windowMinutes: nil, resetsAt: nil, resetDescription: nil)
         let secondary = RateWindow(usedPercent: 36, windowMinutes: nil, resetsAt: nil, resetDescription: nil)
         let snapshot = self.makeSnapshot(primary: primary, secondary: secondary)
@@ -38,7 +54,7 @@ struct StatusItemControllerMenuTests {
     }
 
     @Test
-    func cursorSwitcherKeepsPrimaryWhenRemainingIsPositive() {
+    func `cursor switcher keeps primary when remaining is positive`() {
         let primary = RateWindow(usedPercent: 20, windowMinutes: nil, resetsAt: nil, resetDescription: nil)
         let secondary = RateWindow(usedPercent: 40, windowMinutes: nil, resetsAt: nil, resetDescription: nil)
         let snapshot = self.makeSnapshot(primary: primary, secondary: secondary)
@@ -52,57 +68,46 @@ struct StatusItemControllerMenuTests {
     }
 
     @Test
-    func openRouterBrandFallbackEnabledWhenNoKeyLimitConfigured() {
-        let snapshot = OpenRouterUsageSnapshot(
-            totalCredits: 50,
-            totalUsage: 45,
-            balance: 5,
-            usedPercent: 90,
-            keyDataFetched: true,
-            keyLimit: nil,
-            keyUsage: nil,
-            rateLimit: nil,
-            updatedAt: Date()).toUsageSnapshot()
+    func `cursor switcher does not treat auto lane as extra remaining quota`() {
+        let primary = RateWindow(usedPercent: 100, windowMinutes: nil, resetsAt: nil, resetDescription: nil)
+        let secondary = RateWindow(usedPercent: 36, windowMinutes: nil, resetsAt: nil, resetDescription: nil)
+        let snapshot = self.makeSnapshot(primary: primary, secondary: secondary)
 
-        #expect(StatusItemController.shouldUseOpenRouterBrandFallback(
-            provider: .openrouter,
-            snapshot: snapshot))
-        #expect(MenuBarDisplayText.percentText(window: snapshot.primary, showUsed: false) == nil)
+        let percent = StatusItemController.switcherWeeklyMetricPercent(
+            for: .cursor,
+            snapshot: snapshot,
+            showUsed: false)
+
+        #expect(percent == 0)
     }
 
     @Test
-    func openRouterBrandFallbackDisabledWhenKeyQuotaFetchUnavailable() {
-        let snapshot = OpenRouterUsageSnapshot(
-            totalCredits: 50,
-            totalUsage: 45,
-            balance: 5,
-            usedPercent: 90,
-            keyDataFetched: false,
-            keyLimit: nil,
-            keyUsage: nil,
-            rateLimit: nil,
-            updatedAt: Date()).toUsageSnapshot()
+    func `perplexity switcher falls back after recurring credits are exhausted`() {
+        let primary = RateWindow(usedPercent: 100, windowMinutes: nil, resetsAt: nil, resetDescription: nil)
+        let secondary = RateWindow(usedPercent: 100, windowMinutes: nil, resetsAt: nil, resetDescription: nil)
+        let tertiary = RateWindow(usedPercent: 24, windowMinutes: nil, resetsAt: nil, resetDescription: nil)
+        let snapshot = self.makeSnapshot(primary: primary, secondary: secondary, tertiary: tertiary)
 
-        #expect(!StatusItemController.shouldUseOpenRouterBrandFallback(
-            provider: .openrouter,
-            snapshot: snapshot))
+        let percent = StatusItemController.switcherWeeklyMetricPercent(
+            for: .perplexity,
+            snapshot: snapshot,
+            showUsed: false)
+
+        #expect(percent == 76)
     }
 
     @Test
-    func openRouterBrandFallbackDisabledWhenKeyQuotaAvailable() {
-        let snapshot = OpenRouterUsageSnapshot(
-            totalCredits: 50,
-            totalUsage: 45,
-            balance: 5,
-            usedPercent: 90,
-            keyLimit: 20,
-            keyUsage: 2,
-            rateLimit: nil,
-            updatedAt: Date()).toUsageSnapshot()
+    @MainActor
+    func `menu card width stays at base width when menu accessories are present`() {
+        let shortcutMenu = NSMenu()
+        let refreshItem = NSMenuItem(title: "Refresh", action: nil, keyEquivalent: "r")
+        shortcutMenu.addItem(refreshItem)
+        #expect(ceil(shortcutMenu.size.width) < 310)
 
-        #expect(!StatusItemController.shouldUseOpenRouterBrandFallback(
-            provider: .openrouter,
-            snapshot: snapshot))
-        #expect(snapshot.primary?.usedPercent == 10)
+        let submenuMenu = NSMenu()
+        let parentItem = NSMenuItem(title: "Session", action: nil, keyEquivalent: "")
+        parentItem.submenu = NSMenu(title: "Session")
+        submenuMenu.addItem(parentItem)
+        #expect(ceil(submenuMenu.size.width) < 310)
     }
 }

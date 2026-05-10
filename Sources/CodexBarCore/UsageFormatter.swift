@@ -76,6 +76,7 @@ public enum UsageFormatter {
         if let hours = Calendar.current.dateComponents([.hour], from: date, to: now).hour, hours < 24 {
             #if os(macOS)
             let rel = RelativeDateTimeFormatter()
+            rel.locale = Locale(identifier: "en_US")
             rel.unitsStyle = .abbreviated
             return "Updated \(rel.localizedString(for: date, relativeTo: now))"
             #else
@@ -145,6 +146,25 @@ public enum UsageFormatter {
         return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
+    public static func byteCountString(_ bytes: Int64) -> String {
+        let sign = bytes < 0 ? "-" : ""
+        let absBytes = Double(Swift.abs(bytes))
+        let units: [(threshold: Double, divisor: Double, suffix: String)] = [
+            (1024 * 1024 * 1024, 1024 * 1024 * 1024, "GB"),
+            (1024 * 1024, 1024 * 1024, "MB"),
+            (1024, 1024, "KB"),
+        ]
+
+        for unit in units where absBytes >= unit.threshold {
+            let scaled = absBytes / unit.divisor
+            let format = scaled >= 10 || scaled.rounded(.towardZero) == scaled ? "%.0f" : "%.1f"
+            let formatted = String(format: format, scaled)
+            return "\(sign)\(formatted) \(unit.suffix)"
+        }
+
+        return "\(bytes) B"
+    }
+
     public static func creditEventSummary(_ event: CreditEvent) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -204,6 +224,21 @@ public enum UsageFormatter {
         }
 
         return cleaned.isEmpty ? raw : cleaned
+    }
+
+    public static func modelCostDetail(_ model: String, costUSD: Double?, totalTokens: Int? = nil) -> String? {
+        let costDetail: String? = if let label = CostUsagePricing.codexDisplayLabel(model: model) {
+            label
+        } else if let costUSD {
+            self.usdString(costUSD)
+        } else {
+            nil
+        }
+
+        let tokenDetail = totalTokens.map(self.tokenCountString)
+        let parts = [costDetail, tokenDetail].compactMap(\.self)
+        guard !parts.isEmpty else { return nil }
+        return parts.joined(separator: " · ")
     }
 
     /// Cleans a provider plan string: strip ANSI/bracket noise, drop boilerplate words, collapse whitespace, and

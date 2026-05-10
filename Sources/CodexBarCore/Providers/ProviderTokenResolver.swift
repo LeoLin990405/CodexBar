@@ -34,6 +34,10 @@ public enum ProviderTokenResolver {
         self.minimaxTokenResolution(environment: environment)?.token
     }
 
+    public static func alibabaToken(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
+        self.alibabaTokenResolution(environment: environment)?.token
+    }
+
     public static func minimaxCookie(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
         self.minimaxCookieResolution(environment: environment)?.token
     }
@@ -61,8 +65,75 @@ public enum ProviderTokenResolver {
         self.openRouterResolution(environment: environment)?.token
     }
 
+    public static func perplexitySessionToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.perplexityResolution(environment: environment)?.token
+    }
+
+    public static func deepseekToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.deepseekResolution(environment: environment)?.token
+    }
+
+    public static func crofToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.crofResolution(environment: environment)?.token
+    }
+
+    public static func veniceToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.veniceResolution(environment: environment)?.token
+    }
+
+    public static func stepfunToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.stepfunResolution(environment: environment)?.token
+    }
+
     public static func doubaoToken(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
         self.doubaoResolution(environment: environment)?.token
+    }
+
+    public static func deepseekResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(DeepSeekSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func crofResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(CrofSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func veniceResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(VeniceSettingsReader.apiKey(environment: environment))
+    }
+
+    public static func codebuffToken(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        authFileURL: URL? = nil) -> String?
+    {
+        self.codebuffResolution(environment: environment, authFileURL: authFileURL)?.token
+    }
+
+    public static func stepfunResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(StepFunSettingsReader.token(environment: environment))
+    }
+
+    public static func doubaoResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(DoubaoSettingsReader.apiKey(environment: environment))
     }
 
     public static func zaiResolution(
@@ -87,6 +158,12 @@ public enum ProviderTokenResolver {
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
         self.resolveEnv(MiniMaxAPISettingsReader.apiToken(environment: environment))
+    }
+
+    public static func alibabaTokenResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
+    {
+        self.resolveEnv(AlibabaCodingPlanSettingsReader.apiToken(environment: environment))
     }
 
     public static func minimaxCookieResolution(
@@ -145,10 +222,36 @@ public enum ProviderTokenResolver {
         self.resolveEnv(OpenRouterSettingsReader.apiToken(environment: environment))
     }
 
-    public static func doubaoResolution(
+    public static func codebuffResolution(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        authFileURL: URL? = nil) -> ProviderTokenResolution?
+    {
+        if let resolution = self.resolveEnv(CodebuffSettingsReader.apiKey(environment: environment)) {
+            return resolution
+        }
+        if let token = CodebuffSettingsReader.authToken(authFileURL: authFileURL) {
+            return ProviderTokenResolution(token: token, source: .authFile)
+        }
+        return nil
+    }
+
+    public static func perplexityResolution(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
-        self.resolveEnv(DoubaoSettingsReader.apiKey(environment: environment))
+        if let resolution = self.resolveEnv(PerplexitySettingsReader.sessionToken(environment: environment)) {
+            return resolution
+        }
+        #if os(macOS)
+        do {
+            let session = try PerplexityCookieImporter.importSession()
+            if let token = session.sessionToken {
+                return ProviderTokenResolution(token: token, source: .environment)
+            }
+        } catch {
+            // No browser cookies found, continue to fallback
+        }
+        #endif
+        return nil
     }
 
     private static func cleaned(_ raw: String?) -> String? {
