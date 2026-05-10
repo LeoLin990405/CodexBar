@@ -2,18 +2,26 @@ import CodexBarCore
 import Foundation
 
 extension UsageStore {
+    func prepareRefreshState(for provider: UsageProvider? = nil) {
+        guard provider == nil || provider == .codex else { return }
+        _ = self.settings.persistResolvedCodexActiveSourceCorrectionIfNeeded()
+    }
+
     /// Force refresh Augment session (called from UI button)
     func forceRefreshAugmentSession() async {
         await self.performRuntimeAction(.forceSessionRefresh, for: .augment)
     }
 
     func refreshProvider(_ provider: UsageProvider, allowDisabled: Bool = false) async {
+        self.prepareRefreshState(for: provider)
         guard let spec = self.providerSpecs[provider] else { return }
+        let codexExpectedGuard = provider == .codex ? self.currentCodexAccountScopedRefreshGuard() : nil
 
         if !spec.isEnabled(), !allowDisabled {
             self.refreshingProviders.remove(provider)
             await MainActor.run {
                 self.snapshots.removeValue(forKey: provider)
+                self.lastKnownResetSnapshots.removeValue(forKey: provider)
                 self.errors[provider] = nil
                 self.lastSourceLabels.removeValue(forKey: provider)
                 self.lastFetchAttempts.removeValue(forKey: provider)
@@ -25,6 +33,7 @@ extension UsageStore {
                 self.statuses.removeValue(forKey: provider)
                 self.lastKnownSessionRemaining.removeValue(forKey: provider)
                 self.lastKnownSessionWindowSource.removeValue(forKey: provider)
+                self.quotaWarningState = self.quotaWarningState.filter { $0.key.provider != provider }
                 self.lastTokenFetchAt.removeValue(forKey: provider)
             }
             return
@@ -60,6 +69,7 @@ extension UsageStore {
         {
             await MainActor.run {
                 self.snapshots.removeValue(forKey: .claude)
+                self.lastKnownResetSnapshots.removeValue(forKey: .claude)
                 self.errors[.claude] = nil
                 self.lastSourceLabels.removeValue(forKey: .claude)
                 self.lastFetchAttempts.removeValue(forKey: .claude)
@@ -78,22 +88,45 @@ extension UsageStore {
         switch outcome.result {
         case let .success(result):
             let scoped = result.usage.scoped(to: provider)
-            await MainActor.run {
-                self.handleSessionQuotaTransition(provider: provider, snapshot: scoped)
-                self.snapshots[provider] = scoped
+            if provider == .codex,
+               let codexExpectedGuard,
+               !self.shouldApplyCodexUsageResult(expectedGuard: codexExpectedGuard, usage: scoped)
+            {
+                return
+            }
+            let backfilled = await MainActor.run {
+                let backfilled = scoped.backfillingResetTimes(from: self.lastKnownResetSnapshots[provider])
+                self.handleQuotaWarningTransitions(provider: provider, snapshot: backfilled)
+                self.handleSessionQuotaTransition(provider: provider, snapshot: backfilled)
+                self.lastKnownResetSnapshots[provider] = backfilled
+                self.snapshots[provider] = backfilled
                 self.lastSourceLabels[provider] = result.sourceLabel
                 self.errors[provider] = nil
                 self.failureGates[provider]?.recordSuccess()
+                if provider == .codex {
+                    self.rememberLiveSystemCodexEmailIfNeeded(scoped.accountEmail(for: .codex))
+                    self.seedCodexAccountScopedRefreshGuard(accountEmail: scoped.accountEmail(for: .codex))
+                }
+                return backfilled
             }
+            await self.recordPlanUtilizationHistorySample(
+                provider: provider,
+                snapshot: backfilled)
             if let runtime = self.providerRuntimes[provider] {
                 let context = ProviderRuntimeContext(
                     provider: provider, settings: self.settings, store: self)
                 runtime.providerDidRefresh(context: context, provider: provider)
             }
             if provider == .codex {
-                self.recordCodexHistoricalSampleIfNeeded(snapshot: scoped)
+                self.recordCodexHistoricalSampleIfNeeded(snapshot: backfilled)
             }
         case let .failure(error):
+            if provider == .codex,
+               let codexExpectedGuard,
+               !self.shouldApplyCodexScopedFailure(expectedGuard: codexExpectedGuard)
+            {
+                return
+            }
             await MainActor.run {
                 let hadPriorData = self.snapshots[provider] != nil
                 let shouldSurface =
