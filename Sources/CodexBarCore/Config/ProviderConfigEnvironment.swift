@@ -11,6 +11,12 @@ public enum ProviderConfigEnvironment {
         var env = base
         if let key = self.directAPIKeyEnvironmentKey(for: provider) {
             env[key] = apiKey
+            if provider == .mimo,
+               let region = config?.region?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !region.isEmpty
+            {
+                env[MiMoSettingsReader.apiRegionKey] = region
+            }
             return env
         }
 
@@ -72,6 +78,8 @@ public enum ProviderConfigEnvironment {
             OpenRouterSettingsReader.envKey
         case .moonshot:
             MoonshotSettingsReader.apiKeyEnvironmentKeys.first
+        case .mimo:
+            MiMoSettingsReader.apiKeyEnvironmentKeys.first
         case .venice:
             VeniceSettingsReader.apiKeyEnvironmentKey
         default:

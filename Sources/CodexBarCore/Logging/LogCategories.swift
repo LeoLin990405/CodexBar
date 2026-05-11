@@ -74,6 +74,7 @@ public enum LogCategories {
     public static let terminal = "terminal"
     public static let tokenAccounts = "token-accounts"
     public static let tokenCost = "token-cost"
+    public static let traeCookie = "trae-cookie"
     public static let traeUsage = "trae-usage"
     public static let traeWeb = "trae-web"
     public static let ttyRunner = "tty-runner"
