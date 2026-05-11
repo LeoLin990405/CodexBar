@@ -34,6 +34,10 @@ public enum UsageProvider: String, CaseIterable, Sendable, Codable {
     case perplexity
     case mimo
     case doubao
+    case qwen
+    case trae
+    case aigocode
+    case zenmux
     case abacus
     case mistral
     case deepseek
@@ -78,6 +82,10 @@ public enum IconStyle: Sendable, CaseIterable {
     case perplexity
     case mimo
     case doubao
+    case qwen
+    case trae
+    case aigocode
+    case zenmux
     case abacus
     case mistral
     case deepseek

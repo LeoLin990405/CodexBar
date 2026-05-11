@@ -1,6 +1,8 @@
 public enum LogCategories {
     public static let abacusCookie = "abacus-cookie"
     public static let abacusUsage = "abacus-usage"
+    public static let aigocodeUsage = "aigocode-usage"
+    public static let aigocodeWeb = "aigocode-web"
     public static let amp = "amp"
     public static let antigravity = "antigravity"
     public static let app = "app"
@@ -61,6 +63,7 @@ public enum LogCategories {
     public static let perplexityWeb = "perplexity-web"
     public static let providerDetection = "provider-detection"
     public static let providers = "providers"
+    public static let qwenUsage = "qwen-usage"
     public static let quotaWarningNotifications = "quotaWarningNotifications"
     public static let sessionQuota = "sessionQuota"
     public static let sessionQuotaNotifications = "sessionQuotaNotifications"
@@ -71,6 +74,8 @@ public enum LogCategories {
     public static let terminal = "terminal"
     public static let tokenAccounts = "token-accounts"
     public static let tokenCost = "token-cost"
+    public static let traeUsage = "trae-usage"
+    public static let traeWeb = "trae-web"
     public static let ttyRunner = "tty-runner"
     public static let veniceUsage = "venice-usage"
     public static let vertexAIFetcher = "vertexai-fetcher"
@@ -79,5 +84,6 @@ public enum LogCategories {
     public static let zaiSettings = "zai-settings"
     public static let zaiTokenStore = "zai-token-store"
     public static let zaiUsage = "zai-usage"
+    public static let zenmuxUsage = "zenmux-usage"
     public static let stepfunUsage = "stepfun-usage"
 }

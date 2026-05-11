@@ -30,6 +30,13 @@ extension TokenAccountSupportCatalog {
             injection: .environment(key: ZaiSettingsReader.apiTokenKey),
             requiresManualCookieSource: false,
             cookieName: nil),
+        .qwen: TokenAccountSupport(
+            title: "API token",
+            subtitle: "保存在 CodexBar 配置文件中。",
+            placeholder: "粘贴 token…",
+            injection: .environment(key: QwenSettingsReader.apiKeyEnvironmentKeys.first ?? "DASHSCOPE_API_KEY"),
+            requiresManualCookieSource: false,
+            cookieName: nil),
         .cursor: TokenAccountSupport(
             title: "会话 token",
             subtitle: "保存多个 Cursor Cookie header。",
@@ -112,6 +119,20 @@ extension TokenAccountSupportCatalog {
             subtitle: "Store multiple Venice API keys.",
             placeholder: "Paste API key…",
             injection: .environment(key: VeniceSettingsReader.apiKeyEnvironmentKey),
+            requiresManualCookieSource: false,
+            cookieName: nil),
+        .aigocode: TokenAccountSupport(
+            title: "API token",
+            subtitle: "Store multiple AigoCode API keys.",
+            placeholder: "Paste API key…",
+            injection: .environment(key: AigoCodeSettingsReader.apiKeyEnvironmentKeys.first ?? "AIGOCODE_API_KEY"),
+            requiresManualCookieSource: false,
+            cookieName: nil),
+        .zenmux: TokenAccountSupport(
+            title: "API token",
+            subtitle: "Store multiple Zenmux API keys.",
+            placeholder: "Paste API key…",
+            injection: .environment(key: ZenmuxSettingsReader.apiKeyEnvironmentKeys.first ?? "ZENMUX_API_KEY"),
             requiresManualCookieSource: false,
             cookieName: nil),
         .stepfun: TokenAccountSupport(
