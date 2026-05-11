@@ -42,9 +42,6 @@ jobs:
       - name: Lint
         run: ./Scripts/lint.sh lint
 
-      - name: Realtime refresh policy tests
-        run: swift test --filter "ProviderRefreshCoordinatorTests|ProviderFetchBackgroundPolicyTests"
-
       - name: Swift Test
         timeout-minutes: 60
         run: |

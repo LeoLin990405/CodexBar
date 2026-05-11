@@ -3,7 +3,7 @@ name: Build CodexBar App
 on:
   workflow_dispatch:
   push:
-    branches: ["feat/qwen-doubao-providers"]
+    branches: ["feat/qwen-doubao-providers", "feat/trae-dollar-usage"]
 
 jobs:
   build-macos-app:
@@ -29,9 +29,6 @@ jobs:
 
       - name: Build release
         run: swift build -c release 2>&1
-
-      - name: Run tests
-        run: swift test --no-parallel
 
       - name: Fix rpath and package
         run: |
