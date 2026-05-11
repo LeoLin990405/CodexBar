@@ -296,6 +296,10 @@ private struct ProviderSwitchChip: View {
         case .venice: "Venice"
         case .commandcode: "Command Code"
         case .stepfun: "StepFun"
+        case .qwen: "Qwen"
+        case .trae: "Trae"
+        case .aigocode: "AigoCode"
+        case .zenmux: "Zenmux"
         }
     }
 }
