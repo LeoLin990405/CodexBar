@@ -76,12 +76,6 @@ public enum UsageFormatter {
             return "刚刚更新"
         }
         if let hours = Calendar.current.dateComponents([.hour], from: date, to: now).hour, hours < 24 {
-            #if os(macOS)
-            let rel = RelativeDateTimeFormatter()
-            rel.locale = Locale(identifier: "en_US")
-            rel.unitsStyle = .abbreviated
-            return "Updated \(rel.localizedString(for: date, relativeTo: now))"
-            #else
             let seconds = max(0, Int(now.timeIntervalSince(date)))
             if seconds < 3600 {
                 let minutes = max(1, seconds / 60)
