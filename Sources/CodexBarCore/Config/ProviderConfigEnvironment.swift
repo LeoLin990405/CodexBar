@@ -58,6 +58,12 @@ public enum ProviderConfigEnvironment {
             MiniMaxAPISettingsReader.apiTokenKey
         case .alibaba:
             AlibabaCodingPlanSettingsReader.apiTokenKey
+        case .qwen:
+            QwenSettingsReader.apiKeyEnvironmentKeys.first
+        case .aigocode:
+            AigoCodeSettingsReader.apiKeyEnvironmentKeys.first
+        case .zenmux:
+            ZenmuxSettingsReader.apiKeyEnvironmentKeys.first
         case .kilo:
             KiloSettingsReader.apiTokenKey
         case .synthetic:

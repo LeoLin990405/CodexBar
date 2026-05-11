@@ -667,6 +667,14 @@ enum WidgetColors {
             Color(red: 1.0, green: 105 / 255, blue: 0)
         case .doubao:
             Color(red: 45 / 255, green: 136 / 255, blue: 255 / 255) // Doubao blue
+        case .qwen:
+            Color(red: 106 / 255, green: 58 / 255, blue: 255 / 255)
+        case .trae:
+            Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255)
+        case .aigocode:
+            Color(red: 27 / 255, green: 132 / 255, blue: 255 / 255)
+        case .zenmux:
+            Color(red: 255 / 255, green: 140 / 255, blue: 0 / 255)
         case .abacus:
             Color(red: 56 / 255, green: 189 / 255, blue: 248 / 255)
         case .mistral:
