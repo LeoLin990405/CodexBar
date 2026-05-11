@@ -23,14 +23,14 @@ public enum MiMoProviderDescriptor {
             id: .mimo,
             metadata: ProviderMetadata(
                 id: .mimo,
-                displayName: "小米 Mimo",
-                sessionLabel: "Credits 余额",
-                weeklyLabel: "窗口",
+                displayName: "Xiaomi MiMo",
+                sessionLabel: "Credits",
+                weeklyLabel: "Window",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: true,
                 creditsHint: "Token plan credits usage.",
-                toggleTitle: "显示小米 Mimo token 套餐与余额",
+                toggleTitle: "Show Xiaomi MiMo token plan & balance",
                 cliName: "mimo",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -44,50 +44,14 @@ public enum MiMoProviderDescriptor {
                 color: ProviderColor(red: 1.0, green: 105 / 255, blue: 0)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "小米 Mimo 暂不支持费用摘要。" }),
+                noDataMessage: { "Xiaomi MiMo cost summary is not supported." }),
             fetchPlan: ProviderFetchPlan(
-                sourceModes: [.auto, .web, .api],
-                pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),
+                sourceModes: [.auto, .web],
+                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [MiMoWebFetchStrategy()] })),
             cli: ProviderCLIConfig(
                 name: "mimo",
                 aliases: ["xiaomi-mimo"],
                 versionDetector: nil))
-    }
-
-    private static func resolveStrategies(context: ProviderFetchContext) async -> [any ProviderFetchStrategy] {
-        switch context.sourceMode {
-        case .api:
-            [MiMoAPIFetchStrategy()]
-        case .web:
-            [MiMoWebFetchStrategy()]
-        case .auto:
-            [MiMoAPIFetchStrategy(), MiMoWebFetchStrategy()]
-        case .cli, .oauth:
-            []
-        }
-    }
-}
-
-struct MiMoAPIFetchStrategy: ProviderFetchStrategy {
-    let id: String = "mimo.api"
-    let kind: ProviderFetchKind = .apiToken
-
-    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
-        ProviderTokenResolver.mimoResolution(environment: context.env) != nil
-    }
-
-    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        guard let apiKey = ProviderTokenResolver.mimoToken(environment: context.env) else {
-            throw MiMoSettingsError.missingAPIKey
-        }
-        let usage = try await MiMoUsageFetcher.fetchAPIUsage(
-            apiKey: apiKey,
-            environment: context.env)
-        return self.makeResult(usage: usage, sourceLabel: "api")
-    }
-
-    func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {
-        true
     }
 }
 

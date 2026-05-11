@@ -39,16 +39,16 @@ struct MiMoProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.miMoCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "自动导入“小米 Mimo”的 Chrome 浏览器 Cookie。",
-                manual: "粘贴来自 platform.xiaomimimo.com 的 Cookie header。",
-                off: "小米 Mimo Cookie 已关闭。")
+                auto: "Automatic imports Chrome browser cookies from Xiaomi MiMo.",
+                manual: "Paste a Cookie header from platform.xiaomimimo.com.",
+                off: "Xiaomi MiMo cookies are disabled.")
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "mimo-cookie-source",
-                title: "Cookie 来源",
-                subtitle: "自动导入“小米 Mimo”的 Chrome 浏览器 Cookie。",
+                title: "Cookie source",
+                subtitle: "Automatic imports Chrome browser cookies from Xiaomi MiMo.",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -57,7 +57,7 @@ struct MiMoProviderImplementation: ProviderImplementation {
                 trailingText: {
                     guard let entry = CookieHeaderCache.load(provider: .mimo) else { return nil }
                     let when = entry.storedAt.relativeDescription()
-                    return "已缓存：\(entry.sourceLabel) • \(when)"
+                    return "Cached: \(entry.sourceLabel) • \(when)"
                 }),
         ]
     }
@@ -75,7 +75,7 @@ struct MiMoProviderImplementation: ProviderImplementation {
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "mimo-open-balance",
-                        title: "打开小米 Mimo 余额",
+                        title: "Open MiMo Balance",
                         style: .link,
                         isVisible: nil,
                         perform: {

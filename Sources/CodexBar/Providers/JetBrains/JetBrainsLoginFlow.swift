@@ -1,4 +1,5 @@
 import CodexBarCore
+import Foundation
 
 @MainActor
 extension StatusItemController {
@@ -17,10 +18,10 @@ extension StatusItemController {
             let ideNames = detectedIDEs.prefix(3).map(\.displayName).joined(separator: ", ")
             let hasQuotaFile = !JetBrainsIDEDetector.detectInstalledIDEs().isEmpty
             let message = hasQuotaFile
-                ? "已检测到：\(ideNames)。请在设置里选择要监控的 IDE，然后刷新 CodexBar。"
-                : "已检测到：\(ideNames)。请先使用一次 AI Assistant 生成额度数据，然后刷新 CodexBar。"
+                ? String(format: L("jetbrains_detected_select"), ideNames)
+                : String(format: L("jetbrains_detected_generate"), ideNames)
             self.presentLoginAlert(
-                title: "JetBrains AI 已就绪",
+                title: L("JetBrains AI is ready"),
                 message: message)
         }
     }

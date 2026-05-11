@@ -1,245 +1,415 @@
 import Foundation
-
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
 
+// MARK: - API response types
+
+/// A flexible number type that can decode from both JSON integers and floats.
+/// The StepFun API returns `five_hour_usage_left_rate: 1` (int) or `0.99781543` (float).
+public struct StepFunFlexibleNumber: Decodable, Sendable {
+    public let value: Double
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let intVal = try? container.decode(Int.self) {
+            self.value = Double(intVal)
+        } else if let doubleVal = try? container.decode(Double.self) {
+            self.value = doubleVal
+        } else {
+            self.value = 0
+        }
+    }
+
+    public init(_ value: Double) {
+        self.value = value
+    }
+}
+
+/// A flexible timestamp type that can decode from both JSON strings and integers.
+/// The StepFun API returns timestamps as strings like `"1777528800"`.
+public struct StepFunFlexibleTimestamp: Decodable, Sendable {
+    public let value: Int64
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let strVal = try? container.decode(String.self), let parsed = Int64(strVal) {
+            self.value = parsed
+        } else if let intVal = try? container.decode(Int64.self) {
+            self.value = intVal
+        } else {
+            self.value = 0
+        }
+    }
+
+    public init(_ value: Int64) {
+        self.value = value
+    }
+}
+
+public struct StepFunRateLimitResponse: Decodable, Sendable {
+    public let status: Int?
+    public let code: Int?
+    public let message: String?
+    public let desc: String?
+    public let fiveHourUsageLeftRate: StepFunFlexibleNumber?
+    public let weeklyUsageLeftRate: StepFunFlexibleNumber?
+    public let fiveHourUsageResetTime: StepFunFlexibleTimestamp?
+    public let weeklyUsageResetTime: StepFunFlexibleTimestamp?
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case code
+        case message
+        case desc
+        case fiveHourUsageLeftRate = "five_hour_usage_left_rate"
+        case weeklyUsageLeftRate = "weekly_usage_left_rate"
+        case fiveHourUsageResetTime = "five_hour_usage_reset_time"
+        case weeklyUsageResetTime = "weekly_usage_reset_time"
+    }
+
+    public var isSuccess: Bool {
+        self.status == 1
+    }
+}
+
+// MARK: - Plan status response types
+
+struct StepFunPlanStatusResponse: Decodable {
+    let status: Int?
+    let subscription: StepFunSubscription?
+
+    var planName: String? {
+        self.subscription?.name?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+struct StepFunSubscription: Decodable {
+    let name: String?
+    let planType: Int?
+    let planStatus: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case planType = "plan_type"
+        case planStatus = "status"
+    }
+}
+
+// MARK: - Auth response types
+
+struct StepFunRegisterDeviceResponse: Decodable {
+    let accessToken: StepFunTokenPair?
+    let refreshToken: StepFunTokenPair?
+}
+
+struct StepFunLoginResponse: Decodable {
+    let accessToken: StepFunTokenPair?
+    let refreshToken: StepFunTokenPair?
+}
+
+struct StepFunTokenPair: Decodable {
+    let raw: String
+}
+
+// MARK: - Domain snapshot
+
 public struct StepFunUsageSnapshot: Sendable {
-    // API balance (prepaid account)
-    public let balance: Double
-    public let cashBalance: Double
-    public let voucherBalance: Double
-    public let accountType: String
-
-    // Step Plan (coding subscription)
+    public let fiveHourUsageLeftRate: Double
+    public let weeklyUsageLeftRate: Double
+    public let fiveHourUsageResetTime: Date
+    public let weeklyUsageResetTime: Date
     public let planName: String?
-    public let planExpiredAt: Date?
-    public let planAutoRenew: Bool
-    public let fiveHourLeftRate: Double?
-    public let fiveHourResetTime: Date?
-    public let weeklyLeftRate: Double?
-    public let weeklyResetTime: Date?
-
     public let updatedAt: Date
-    public let apiKeyValid: Bool
 
     public init(
-        balance: Double,
-        cashBalance: Double,
-        voucherBalance: Double,
-        accountType: String,
+        fiveHourUsageLeftRate: Double,
+        weeklyUsageLeftRate: Double,
+        fiveHourUsageResetTime: Date,
+        weeklyUsageResetTime: Date,
         planName: String? = nil,
-        planExpiredAt: Date? = nil,
-        planAutoRenew: Bool = false,
-        fiveHourLeftRate: Double? = nil,
-        fiveHourResetTime: Date? = nil,
-        weeklyLeftRate: Double? = nil,
-        weeklyResetTime: Date? = nil,
-        updatedAt: Date,
-        apiKeyValid: Bool = true)
+        updatedAt: Date)
     {
-        self.balance = balance
-        self.cashBalance = cashBalance
-        self.voucherBalance = voucherBalance
-        self.accountType = accountType
+        self.fiveHourUsageLeftRate = fiveHourUsageLeftRate
+        self.weeklyUsageLeftRate = weeklyUsageLeftRate
+        self.fiveHourUsageResetTime = fiveHourUsageResetTime
+        self.weeklyUsageResetTime = weeklyUsageResetTime
         self.planName = planName
-        self.planExpiredAt = planExpiredAt
-        self.planAutoRenew = planAutoRenew
-        self.fiveHourLeftRate = fiveHourLeftRate
-        self.fiveHourResetTime = fiveHourResetTime
-        self.weeklyLeftRate = weeklyLeftRate
-        self.weeklyResetTime = weeklyResetTime
         self.updatedAt = updatedAt
-        self.apiKeyValid = apiKeyValid
     }
 
     public func toUsageSnapshot() -> UsageSnapshot {
-        // Primary: 5-hour rate limit if available, otherwise balance
-        let primary: RateWindow
-        if let rate = self.fiveHourLeftRate {
-            let usedPercent = max(0, min(100, (1.0 - rate) * 100))
-            let pctStr = String(format: "%.0f%%", rate * 100)
-            primary = RateWindow(
-                usedPercent: usedPercent,
-                windowMinutes: 5 * 60,
-                resetsAt: self.fiveHourResetTime,
-                resetDescription: "5h remaining: \(pctStr)")
-        } else {
-            // Balance display: show as "active" with balance info, low usedPercent
-            let balanceStr = String(format: "¥%.2f", self.balance)
-            let voucherStr = self.voucherBalance > 0
-                ? String(format: "（代金券：¥%.2f）", self.voucherBalance) : ""
-            primary = RateWindow(
-                usedPercent: self.balance > 0 ? 0 : 100,
-                windowMinutes: nil,
-                resetsAt: nil,
-                resetDescription: "余额：\(balanceStr)\(voucherStr)")
-        }
+        // Five-hour window: primary
+        let fiveHourUsedPercent = max(0, min(100, (1.0 - self.fiveHourUsageLeftRate) * 100))
+        let fiveHourResetDescription = UsageFormatter.resetDescription(from: self.fiveHourUsageResetTime)
+        let fiveHourWindow = RateWindow(
+            usedPercent: fiveHourUsedPercent,
+            windowMinutes: 300,
+            resetsAt: self.fiveHourUsageResetTime,
+            resetDescription: fiveHourResetDescription)
 
-        // Secondary: weekly rate limit if available, otherwise nil
-        var secondary: RateWindow?
-        if let weekRate = self.weeklyLeftRate {
-            let weekUsed = max(0, min(100, (1.0 - weekRate) * 100))
-            let weekPctStr = String(format: "%.0f%%", weekRate * 100)
-            secondary = RateWindow(
-                usedPercent: weekUsed,
-                windowMinutes: 7 * 24 * 60,
-                resetsAt: self.weeklyResetTime,
-                resetDescription: "Weekly remaining: \(weekPctStr)")
-        }
+        // Weekly window: secondary
+        let weeklyUsedPercent = max(0, min(100, (1.0 - self.weeklyUsageLeftRate) * 100))
+        let weeklyResetDescription = UsageFormatter.resetDescription(from: self.weeklyUsageResetTime)
+        let weeklyWindow = RateWindow(
+            usedPercent: weeklyUsedPercent,
+            windowMinutes: 10080,
+            resetsAt: self.weeklyUsageResetTime,
+            resetDescription: weeklyResetDescription)
 
-        // Tertiary: plan info + balance
-        var tertiary: RateWindow?
-        if let planName = self.planName {
-            var desc = "\(planName) Plan"
-            if let exp = self.planExpiredAt {
-                let formatter = DateFormatter()
-                formatter.dateFormat = "yyyy-MM-dd"
-                desc += " → \(formatter.string(from: exp))"
-            }
-            let balanceStr = String(format: "¥%.2f", self.balance)
-            desc += " | Balance: \(balanceStr)"
-            tertiary = RateWindow(
-                usedPercent: 0,
-                windowMinutes: nil,
-                resetsAt: self.planExpiredAt,
-                resetDescription: desc)
-        }
-
-        let org: String? = if let planName = self.planName {
-            "\(planName) Plan"
-        } else {
-            self.accountType == "prepaid" ? "Prepaid" : "Postpaid"
-        }
+        let trimmedPlan = self.planName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let loginMethod = (trimmedPlan?.isEmpty ?? true) ? "password" : trimmedPlan
 
         let identity = ProviderIdentitySnapshot(
             providerID: .stepfun,
             accountEmail: nil,
-            accountOrganization: org,
-            loginMethod: nil)
+            accountOrganization: nil,
+            loginMethod: loginMethod)
 
         return UsageSnapshot(
-            primary: primary,
-            secondary: secondary,
-            tertiary: tertiary,
-            providerCost: nil,
+            primary: fiveHourWindow,
+            secondary: weeklyWindow,
+            tertiary: nil,
             updatedAt: self.updatedAt,
             identity: identity)
     }
 }
 
+// MARK: - Errors
+
 public enum StepFunUsageError: LocalizedError, Sendable {
     case missingCredentials
+    case missingToken
     case networkError(String)
-    case apiError(Int, String)
+    case apiError(String)
     case parseFailed(String)
+    case loginFailed(String)
+    case deviceRegistrationFailed(String)
 
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "缺少阶跃星辰 API key（STEPFUN_API_KEY）。"
+            "Missing StepFun username or password. Set STEPFUN_USERNAME and STEPFUN_PASSWORD environment variables."
+        case .missingToken:
+            "Missing StepFun authentication token."
         case let .networkError(message):
-            "阶跃星辰网络错误：\(message)"
-        case let .apiError(code, message):
-            "阶跃星辰 API 错误（\(code)）：\(message)"
+            "StepFun network error: \(message)"
+        case let .apiError(message):
+            "StepFun API error: \(message)"
         case let .parseFailed(message):
-            "解析阶跃星辰响应失败：\(message)"
+            "Failed to parse StepFun response: \(message)"
+        case let .loginFailed(message):
+            "StepFun login failed: \(message)"
+        case let .deviceRegistrationFailed(message):
+            "StepFun device registration failed: \(message)"
         }
     }
 }
 
+// MARK: - Fetcher
+
 public struct StepFunUsageFetcher: Sendable {
     private static let log = CodexBarLog.logger(LogCategories.stepfunUsage)
-    private static let accountsURL = URL(string: "https://api.stepfun.com/v1/accounts")!
+    private static let platformURL = URL(string: "https://platform.stepfun.com")!
+    private static let apiURL =
+        URL(string: "https://platform.stepfun.com/api/step.openapi.devcenter.Dashboard/QueryStepPlanRateLimit")!
+    private static let planStatusURL =
+        URL(string: "https://platform.stepfun.com/api/step.openapi.devcenter.Dashboard/GetStepPlanStatus")!
+    private static let registerDeviceURL =
+        URL(string: "https://platform.stepfun.com/passport/proto.api.passport.v1.PassportService/RegisterDevice")!
+    private static let loginURL =
+        URL(string: "https://platform.stepfun.com/passport/proto.api.passport.v1.PassportService/SignInByPassword")!
+    private static let timeoutSeconds: TimeInterval = 15
 
-    public static func fetchUsage(
-        apiKey: String,
-        dashboardData: DashboardData? = nil) async throws -> StepFunUsageSnapshot
-    {
-        try await self._fetchUsage(apiKey: apiKey, dashboardSnapshot: dashboardData)
+    private static let webID = "c8a1002d2c457e758785a9979832217c7c0b884c"
+    private static let appID = "10300"
+
+    private static let baseHeaders: [String: String] = [
+        "content-type": "application/json",
+        "oasis-appid": appID,
+        "oasis-platform": "web",
+        "oasis-webid": webID,
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    ]
+
+    // MARK: - Public API
+
+    /// Perform the full login flow (username + password → Oasis-Token) and return the token.
+    /// Does NOT fetch usage — the caller should cache the token and then call `fetchUsage(token:)`.
+    public static func login(username: String, password: String) async throws -> String {
+        try await self.fullLogin(username: username, password: password)
     }
 
-    public struct DashboardData: Sendable {
-        public let planName: String?
-        public let planExpiry: String?
-        public let fiveHourLeftPercent: Double?
-        public let fiveHourResetTime: String?
-        public let weeklyLeftPercent: Double?
-        public let weeklyResetTime: String?
-    }
-
-    private static func _fetchUsage(
-        apiKey: String,
-        dashboardSnapshot: DashboardData?) async throws -> StepFunUsageSnapshot
-    {
-        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw StepFunUsageError.missingCredentials
+    /// Fetch usage data using an existing Oasis-Token (from env var or cached).
+    public static func fetchUsage(token: String) async throws -> StepFunUsageSnapshot {
+        guard !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw StepFunUsageError.missingToken
         }
-
-        // 1. Fetch API balance (always works with API key)
-        let (balance, cashBalance, voucherBalance, accountType) = try await self.fetchAccountBalance(apiKey: apiKey)
-
-        // 2. Map dashboard snapshot to our model
-        var planName: String?
-        var planExpiredAt: Date?
-        let planAutoRenew = false
-        var fiveHourLeftRate: Double?
-        var fiveHourResetTime: Date?
-        var weeklyLeftRate: Double?
-        var weeklyResetTime: Date?
-
-        if let dash = dashboardSnapshot {
-            planName = dash.planName
-            if let expStr = dash.planExpiry {
-                // Parse "2026年04月22日"
-                let fmt = DateFormatter()
-                fmt.dateFormat = "yyyy年MM月dd日"
-                planExpiredAt = fmt.date(from: expStr)
-            }
-            if let pct = dash.fiveHourLeftPercent {
-                fiveHourLeftRate = pct / 100.0
-            }
-            if let pct = dash.weeklyLeftPercent {
-                weeklyLeftRate = pct / 100.0
-            }
-            if let resetStr = dash.fiveHourResetTime {
-                let fmt = DateFormatter()
-                fmt.dateFormat = "yyyy-MM-dd HH:mm:ss"
-                fiveHourResetTime = fmt.date(from: resetStr)
-            }
-            if let resetStr = dash.weeklyResetTime {
-                let fmt = DateFormatter()
-                fmt.dateFormat = "yyyy-MM-dd HH:mm:ss"
-                weeklyResetTime = fmt.date(from: resetStr)
-            }
-        }
-
-        Self.log.debug(
-            "StepFun balance=\(balance) plan=\(planName ?? "none") 5h=\(fiveHourLeftRate ?? -1) weekly=\(weeklyLeftRate ?? -1)") // swiftlint:disable:this line_length
-
-        return StepFunUsageSnapshot(
-            balance: balance,
-            cashBalance: cashBalance,
-            voucherBalance: voucherBalance,
-            accountType: accountType,
-            planName: planName,
-            planExpiredAt: planExpiredAt,
-            planAutoRenew: planAutoRenew,
-            fiveHourLeftRate: fiveHourLeftRate,
-            fiveHourResetTime: fiveHourResetTime,
-            weeklyLeftRate: weeklyLeftRate,
-            weeklyResetTime: weeklyResetTime,
-            updatedAt: Date())
+        return try await self.queryUsage(token: token)
     }
 
-    // MARK: - API Balance
+    /// Full login flow: username + password → token, then fetch usage.
+    public static func fetchUsage(username: String, password: String) async throws -> StepFunUsageSnapshot {
+        let token = try await self.fullLogin(username: username, password: password)
+        return try await self.queryUsage(token: token)
+    }
 
-    private static func fetchAccountBalance(apiKey: String) async throws -> (Double, Double, Double, String) {
-        var request = URLRequest(url: self.accountsURL)
+    // MARK: - Login
+
+    private static func fullLogin(username: String, password: String) async throws -> String {
+        // Step 1: Get INGRESSCOOKIE by visiting the platform homepage
+        let (ingressCookie, _) = try await self.getIngressCookie()
+
+        // Step 2: RegisterDevice → get anonymous token
+        let anonToken = try await self.registerDevice(ingressCookie: ingressCookie)
+
+        // Step 3: SignInByPassword → get authenticated token
+        return try await self.signInByPassword(
+            username: username,
+            password: password,
+            ingressCookie: ingressCookie,
+            anonToken: anonToken)
+    }
+
+    private static func getIngressCookie() async throws -> (String, HTTPURLResponse) {
+        var request = URLRequest(url: self.platformURL)
         request.httpMethod = "GET"
-        request.timeoutInterval = 30
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        for (key, value) in self.baseHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.timeoutInterval = self.timeoutSeconds
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw StepFunUsageError.networkError("Invalid response fetching platform page")
+        }
+
+        // Extract INGRESSCOOKIE from Set-Cookie headers
+        let setCookieHeaders = httpResponse.allHeaderFields.filter { ($0.key as? String)?.lowercased() == "set-cookie" }
+        var ingressCookie = ""
+        for (_, value) in setCookieHeaders {
+            let cookieString = "\(value)"
+            if cookieString.contains("INGRESSCOOKIE=") {
+                let parts = cookieString.components(separatedBy: "INGRESSCOOKIE=")
+                if parts.count > 1 {
+                    let valuePart = parts[1].components(separatedBy: ";").first ?? ""
+                    ingressCookie = valuePart.trimmingCharacters(in: .whitespaces)
+                }
+            }
+        }
+
+        // Also check cookies from the URLSession cookie store
+        if ingressCookie.isEmpty {
+            let cookies = HTTPCookieStorage.shared.cookies(for: self.platformURL) ?? []
+            for cookie in cookies where cookie.name == "INGRESSCOOKIE" {
+                ingressCookie = cookie.value
+                break
+            }
+        }
+
+        guard !ingressCookie.isEmpty else {
+            throw StepFunUsageError.loginFailed("Could not obtain INGRESSCOOKIE")
+        }
+
+        return (ingressCookie, httpResponse)
+    }
+
+    private static func registerDevice(ingressCookie: String) async throws -> String {
+        var request = URLRequest(url: self.registerDeviceURL)
+        request.httpMethod = "POST"
+        request.httpBody = Data("{}".utf8)
+        for (key, value) in self.baseHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.setValue("INGRESSCOOKIE=\(ingressCookie)", forHTTPHeaderField: "Cookie")
+        request.timeoutInterval = self.timeoutSeconds
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw StepFunUsageError.networkError("Invalid response from RegisterDevice")
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            Self.log.error("StepFun RegisterDevice returned \(httpResponse.statusCode): \(body)")
+            throw StepFunUsageError.deviceRegistrationFailed("HTTP \(httpResponse.statusCode)")
+        }
+
+        let decoded: StepFunRegisterDeviceResponse
+        do {
+            decoded = try JSONDecoder().decode(StepFunRegisterDeviceResponse.self, from: data)
+        } catch {
+            throw StepFunUsageError.parseFailed("RegisterDevice response: \(error.localizedDescription)")
+        }
+
+        guard let accessToken = decoded.accessToken?.raw, !accessToken.isEmpty else {
+            throw StepFunUsageError.deviceRegistrationFailed("No access token in RegisterDevice response")
+        }
+
+        let refreshToken = decoded.refreshToken?.raw ?? ""
+        // Combine access + refresh tokens like the Python tool does
+        return "\(accessToken)...\(refreshToken)"
+    }
+
+    private static func signInByPassword(
+        username: String,
+        password: String,
+        ingressCookie: String,
+        anonToken: String) async throws -> String
+    {
+        var request = URLRequest(url: self.loginURL)
+        request.httpMethod = "POST"
+        let body: [String: String] = ["username": username, "password": password]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        for (key, value) in self.baseHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.setValue(
+            "Oasis-Token=\(anonToken); Oasis-Webid=\(self.webID); INGRESSCOOKIE=\(ingressCookie)",
+            forHTTPHeaderField: "Cookie")
+        request.timeoutInterval = self.timeoutSeconds
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw StepFunUsageError.networkError("Invalid response from SignInByPassword")
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            Self.log.error("StepFun SignInByPassword returned \(httpResponse.statusCode): \(body)")
+            throw StepFunUsageError.loginFailed("HTTP \(httpResponse.statusCode)")
+        }
+
+        let decoded: StepFunLoginResponse
+        do {
+            decoded = try JSONDecoder().decode(StepFunLoginResponse.self, from: data)
+        } catch {
+            throw StepFunUsageError.parseFailed("SignInByPassword response: \(error.localizedDescription)")
+        }
+
+        guard let accessToken = decoded.accessToken?.raw, !accessToken.isEmpty else {
+            throw StepFunUsageError.loginFailed("No access token in login response")
+        }
+
+        let refreshToken = decoded.refreshToken?.raw ?? ""
+        return "\(accessToken)...\(refreshToken)"
+    }
+
+    // MARK: - Query usage
+
+    private static func queryUsage(token: String) async throws -> StepFunUsageSnapshot {
+        var request = URLRequest(url: self.apiURL)
+        request.httpMethod = "POST"
+        request.httpBody = Data("{}".utf8)
+        for (key, value) in self.baseHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.setValue("Oasis-Token=\(token); Oasis-Webid=\(self.webID)", forHTTPHeaderField: "Cookie")
+        request.timeoutInterval = self.timeoutSeconds
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -248,40 +418,92 @@ public struct StepFunUsageFetcher: Sendable {
         }
 
         guard httpResponse.statusCode == 200 else {
-            let summary = Self.errorSummary(data: data)
-            Self.log.error("StepFun accounts API returned \(httpResponse.statusCode): \(summary)")
-            if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-                throw StepFunUsageError.apiError(httpResponse.statusCode, "API key 无效")
-            }
-            throw StepFunUsageError.apiError(httpResponse.statusCode, summary)
+            let body = String(data: data, encoding: .utf8) ?? ""
+            Self.log.error("StepFun API returned \(httpResponse.statusCode): \(body)")
+            throw StepFunUsageError.apiError("HTTP \(httpResponse.statusCode)")
         }
 
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw StepFunUsageError.parseFailed("JSON 响应无效")
+        if let jsonString = String(data: data, encoding: .utf8) {
+            Self.log.debug("StepFun API response: \(jsonString)")
         }
 
-        let balance = (json["balance"] as? Double) ?? 0
-        let cashBalance = (json["total_cash_balance"] as? Double) ?? 0
-        let voucherBalance = (json["total_voucher_balance"] as? Double) ?? 0
-        let accountType = (json["type"] as? String) ?? "prepaid"
+        var snapshot = try self.parseSnapshot(data: data)
 
-        return (balance, cashBalance, voucherBalance, accountType)
+        // Fetch plan name in parallel is not needed — just do it sequentially.
+        // If plan status fails, we still return usage data without plan name.
+        if let planName = try? await self.queryPlanStatus(token: token) {
+            snapshot = StepFunUsageSnapshot(
+                fiveHourUsageLeftRate: snapshot.fiveHourUsageLeftRate,
+                weeklyUsageLeftRate: snapshot.weeklyUsageLeftRate,
+                fiveHourUsageResetTime: snapshot.fiveHourUsageResetTime,
+                weeklyUsageResetTime: snapshot.weeklyUsageResetTime,
+                planName: planName,
+                updatedAt: snapshot.updatedAt)
+        }
+
+        return snapshot
     }
 
-    // MARK: - Helpers
+    // MARK: - Plan Status
 
-    private static func errorSummary(data: Data) -> String {
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let error = json["error"] as? [String: Any],
-           let message = error["message"] as? String
-        {
-            return message
+    private static func queryPlanStatus(token: String) async throws -> String? {
+        var request = URLRequest(url: self.planStatusURL)
+        request.httpMethod = "POST"
+        request.httpBody = Data("{}".utf8)
+        for (key, value) in self.baseHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
         }
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let message = json["message"] as? String
-        {
-            return message
+        request.setValue("Oasis-Token=\(token); Oasis-Webid=\(self.webID)", forHTTPHeaderField: "Cookie")
+        request.timeoutInterval = self.timeoutSeconds
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            Self.log.debug("StepFun plan status request failed, skipping plan name")
+            return nil
         }
-        return String(data: data, encoding: .utf8) ?? "Unknown error"
+
+        let decoded: StepFunPlanStatusResponse
+        do {
+            decoded = try JSONDecoder().decode(StepFunPlanStatusResponse.self, from: data)
+        } catch {
+            Self.log.debug("StepFun plan status parse failed: \(error.localizedDescription)")
+            return nil
+        }
+
+        return decoded.planName
+    }
+
+    public static func _parseSnapshotForTesting(_ data: Data) throws -> StepFunUsageSnapshot {
+        try self.parseSnapshot(data: data)
+    }
+
+    private static func parseSnapshot(data: Data) throws -> StepFunUsageSnapshot {
+        let decoded: StepFunRateLimitResponse
+        do {
+            decoded = try JSONDecoder().decode(StepFunRateLimitResponse.self, from: data)
+        } catch {
+            throw StepFunUsageError.parseFailed(error.localizedDescription)
+        }
+
+        guard decoded.isSuccess else {
+            let msg = decoded.message ?? decoded.code.map(String.init) ?? "unknown"
+            throw StepFunUsageError.apiError(msg)
+        }
+
+        guard let fiveHourRate = decoded.fiveHourUsageLeftRate,
+              let weeklyRate = decoded.weeklyUsageLeftRate,
+              let fiveHourReset = decoded.fiveHourUsageResetTime,
+              let weeklyReset = decoded.weeklyUsageResetTime
+        else {
+            throw StepFunUsageError.parseFailed("Missing usage rate or reset time fields")
+        }
+
+        return StepFunUsageSnapshot(
+            fiveHourUsageLeftRate: fiveHourRate.value,
+            weeklyUsageLeftRate: weeklyRate.value,
+            fiveHourUsageResetTime: Date(timeIntervalSince1970: TimeInterval(fiveHourReset.value)),
+            weeklyUsageResetTime: Date(timeIntervalSince1970: TimeInterval(weeklyReset.value)),
+            updatedAt: Date())
     }
 }

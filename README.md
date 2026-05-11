@@ -1,8 +1,25 @@
-# CodexBar 中文汉化版
+# CodexBar 🎚️ — May your tokens never run out.
 
-这是 Leo 维护的 [steipete/CodexBar](https://github.com/steipete/CodexBar) 中文汉化 fork。
+> Every AI coding limit, in your menu bar.
 
-CodexBar 是一个 macOS 菜单栏工具，用来集中查看 Codex、Claude、Cursor、Gemini、Copilot、OpenRouter、月之暗面 Kimi、千问、豆包、Trae、小米 Mimo、智谱 z.ai、MiniMax、阶跃星辰、阿里云百炼 Coding Plan 等 AI 工具的额度、余额、重置时间和服务状态。
+[![Latest release](https://img.shields.io/github/v/release/steipete/CodexBar?style=flat-square&color=0a0a0c)](https://github.com/steipete/CodexBar/releases/latest)
+[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-0a0a0c?style=flat-square)](https://github.com/steipete/CodexBar/releases/latest)
+[![Homebrew](https://img.shields.io/badge/brew-steipete%2Ftap%2Fcodexbar-orange?style=flat-square)](https://github.com/steipete/homebrew-tap)
+[![License: MIT](https://img.shields.io/badge/license-MIT-6e5aff?style=flat-square)](LICENSE)
+[![Site](https://img.shields.io/badge/site-codexbar.app-16d3b4?style=flat-square)](https://codexbar.app)
+
+<a href="https://codexbar.app"><img src="docs/social.png" alt="CodexBar — every AI coding limit in your menu bar. 29 providers." width="100%" /></a>
+
+Tiny macOS 14+ menu bar app that keeps **AI coding-provider limits visible** and shows when each window resets. Codex, Claude, Cursor, Gemini, Copilot, z.ai, Kiro, Vertex AI, Augment, OpenRouter, Codebuff, Command Code, and many newer coding providers. One status item per provider, or Merge Icons mode with a provider switcher. No Dock icon, minimal UI, dynamic bar icons.
+
+<img src="codexbar.png" alt="CodexBar menu popover with provider tiles, usage bars, and reset countdowns" width="520" />
+
+## Why
+
+- **Plan around resets.** Per-provider session, weekly, and monthly windows with countdowns to the next reset — stop guessing whether to start that long task.
+- **Credits, spend, and cost scans.** Credit balances and monthly spend where the provider exposes them, plus a local cost scan over the last 30 days for Codex and Claude.
+- **Live status.** Provider status polling surfaces incident badges in the menu and an indicator overlay on the bar icon.
+- **Privacy-first.** Reuses existing provider sessions — OAuth, device flow, API keys, browser cookies, local files — so no passwords are stored.
 
 这个 fork 的目标很直接：让中文用户打开应用后能直接看懂、直接配置、直接排查，不需要在英文设置项、英文错误提示、provider 名称和不同 API 来源之间来回猜。
 
@@ -73,129 +90,127 @@ CodexBar 是一个 macOS 菜单栏工具，用来集中查看 Codex、Claude、C
 brew install --cask steipete/tap/codexbar
 ```
 
-安装的是上游原版 CodexBar，不是这个中文汉化 fork。需要中文版本时，请使用本 fork 的 Release 或 GitHub Actions 产物。
-
-## 第一次使用
-
-1. 打开 CodexBar。
-2. 进入设置里的 Provider 页面。
-3. 只启用你实际使用的 provider。
-4. 按 provider 要求登录对应 CLI、浏览器账号、OAuth，或填写 API key/Cookie。
-5. 如果 macOS 弹出 Keychain 或浏览器 Cookie 解密权限，请只授权给 `CodexBar.app`。
-6. 回到 Overview 或菜单栏，手动刷新一次确认数据源是否可用。
-
-## 当前支持的 Provider
-
-不同 provider 的数据来源不同：有些读 CLI 输出，有些读 OAuth/API，有些需要浏览器 Cookie，有些只提供状态探测。具体限制请以设置页错误提示和 `docs/` 下的 provider 文档为准。
-
-### 核心开发工具
-
-- [Codex](docs/codex.md)：Codex CLI RPC/PTy、本地用量扫描，可选 OpenAI 网页 dashboard 增强。
-- [Claude](docs/claude.md)：OAuth API、浏览器 Cookie、CLI PTY fallback，支持 session 和 weekly 用量。
-- [Cursor](docs/cursor.md)：通过浏览器 session Cookie 获取 plan、usage 和 billing reset。
-- [Gemini](docs/gemini.md)：使用 Gemini CLI 凭据的 OAuth quota API。账号或 TOS 状态异常时可能不可用。
-- [Copilot](docs/copilot.md)：GitHub device flow 和 Copilot internal usage API。
-- [OpenCode](docs/opencode.md)：OpenCode 网页 dashboard。
-- OpenCode Go：OpenCode Go 相关用量入口。
-
-### 中文和亚洲服务
-
-- [月之暗面 Kimi](docs/kimi.md)：从 `kimi-auth` Cookie/JWT 读取 weekly quota 和 5 小时 rate limit。
-- [月之暗面 Kimi K2](docs/kimi-k2.md)：API key 读取 credit 用量。
-- [智谱 z.ai](docs/zai.md)：API token 读取 quota 和 MCP window；智谱/BigModel CN 入口可按配置切换。
-- [阿里云百炼 Coding Plan](docs/alibaba-coding-plan.md)：阿里 Coding Plan，支持浏览器 session 和 API key fallback。
-- 千问：阿里云百炼/千问相关入口；和阿里云百炼 Coding Plan 分开配置。
-- 豆包：火山方舟/豆包相关订阅和额度入口。
-- Trae：Trae 账号用量入口。
-- [小米 Mimo](docs/mimo.md)：读取小米 Mimo token plan 和余额，支持 API key、自动浏览器 Cookie 或手动 Cookie。
-- [MiniMax](docs/minimax.md)：MiniMax Coding Plan。
-- 阶跃星辰：阶跃星辰平台入口。
-- Zenmux：Zenmux 平台入口。
-- AigoCode：AigoCode 平台入口。
-
-### 其他 Provider
-
-- [Antigravity](docs/antigravity.md)：本地 language server 探测，实验性。
-- [Droid/Factory](docs/factory.md)：Factory cookies、WorkOS token flows。
-- [Kilo](docs/kilo.md)：API token 或 CLI session auth。
-- [Kiro](docs/kiro.md)：`kiro-cli` 的 `/usage` 输出解析。
-- [Vertex AI](docs/vertexai.md)：Google ADC OAuth 和 Cloud Monitoring quota。
-- [Augment](docs/augment.md)：浏览器 Cookie、session keepalive、credits 追踪。
-- [Amp](docs/amp.md)：Amp settings 页面用量。
-- [JetBrains AI](docs/jetbrains.md)：读取 JetBrains IDE 本地 quota XML。
-- [Ollama](docs/ollama.md)：Ollama settings 页面用量。
-- [Warp](docs/warp.md)：API token 读取 request limit。
-- [OpenRouter](docs/openrouter.md)：API token 读取 credits 和 key rate limit。
-- Perplexity：Perplexity 账号用量入口。
-- [Abacus AI](docs/abacus.md)：ChatLLM/RouteLLM compute credits。
-
-Provider 架构和新增 provider 方法见 [docs/provider.md](docs/provider.md)。
-
-## 配置和凭据
-
-CodexBar 支持多种数据来源：
-
-- CLI：读取本机已登录 CLI 的账号、计划或用量输出。
-- OAuth/API：通过 provider 的 token 或 API key 请求额度接口。
-- 浏览器 Cookie：从已登录浏览器会话导入必要 Cookie。
-- 手动 Cookie：在设置页粘贴从浏览器 Network 面板复制的 `Cookie:` header。
-- 本地文件：读取部分工具产生的本地日志或配置文件。
-
-常见配置文件位置：
-
-```text
-~/.codexbar/config.json
+### CLI Tarballs (macOS/Linux)
+Homebrew formula (Linux today):
+```bash
+brew install steipete/tap/codexbar
 ```
+Or download release tarballs from GitHub Releases:
+- macOS: `CodexBarCLI-v<tag>-macos-arm64.tar.gz`, `CodexBarCLI-v<tag>-macos-x86_64.tar.gz`
+- Linux: `CodexBarCLI-v<tag>-linux-aarch64.tar.gz`, `CodexBarCLI-v<tag>-linux-x86_64.tar.gz`
 
-请不要把 API key、Cookie、Authorization header 或完整日志提交到仓库。
+### First run
+- Open Settings → Providers and enable what you use.
+- Install/sign in to the provider sources you rely on: CLIs, browser sessions, OAuth/device flow, API keys, local app files, or provider apps depending on the provider.
+- Optional: Settings → Providers → Codex → OpenAI cookies (Automatic or Manual) to add dashboard extras.
 
 ## 菜单栏图标
 
-CodexBar 使用两条小进度条显示额度：
+- [Codex](docs/codex.md) — OAuth API or local Codex CLI, plus optional OpenAI web dashboard extras.
+- [Claude](docs/claude.md) — OAuth API, browser cookies, or CLI PTY fallback; session and weekly usage where available.
+- [Cursor](docs/cursor.md) — Browser session cookies for plan + usage + billing resets.
+- [OpenCode](docs/opencode.md) — Browser cookies for workspace subscription usage.
+- [OpenCode Go](docs/opencode.md) — Browser cookies for Go usage windows.
+- [Alibaba Coding Plan](docs/alibaba-coding-plan.md) — Web cookies or API key for coding-plan quotas.
+- [Gemini](docs/gemini.md) — OAuth-backed quota API using Gemini CLI credentials (no browser cookies).
+- [Antigravity](docs/antigravity.md) — Local language server probe (experimental); no external auth.
+- [Droid](docs/factory.md) — Browser cookies + WorkOS token flows for Factory usage + billing.
+- [Copilot](docs/copilot.md) — GitHub device flow + Copilot internal usage API.
+- [z.ai](docs/zai.md) — API token for quota + MCP windows.
+- [Manus](docs/manus.md) — Browser `session_id` auth for credit balance, monthly credits, and daily refresh tracking.
+- [MiniMax](docs/minimax.md) — API token, cookie header, or browser cookies for coding-plan usage.
+- [Kimi](docs/kimi.md) — Auth token (JWT from `kimi-auth` cookie) for weekly quota + 5‑hour rate limit.
+- [Kimi K2](docs/kimi-k2.md) — API key for credit-based usage totals.
+- [Kilo](docs/kilo.md) — API token with CLI-auth fallback for Kilo Pass usage.
+- [Kiro](docs/kiro.md) — CLI-based usage; monthly credits + bonus credits.
+- [Vertex AI](docs/vertexai.md) — Google Cloud gcloud OAuth with token cost tracking from local Claude logs.
+- [Augment](docs/augment.md) — Augment CLI or browser cookies for credits tracking and usage monitoring.
+- [Amp](docs/amp.md) — Browser cookie-based authentication with Amp Free usage tracking.
+- [Ollama](docs/ollama.md) — Browser cookies for Ollama Cloud usage windows.
+- [JetBrains AI](docs/jetbrains.md) — Local XML-based quota from JetBrains IDE configuration; monthly credits tracking.
+- [Warp](docs/warp.md) — API token for GraphQL request limits and monthly credits.
+- [OpenRouter](docs/openrouter.md) — API token for credit-based usage tracking across multiple AI providers.
+- Perplexity — Account usage credits from Perplexity usage data.
+- [Abacus AI](docs/abacus.md) — Browser cookie auth for ChatLLM/RouteLLM compute credit tracking.
+- Mistral — Browser cookies for monthly spend tracking.
+- [DeepSeek](docs/deepseek.md) — API key for credit balance tracking (paid vs. granted breakdown).
+- [Moonshot / Kimi API](docs/moonshot.md) — API key for Moonshot/Kimi API account balance tracking.
+- [Venice](docs/venice.md) — API key for DIEM or USD balance tracking.
+- [Codebuff](docs/codebuff.md) — API token (or `~/.config/manicode/credentials.json`) for credit balance + weekly rate limit.
+- [Crof](docs/crof.md) — API key for dollar credit balance and request quota tracking.
+- [Command Code](docs/command-code.md) — Browser cookies for monthly USD credits from Command Code billing.
+- [StepFun](docs/stepfun.md) — Username + password login for Step Plan rate limits (5‑hour + weekly windows) and subscription plan name.
+- Open to new providers: [provider authoring guide](docs/provider.md).
 
-- 上方：5 小时/session 窗口；如果 weekly 不可用但 credits 可用，会切换为 credits 显示。
-- 下方：weekly 窗口。
-- 数据异常、数据过期或登录失效时，图标会变暗或显示错误状态。
-- 服务状态异常时会显示状态标记。
+## Icon & Screenshot
+The menu bar icon is a tiny usage meter. Bar meaning is provider-specific, and errors/stale data can dim the icon or
+show an incident indicator.
 
-## 隐私和权限
+## Features
+- Multi-provider menu bar with per-provider toggles (Settings → Providers).
+- Provider-specific usage meters with reset countdowns.
+- Optional Codex web dashboard enrichments (code review remaining, usage breakdown, credits history).
+- Local cost-usage scan for Codex + Claude (last 30 days).
+- Provider status polling with incident badges in the menu and icon overlay.
+- Merge Icons mode to combine providers into one status item + switcher.
+- Display controls for provider icons, labels, bars, reset-time style, and highest-usage auto-selection.
+- Refresh cadence presets (manual, 1m, 2m, 5m, 15m).
+- Bundled CLI (`codexbar`) for scripts and CI (including `codexbar cost --provider codex`, `claude`, or `both` for local cost usage); macOS and Linux CLI builds available.
+- WidgetKit widgets for supported providers.
+- Optional session quota notifications and weekly-reset confetti.
+- Privacy-first: on-device parsing by default; browser cookies are opt-in and reused (no passwords stored).
 
-CodexBar 保留上游的本机优先隐私模型。它不会全盘扫描你的电脑，只会在你启用对应 provider 后读取少量已知位置，例如：
+## Privacy note
+Wondering if CodexBar scans your disk? It doesn’t crawl your filesystem; it reads a small set of known locations (browser cookies/local storage, provider config files, local JSONL logs) when the related features are enabled. Provider tokens and token-account settings live in `~/.codexbar/config.json` with restrictive file permissions. See the discussion and audit notes in [issue #12](https://github.com/steipete/CodexBar/issues/12).
 
-- Provider CLI 的本地配置或输出。
-- 浏览器 Cookie/local storage。
-- 本地 JSONL 日志。
-- Keychain 中由 CLI 或 CodexBar 保存的 token。
+## macOS permissions (why they’re needed)
+- **Full Disk Access (optional)**: only required to read Safari cookies/local storage for web-based providers. If you don’t grant it, use another supported browser, manual cookies/API keys, OAuth, or CLI/local sources where that provider supports them.
+- **Keychain access (prompted by macOS)**:
+  - Chromium cookie import needs the browser “Safe Storage” key to decrypt cookies.
+  - Claude OAuth bootstrap may read the Claude CLI Keychain item when CodexBar has no usable cached credentials.
+  - CodexBar may use Keychain for browser cookie decryption, cached cookie headers, and OAuth/device-flow credentials where those sources require it.
+  - **How do I prevent those keychain alerts?**
+    - Open **Keychain Access.app** → login keychain → search the prompted item (for Claude OAuth, usually “Claude Code-credentials”).
+    - Open the item → **Access Control** → add `CodexBar.app` under “Always allow access by these applications”.
+    - Prefer adding just CodexBar (avoid “Allow all applications” unless you want it wide open).
+    - Relaunch CodexBar after saving.
+    - Reference screenshot: ![Keychain access control](docs/keychain-allow.png)
+  - **How to do the same for the browser?**
+    - Find the browser’s “Safe Storage” key (e.g., “Chrome Safe Storage”, “Brave Safe Storage”, “Microsoft Edge Safe Storage”).
+    - Open the item → **Access Control** → add `CodexBar.app` under “Always allow access by these applications”.
+    - This removes the prompt when CodexBar decrypts cookies for that browser.
+- **Files & Folders prompts (folder/volume access)**: CodexBar launches provider CLIs and local probes for some providers. If those helpers read a project directory or external drive, macOS may ask CodexBar for that folder/volume (e.g., Desktop or an external volume). This is driven by the helper’s working directory, not background disk scanning.
+- **What we do not request in the background**: no Screen Recording or Accessibility permissions; user-triggered helper actions may ask macOS for Automation permission to open Terminal. No passwords are stored (browser cookies are reused when you opt in).
 
-### macOS 权限说明
+## Docs
+- Providers overview: [docs/providers.md](docs/providers.md)
+- Provider authoring: [docs/provider.md](docs/provider.md)
+- Issue labeling guide: [docs/ISSUE_LABELING.md](docs/ISSUE_LABELING.md)
+- UI & icon notes: [docs/ui.md](docs/ui.md)
+- CLI reference: [docs/cli.md](docs/cli.md)
+- Configuration: [docs/configuration.md](docs/configuration.md)
+- Widgets: [docs/widgets.md](docs/widgets.md)
+- Architecture: [docs/architecture.md](docs/architecture.md)
+- Refresh loop: [docs/refresh-loop.md](docs/refresh-loop.md)
+- Status polling: [docs/status.md](docs/status.md)
+- Sparkle updates: [docs/sparkle.md](docs/sparkle.md)
+- Packaging: [docs/packaging.md](docs/packaging.md)
+- Development: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- Release checklist: [docs/RELEASING.md](docs/RELEASING.md)
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
 
-- Full Disk Access：读取 Safari Cookie/local storage 时可能需要。Chrome/Firefox 或 CLI-only 模式通常可以绕开。
-- Keychain access：用于读取 Chrome Safe Storage、Claude OAuth 凭据、z.ai/Copilot 等 token。
-- Files & Folders：如果 provider CLI 自己访问项目目录，macOS 可能把权限提示显示给 CodexBar。
+## Getting started (dev)
+- Clone the repo and open it in Xcode or run the scripts directly.
+- Launch once, then toggle providers in Settings → Providers.
+- Install/sign in to provider sources you rely on (CLIs, browser cookies, OAuth/device flow, API keys, or local app/config files).
+- Optional: set OpenAI cookies (Automatic or Manual) for Codex dashboard extras.
 
-CodexBar 不需要 Screen Recording、Accessibility 或 Automation 权限，也不会保存你的账号密码。
-
-## 排错
-
-如果某个 provider 不显示数据，优先按这个顺序检查：
-
-1. 该 provider 是否已在设置里启用。
-2. 数据源是否选择正确，例如 Auto、Web、API、Manual Cookie。
-3. 对应 CLI 或网页账号是否仍然登录。
-4. API key、region、base URL 是否写入了 `~/.codexbar/config.json` 或环境变量。
-5. macOS 是否允许 CodexBar 读取 Keychain 或浏览器 Cookie。
-6. 设置页里的中文错误提示是否指出了缺失的 Cookie、API key、region 或登录状态。
-
-常见 provider 的详细说明见 `docs/*.md`。
-
-## 开发
-
-### 本地构建
+## Build from source
+Requires macOS 14+ and Swift 6.2+.
 
 ```bash
-swift build -c release
-./Scripts/package_app.sh
-CODEXBAR_SIGNING=adhoc ./Scripts/package_app.sh
+./Scripts/package_app.sh        # builds CodexBar.app in-place
+CODEXBAR_SIGNING=adhoc ./Scripts/package_app.sh  # ad-hoc signing (no Apple Developer account)
 open CodexBar.app
 ```
 
@@ -203,6 +218,15 @@ open CodexBar.app
 
 ```bash
 ./Scripts/compile_and_run.sh
+./Scripts/compile_and_run.sh --test  # also run swift test before packaging/relaunching
+make check                           # SwiftFormat + SwiftLint
+make docs-list                       # list docs with frontmatter summaries
+```
+
+CLI install:
+```bash
+# after installing CodexBar.app in /Applications
+./bin/install-codexbar-cli.sh
 ```
 
 ### 格式和检查

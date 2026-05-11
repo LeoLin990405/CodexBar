@@ -105,6 +105,51 @@ extension SettingsStore {
         }
     }
 
+    var quotaWarningNotificationsEnabled: Bool {
+        get { self.defaultsState.quotaWarningNotificationsEnabled }
+        set {
+            self.defaultsState.quotaWarningNotificationsEnabled = newValue
+            self.userDefaults.set(newValue, forKey: "quotaWarningNotificationsEnabled")
+        }
+    }
+
+    var quotaWarningThresholds: [Int] {
+        get { QuotaWarningThresholds.sanitized(self.defaultsState.quotaWarningThresholdsRaw) }
+        set {
+            let sanitized = QuotaWarningThresholds.sanitized(newValue)
+            self.defaultsState.quotaWarningThresholdsRaw = sanitized
+            self.userDefaults.set(sanitized, forKey: "quotaWarningThresholds")
+        }
+    }
+
+    func quotaWarningWindowEnabled(_ window: QuotaWarningWindow) -> Bool {
+        switch window {
+        case .session:
+            self.defaultsState.quotaWarningSessionEnabled
+        case .weekly:
+            self.defaultsState.quotaWarningWeeklyEnabled
+        }
+    }
+
+    func setQuotaWarningWindowEnabled(_ window: QuotaWarningWindow, enabled: Bool) {
+        switch window {
+        case .session:
+            self.defaultsState.quotaWarningSessionEnabled = enabled
+            self.userDefaults.set(enabled, forKey: "quotaWarningSessionEnabled")
+        case .weekly:
+            self.defaultsState.quotaWarningWeeklyEnabled = enabled
+            self.userDefaults.set(enabled, forKey: "quotaWarningWeeklyEnabled")
+        }
+    }
+
+    var quotaWarningSoundEnabled: Bool {
+        get { self.defaultsState.quotaWarningSoundEnabled }
+        set {
+            self.defaultsState.quotaWarningSoundEnabled = newValue
+            self.userDefaults.set(newValue, forKey: "quotaWarningSoundEnabled")
+        }
+    }
+
     var usageBarsShowUsed: Bool {
         get { self.defaultsState.usageBarsShowUsed }
         set {
@@ -146,12 +191,17 @@ extension SettingsStore {
         set { self.menuBarDisplayModeRaw = newValue.rawValue }
     }
 
-    var showAllTokenAccountsInMenu: Bool {
-        get { self.defaultsState.showAllTokenAccountsInMenu }
+    var multiAccountMenuLayout: MultiAccountMenuLayout {
+        get { MultiAccountMenuLayout(rawValue: self.defaultsState.multiAccountMenuLayoutRaw) ?? .segmented }
         set {
-            self.defaultsState.showAllTokenAccountsInMenu = newValue
-            self.userDefaults.set(newValue, forKey: "showAllTokenAccountsInMenu")
+            self.defaultsState.multiAccountMenuLayoutRaw = newValue.rawValue
+            self.userDefaults.set(newValue.rawValue, forKey: "multiAccountMenuLayout")
         }
+    }
+
+    var showAllTokenAccountsInMenu: Bool {
+        get { self.multiAccountMenuLayout == .stacked }
+        set { self.multiAccountMenuLayout = newValue ? .stacked : .segmented }
     }
 
     var historicalTrackingEnabled: Bool {
@@ -191,6 +241,14 @@ extension SettingsStore {
         set {
             self.defaultsState.randomBlinkEnabled = newValue
             self.userDefaults.set(newValue, forKey: "randomBlinkEnabled")
+        }
+    }
+
+    var confettiOnWeeklyLimitResetsEnabled: Bool {
+        get { self.defaultsState.confettiOnWeeklyLimitResetsEnabled }
+        set {
+            self.defaultsState.confettiOnWeeklyLimitResetsEnabled = newValue
+            self.userDefaults.set(newValue, forKey: "confettiOnWeeklyLimitResetsEnabled")
         }
     }
 
@@ -255,6 +313,14 @@ extension SettingsStore {
         }
     }
 
+    var claudePeakHoursEnabled: Bool {
+        get { self.defaultsState.claudePeakHoursEnabled }
+        set {
+            self.defaultsState.claudePeakHoursEnabled = newValue
+            self.userDefaults.set(newValue, forKey: "claudePeakHoursEnabled")
+        }
+    }
+
     var showOptionalCreditsAndExtraUsage: Bool {
         get { self.defaultsState.showOptionalCreditsAndExtraUsage }
         set {
@@ -281,6 +347,17 @@ extension SettingsStore {
             self.userDefaults.set(newValue, forKey: "openAIWebBatterySaverEnabled")
             CodexBarLog.logger(LogCategories.settings).info(
                 "OpenAI web battery saver updated",
+                metadata: ["enabled": newValue ? "1" : "0"])
+        }
+    }
+
+    var providerStorageFootprintsEnabled: Bool {
+        get { self.defaultsState.providerStorageFootprintsEnabled }
+        set {
+            self.defaultsState.providerStorageFootprintsEnabled = newValue
+            self.userDefaults.set(newValue, forKey: "providerStorageFootprintsEnabled")
+            CodexBarLog.logger(LogCategories.settings).info(
+                "Provider storage footprints updated",
                 metadata: ["enabled": newValue ? "1" : "0"])
         }
     }
@@ -495,6 +572,33 @@ extension SettingsStore {
         set {
             self.defaultsState.providerDetectionCompleted = newValue
             self.userDefaults.set(newValue, forKey: "providerDetectionCompleted")
+        }
+    }
+
+    var appLanguage: String {
+        get {
+            if LocalSafetyMode.isEnabled {
+                return LocalSafetyMode.appLanguage
+            }
+            return self.defaultsState.appLanguageRaw ?? ""
+        }
+        set {
+            let resolvedValue = LocalSafetyMode.isEnabled ? LocalSafetyMode.appLanguage : newValue
+            let stored = resolvedValue.isEmpty ? nil : resolvedValue
+            self.defaultsState.appLanguageRaw = stored
+            if let stored {
+                self.userDefaults.set(stored, forKey: "appLanguage")
+                if self.userDefaults !== UserDefaults.standard {
+                    UserDefaults.standard.set(stored, forKey: "appLanguage")
+                }
+                UserDefaults.standard.set([stored], forKey: "AppleLanguages")
+            } else {
+                self.userDefaults.removeObject(forKey: "appLanguage")
+                if self.userDefaults !== UserDefaults.standard {
+                    UserDefaults.standard.removeObject(forKey: "appLanguage")
+                }
+                UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+            }
         }
     }
 

@@ -11,17 +11,17 @@ struct AdvancedPane: View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 16) {
                 SettingsSection(contentSpacing: 8) {
-                    Text("键盘快捷键")
+                    Text(L("section_keyboard_shortcut"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
                     HStack(alignment: .center, spacing: 12) {
-                        Text("打开菜单")
+                        Text(L("open_menu_shortcut_title"))
                             .font(.body)
                         Spacer()
                         KeyboardShortcuts.Recorder(for: .openMenu)
                     }
-                    Text("从任意位置唤起菜单栏菜单。")
+                    Text(L("open_menu_shortcut_subtitle"))
                         .font(.footnote)
                         .foregroundStyle(.tertiary)
                 }
@@ -36,7 +36,7 @@ struct AdvancedPane: View {
                             if self.isInstallingCLI {
                                 ProgressView().controlSize(.small)
                             } else {
-                                Text("安装 CLI")
+                                Text(L("install_cli"))
                             }
                         }
                         .disabled(self.isInstallingCLI)
@@ -48,7 +48,7 @@ struct AdvancedPane: View {
                                 .lineLimit(2)
                         }
                     }
-                    Text("将 CodexBarCLI 软链接到 /usr/local/bin 和 /opt/homebrew/bin，命令名为 codexbar。")
+                    Text(L("install_cli_subtitle"))
                         .font(.footnote)
                         .foregroundStyle(.tertiary)
                 }
@@ -57,36 +57,43 @@ struct AdvancedPane: View {
 
                 SettingsSection(contentSpacing: 10) {
                     PreferenceToggleRow(
-                        title: "显示调试设置",
-                        subtitle: "在“调试”标签页中显示故障排查工具。",
+                        title: L("show_debug_settings_title"),
+                        subtitle: L("show_debug_settings_subtitle"),
                         binding: self.$settings.debugMenuEnabled)
                     PreferenceToggleRow(
-                        title: "给我一点惊喜",
-                        subtitle: "让菜单栏里的 agent 偶尔活泼一下。",
+                        title: L("surprise_me_title"),
+                        subtitle: L("surprise_me_subtitle"),
                         binding: self.$settings.randomBlinkEnabled)
+                    PreferenceToggleRow(
+                        title: L("weekly_limit_confetti_title"),
+                        subtitle: L("weekly_limit_confetti_subtitle"),
+                        binding: self.$settings.confettiOnWeeklyLimitResetsEnabled)
                 }
 
                 Divider()
 
                 SettingsSection(contentSpacing: 10) {
                     PreferenceToggleRow(
-                        title: "隐藏个人信息",
-                        subtitle: "在菜单栏和菜单界面中隐藏邮箱地址。",
+                        title: L("hide_personal_info_title"),
+                        subtitle: L("hide_personal_info_subtitle"),
                         binding: self.$settings.hidePersonalInfo)
+                    PreferenceToggleRow(
+                        title: "Show provider storage usage",
+                        subtitle: "Show local disk usage in menus. Scans known provider-owned paths in the background.",
+                        binding: self.$settings.providerStorageFootprintsEnabled)
                 }
 
                 Divider()
 
                 SettingsSection(
-                    title: "钥匙串访问",
-                    caption: """
-                    禁用所有钥匙串读写。浏览器 Cookie 导入将不可用；请在“服务”中手动粘贴 Cookie header。
-                    """) {
-                        PreferenceToggleRow(
-                            title: "禁用钥匙串访问",
-                            subtitle: "启用后阻止任何钥匙串访问。",
-                            binding: self.$settings.debugDisableKeychainAccess)
-                    }
+                    title: L("section_keychain_access"),
+                    caption: L("keychain_access_caption"))
+                {
+                    PreferenceToggleRow(
+                        title: L("disable_keychain_access_title"),
+                        subtitle: L("disable_keychain_access_subtitle"),
+                        binding: self.$settings.debugDisableKeychainAccess)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
@@ -104,7 +111,7 @@ extension AdvancedPane {
         let helperURL = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/CodexBarCLI")
         let fm = FileManager.default
         guard fm.fileExists(atPath: helperURL.path) else {
-            self.cliStatus = "CodexBarCLI not found in app bundle."
+            self.cliStatus = L("cli_not_found")
             return
         }
 
@@ -140,7 +147,7 @@ extension AdvancedPane {
         }
 
         self.cliStatus = results.isEmpty
-            ? "未找到可写入的 bin 目录。"
+            ? L("no_writable_bin_dirs")
             : results.joined(separator: " · ")
     }
 
