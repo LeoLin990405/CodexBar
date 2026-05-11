@@ -10,6 +10,7 @@ import signal
 import subprocess
 import sys
 from collections.abc import Iterable
+from pathlib import Path
 
 
 def parse_args() -> argparse.Namespace:
@@ -38,7 +39,15 @@ def run_command(command: list[str], timeout: int | None = None) -> int:
 
 
 def swift_test_list() -> list[str]:
-    result = subprocess.run(["swift", "test", "list"], check=True, capture_output=True, text=True)
+    result = subprocess.run(["swift", "test", "list"], capture_output=True, text=True)
+    if result.returncode != 0:
+        print("::warning::swift test list failed; falling back to source-based suite discovery", flush=True)
+        if result.stdout.strip():
+            print(result.stdout, flush=True)
+        if result.stderr.strip():
+            print(result.stderr, file=sys.stderr, flush=True)
+        return source_discovered_suites()
+
     suites: set[str] = set()
     for line in result.stdout.splitlines():
         if "/" not in line:
@@ -47,6 +56,33 @@ def swift_test_list() -> list[str]:
         if "." not in suite:
             continue
         suites.add(suite)
+    return sorted(suites)
+
+
+def source_discovered_suites() -> list[str]:
+    suites: set[str] = set()
+    test_root = Path("Tests")
+    type_pattern = re.compile(r"^(?:@\w+(?:\([^)]*\))?\s+)*(?:final\s+)?(?:class|struct|actor)\s+([A-Za-z_][A-Za-z0-9_]*)\b")
+
+    for path in sorted(test_root.glob("*Tests/*.swift")):
+        module = path.parent.name
+        current_name: str | None = None
+        current_lines: list[str] = []
+
+        def flush_current() -> None:
+            if current_name and current_name.endswith("Tests") and any("@Test" in line for line in current_lines):
+                suites.add(f"{module}.{current_name}")
+
+        for line in path.read_text(encoding="utf-8").splitlines():
+            match = type_pattern.match(line)
+            if match:
+                flush_current()
+                current_name = match.group(1)
+                current_lines = [line]
+            elif current_name:
+                current_lines.append(line)
+        flush_current()
+
     return sorted(suites)
 
 
