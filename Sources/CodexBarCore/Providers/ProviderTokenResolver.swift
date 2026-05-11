@@ -272,18 +272,6 @@ public enum ProviderTokenResolver {
         self.qwenResolution(environment: environment)?.token
     }
 
-    public static func doubaoToken(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
-    {
-        self.doubaoResolution(environment: environment)?.token
-    }
-
-    public static func stepfunToken(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
-    {
-        self.stepfunResolution(environment: environment)?.token
-    }
-
     public static func traeToken(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
     {
@@ -312,18 +300,6 @@ public enum ProviderTokenResolver {
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
         self.resolveEnv(QwenSettingsReader.apiKey(environment: environment))
-    }
-
-    public static func doubaoResolution(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
-    {
-        self.resolveEnv(DoubaoSettingsReader.apiKey(environment: environment))
-    }
-
-    public static func stepfunResolution(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
-    {
-        self.resolveEnv(StepFunSettingsReader.apiKey(environment: environment))
     }
 
     public static func traeResolution(

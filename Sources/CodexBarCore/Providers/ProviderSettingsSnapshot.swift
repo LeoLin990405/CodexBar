@@ -309,16 +309,6 @@ public struct ProviderSettingsSnapshot: Sendable {
         }
     }
 
-    public struct MiMoProviderSettings: Sendable {
-        public let cookieSource: ProviderCookieSource
-        public let manualCookieHeader: String?
-
-        public init(cookieSource: ProviderCookieSource, manualCookieHeader: String?) {
-            self.cookieSource = cookieSource
-            self.manualCookieHeader = manualCookieHeader
-        }
-    }
-
     public struct AbacusProviderSettings: Sendable {
         public let cookieSource: ProviderCookieSource
         public let manualCookieHeader: String?
