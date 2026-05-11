@@ -16,44 +16,53 @@ struct CopilotProviderImplementation: ProviderImplementation {
     @MainActor
     func observeSettings(_ settings: SettingsStore) {
         _ = settings.copilotAPIToken
+        _ = settings.copilotEnterpriseHost
     }
 
     @MainActor
     func settingsSnapshot(context: ProviderSettingsSnapshotContext) -> ProviderSettingsSnapshotContribution? {
-        _ = context
-        return .copilot(context.settings.copilotSettingsSnapshot())
+        .copilot(context.settings.copilotSettingsSnapshot(tokenOverride: context.tokenOverride))
+    }
+
+    @MainActor
+    func loginMenuAction(context _: ProviderMenuLoginContext)
+        -> (label: String, action: MenuDescriptor.MenuAction)?
+    {
+        ("Add Account...", .addProviderAccount(.copilot))
     }
 
     @MainActor
     func settingsFields(context: ProviderSettingsContext) -> [ProviderSettingsFieldDescriptor] {
         [
             ProviderSettingsFieldDescriptor(
-                id: "copilot-api-token",
-                title: "GitHub 登录",
-                subtitle: "需要通过 GitHub Device Flow 认证。",
-                kind: .secure,
-                placeholder: "通过下方按钮登录",
-                binding: context.stringBinding(\.copilotAPIToken),
+                id: "copilot-enterprise-host",
+                title: "Enterprise host",
+                subtitle: "Optional. Enter your GitHub Enterprise host, for example octocorp.ghe.com. Leave blank for github.com.",
+                kind: .plain,
+                placeholder: "github.com",
+                binding: context.stringBinding(\.copilotEnterpriseHost),
+                actions: [],
+                isVisible: nil,
+                onActivate: nil),
+            ProviderSettingsFieldDescriptor(
+                id: "copilot-add-account",
+                title: "GitHub Login",
+                subtitle: "Add accounts via GitHub OAuth Device Flow on the selected host.",
+                kind: .plain,
+                placeholder: nil,
+                binding: .constant(""),
                 actions: [
                     ProviderSettingsActionDescriptor(
-                        id: "copilot-login",
-                        title: "使用 GitHub 登录",
+                        id: "copilot-add-account-action",
+                        title: "Add Account",
                         style: .bordered,
-                        isVisible: { context.settings.copilotAPIToken.isEmpty },
-                        perform: {
-                            await CopilotLoginFlow.run(settings: context.settings)
-                        }),
-                    ProviderSettingsActionDescriptor(
-                        id: "copilot-relogin",
-                        title: "重新登录",
-                        style: .link,
-                        isVisible: { !context.settings.copilotAPIToken.isEmpty },
+                        isVisible: { true },
                         perform: {
                             await CopilotLoginFlow.run(settings: context.settings)
                         }),
                 ],
                 isVisible: nil,
-                onActivate: { context.settings.ensureCopilotAPITokenLoaded() }),
+                onActivate: nil),
         ]
     }
 

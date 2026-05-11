@@ -5,6 +5,10 @@ import SwiftUI
 struct DisplayPane: View {
     private static let maxOverviewProviders = SettingsStore.mergedOverviewProviderLimit
 
+    static func overviewProviderLimitText(limit: Int = Self.maxOverviewProviders) -> String {
+        L("overview_choose_providers", String(limit))
+    }
+
     @State private var isOverviewProviderPopoverPresented = false
     @Bindable var settings: SettingsStore
     @Bindable var store: UsageStore
@@ -13,35 +17,35 @@ struct DisplayPane: View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 16) {
                 SettingsSection(contentSpacing: 12) {
-                    Text("菜单栏")
+                    Text(L("section_menu_bar"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
                     PreferenceToggleRow(
-                        title: "合并图标",
-                        subtitle: "使用单个菜单栏图标，并在菜单中切换服务。",
+                        title: L("merge_icons_title"),
+                        subtitle: L("merge_icons_subtitle"),
                         binding: self.$settings.mergeIcons)
                     PreferenceToggleRow(
-                        title: "切换器显示图标",
-                        subtitle: "在切换器中显示服务图标；关闭后显示每周进度线。",
+                        title: L("switcher_shows_icons_title"),
+                        subtitle: L("switcher_shows_icons_subtitle"),
                         binding: self.$settings.switcherShowsIcons)
                         .disabled(!self.settings.mergeIcons)
                         .opacity(self.settings.mergeIcons ? 1 : 0.5)
                     PreferenceToggleRow(
-                        title: "显示最常用服务",
-                        subtitle: "菜单栏自动显示最接近额度上限的服务。",
+                        title: L("show_most_used_provider_title"),
+                        subtitle: L("show_most_used_provider_subtitle"),
                         binding: self.$settings.menuBarShowsHighestUsage)
                         .disabled(!self.settings.mergeIcons)
                         .opacity(self.settings.mergeIcons ? 1 : 0.5)
                     PreferenceToggleRow(
-                        title: "菜单栏显示百分比",
-                        subtitle: "用服务品牌图标和百分比替代进度条图标。",
+                        title: L("menu_bar_shows_percent_title"),
+                        subtitle: L("menu_bar_shows_percent_subtitle"),
                         binding: self.$settings.menuBarShowsBrandIconWithPercent)
                     HStack(alignment: .top, spacing: 12) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("显示模式")
+                            Text(L("display_mode_title"))
                                 .font(.body)
-                            Text("选择菜单栏显示内容（节奏会显示实际用量与预期用量的对比）。")
+                            Text(L("display_mode_subtitle"))
                                 .font(.footnote)
                                 .foregroundStyle(.tertiary)
                         }
@@ -62,26 +66,40 @@ struct DisplayPane: View {
                 Divider()
 
                 SettingsSection(contentSpacing: 12) {
-                    Text("菜单内容")
+                    Text(L("section_menu_content"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
                     PreferenceToggleRow(
-                        title: "按已用量显示",
-                        subtitle: "进度条随额度消耗而填充，而不是显示剩余额度。",
+                        title: L("show_usage_as_used_title"),
+                        subtitle: L("show_usage_as_used_subtitle"),
                         binding: self.$settings.usageBarsShowUsed)
                     PreferenceToggleRow(
-                        title: "用具体时间显示重置",
-                        subtitle: "显示具体重置时刻，而不是倒计时。",
+                        title: L("show_reset_time_as_clock_title"),
+                        subtitle: L("show_reset_time_as_clock_subtitle"),
                         binding: self.$settings.resetTimesShowAbsolute)
                     PreferenceToggleRow(
-                        title: "显示 Credits 和额外用量",
-                        subtitle: "在菜单中显示 Codex Credits 和 Claude Extra 用量区域。",
+                        title: L("show_credits_extra_usage_title"),
+                        subtitle: L("show_credits_extra_usage_subtitle"),
                         binding: self.$settings.showOptionalCreditsAndExtraUsage)
-                    PreferenceToggleRow(
-                        title: "显示所有 token 账号",
-                        subtitle: "在菜单中展开所有 token 账号；关闭后显示账号切换栏。",
-                        binding: self.$settings.showAllTokenAccountsInMenu)
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(L("multi_account_layout_title"))
+                                .font(.body)
+                            Text(L("multi_account_layout_subtitle"))
+                                .font(.footnote)
+                                .foregroundStyle(.tertiary)
+                        }
+                        Spacer()
+                        Picker(L("multi_account_layout_title"), selection: self.$settings.multiAccountMenuLayout) {
+                            ForEach(MultiAccountMenuLayout.allCases) { layout in
+                                Text(layout.label).tag(layout)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: 200)
+                    }
                     self.overviewProviderSelector
                 }
             }
@@ -110,11 +128,11 @@ struct DisplayPane: View {
     private var overviewProviderSelector: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 12) {
-                Text("概览页服务")
+                Text(L("overview_tab_providers_title"))
                     .font(.body)
                 Spacer(minLength: 0)
                 if self.showsOverviewConfigureButton {
-                    Button("配置…") {
+                    Button(L("configure")) {
                         self.isOverviewProviderPopoverPresented = true
                     }
                     .offset(y: 1)
@@ -125,11 +143,11 @@ struct DisplayPane: View {
             }
 
             if !self.settings.mergeIcons {
-                Text("启用“合并图标”后可配置概览页服务。")
+                Text(L("overview_enable_merge_icons_hint"))
                     .font(.footnote)
                     .foregroundStyle(.tertiary)
             } else if self.activeProvidersInOrder.isEmpty {
-                Text("没有可用于概览页的已启用服务。")
+                Text(L("overview_no_providers_hint"))
                     .font(.footnote)
                     .foregroundStyle(.tertiary)
             } else {
@@ -144,9 +162,9 @@ struct DisplayPane: View {
 
     private var overviewProviderPopover: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("选择服务")
+            Text(Self.overviewProviderLimitText())
                 .font(.headline)
-            Text("概览行始终按服务顺序排列。")
+            Text(L("overview_rows_follow_order"))
                 .font(.footnote)
                 .foregroundStyle(.tertiary)
 
@@ -188,7 +206,7 @@ struct DisplayPane: View {
 
     private var overviewProviderSelectionSummary: String {
         let selectedNames = self.overviewSelectedProviders.map(self.providerDisplayName)
-        guard !selectedNames.isEmpty else { return "未选择服务" }
+        guard !selectedNames.isEmpty else { return L("overview_no_providers_selected") }
         return selectedNames.joined(separator: ", ")
     }
 

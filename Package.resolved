@@ -1,13 +1,13 @@
 {
-  "originHash" : "fc2d77d3435ccf0f5a2d2a8f782cbb3c38264c7542f33838f2409544695bce6e",
+  "originHash" : "164e2ec8c707e1385c5b54ba6f2733c2bc603b5fb762d95092078edfb70537ca",
   "pins" : [
     {
       "identity" : "commander",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/steipete/Commander",
       "state" : {
-        "revision" : "9e349575c8e3c6745e81fe19e5bb5efa01b078ce",
-        "version" : "0.2.1"
+        "revision" : "ae2ce746b386ff94b26648cfe5625cfa8d02639b",
+        "version" : "0.2.2"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/steipete/SweetCookieKit",
       "state" : {
-        "revision" : "4d5b71ffbb296937dc5ee8472f64721bca771cf0",
-        "version" : "0.4.0"
+        "revision" : "21bedea672a3e63ccad24d744051e76cdf0462dd",
+        "version" : "0.4.1"
       }
     },
     {
@@ -53,6 +53,14 @@
       "state" : {
         "revision" : "0687f71944021d616d34d922343dcef086855920",
         "version" : "600.0.1"
+      }
+    },
+    {
+      "identity" : "vortex",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/zats/Vortex",
+      "state" : {
+        "revision" : "ef5392088d4aeb255c4eee83157dbdafcd31bf07"
       }
     }
   ],

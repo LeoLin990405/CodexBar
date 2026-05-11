@@ -2,6 +2,26 @@ import AppKit
 import CodexBarCore
 import SwiftUI
 
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case system = ""
+    case english = "en"
+    case chineseSimplified = "zh-Hans"
+    case portugueseBrazilian = "pt-BR"
+
+    var id: String {
+        self.rawValue
+    }
+
+    var label: String {
+        switch self {
+        case .system: L("language_system")
+        case .english: L("language_english")
+        case .chineseSimplified: L("language_chinese_simplified")
+        case .portugueseBrazilian: L("language_portuguese_brazilian")
+        }
+    }
+}
+
 @MainActor
 struct GeneralPane: View {
     @Bindable var settings: SettingsStore
@@ -11,20 +31,43 @@ struct GeneralPane: View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 16) {
                 SettingsSection(contentSpacing: 12) {
-                    Text("系统")
+                    Text(L("section_system"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .top, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(L("language_title"))
+                                    .font(.body)
+                                Text(L("language_subtitle"))
+                                    .font(.footnote)
+                                    .foregroundStyle(.tertiary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer()
+                            Picker(L("language_title"), selection: self.$settings.appLanguage) {
+                                ForEach(AppLanguage.allCases) { option in
+                                    Text(option.label).tag(option.rawValue)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .frame(maxWidth: 200)
+                        }
+                    }
+
                     PreferenceToggleRow(
-                        title: "登录时启动",
-                        subtitle: "Mac 启动后自动打开 CodexBar。",
+                        title: L("start_at_login_title"),
+                        subtitle: L("start_at_login_subtitle"),
                         binding: self.$settings.launchAtLogin)
                 }
 
                 Divider()
 
                 SettingsSection(contentSpacing: 12) {
-                    Text("用量")
+                    Text(L("section_usage"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
@@ -32,18 +75,18 @@ struct GeneralPane: View {
                     VStack(alignment: .leading, spacing: 10) {
                         VStack(alignment: .leading, spacing: 4) {
                             Toggle(isOn: self.$settings.costUsageEnabled) {
-                                Text("显示费用摘要")
+                                Text(L("show_cost_summary"))
                                     .font(.body)
                             }
                             .toggleStyle(.checkbox)
 
-                            Text("读取本地用量日志，并在菜单中显示今天和最近 30 天的费用。")
+                            Text(L("show_cost_summary_subtitle"))
                                 .font(.footnote)
                                 .foregroundStyle(.tertiary)
                                 .fixedSize(horizontal: false, vertical: true)
 
                             if self.settings.costUsageEnabled {
-                                Text("自动刷新：每小时 · 超时：10 分钟")
+                                Text(L("cost_auto_refresh_info"))
                                     .font(.footnote)
                                     .foregroundStyle(.tertiary)
 
@@ -57,16 +100,16 @@ struct GeneralPane: View {
                 Divider()
 
                 SettingsSection(contentSpacing: 12) {
-                    Text("自动化")
+                    Text(L("section_automation"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .top, spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("刷新频率")
+                                Text(L("refresh_cadence_title"))
                                     .font(.body)
-                                Text("CodexBar 在后台轮询各服务的频率。")
+                                Text(L("refresh_cadence_subtitle"))
                                     .font(.footnote)
                                     .foregroundStyle(.tertiary)
                             }
@@ -81,19 +124,26 @@ struct GeneralPane: View {
                             .frame(maxWidth: 200)
                         }
                         if self.settings.refreshFrequency == .manual {
-                            Text("自动刷新已关闭；请使用菜单里的“刷新”。")
+                            Text(L("manual_refresh_hint"))
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                         }
                     }
                     PreferenceToggleRow(
-                        title: "检查服务状态",
-                        subtitle: "轮询 OpenAI/Claude 状态页，以及 Gemini/Antigravity 的 Google Workspace 状态，并在图标和菜单中提示故障。",
+                        title: L("check_provider_status_title"),
+                        subtitle: L("check_provider_status_subtitle"),
                         binding: self.$settings.statusChecksEnabled)
                     PreferenceToggleRow(
-                        title: "会话额度通知",
-                        subtitle: "5 小时会话额度耗尽或恢复可用时通知你。",
+                        title: L("session_quota_notifications_title"),
+                        subtitle: L("session_quota_notifications_subtitle"),
                         binding: self.$settings.sessionQuotaNotificationsEnabled)
+                    PreferenceToggleRow(
+                        title: L("quota_warning_notifications_title"),
+                        subtitle: L("quota_warning_notifications_subtitle"),
+                        binding: self.$settings.quotaWarningNotificationsEnabled)
+                    if self.settings.quotaWarningNotificationsEnabled {
+                        GlobalQuotaWarningSettingsView(settings: self.settings)
+                    }
                 }
 
                 Divider()
@@ -101,7 +151,7 @@ struct GeneralPane: View {
                 SettingsSection(contentSpacing: 12) {
                     HStack {
                         Spacer()
-                        Button("退出 CodexBar") { NSApp.terminate(nil) }
+                        Button(L("quit_app")) { NSApp.terminate(nil) }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.large)
                     }
@@ -117,7 +167,7 @@ struct GeneralPane: View {
         let name = ProviderDescriptorRegistry.descriptor(for: provider).metadata.displayName
 
         guard provider == .claude || provider == .codex else {
-            return Text("\(name)：不支持")
+            return Text(String(format: L("cost_status_unsupported"), name))
                 .font(.footnote)
                 .foregroundStyle(.tertiary)
         }
@@ -131,32 +181,33 @@ struct GeneralPane: View {
                 formatter.unitsStyle = .abbreviated
                 return formatter.string(from: seconds).map { " (\($0))" } ?? ""
             }()
-            return Text("\(name)：正在获取…\(elapsed)")
+            return Text(String(format: L("cost_status_fetching"), name, elapsed))
                 .font(.footnote)
                 .foregroundStyle(.tertiary)
         }
         if let snapshot = self.store.tokenSnapshot(for: provider) {
             let updated = UsageFormatter.updatedString(from: snapshot.updatedAt)
             let cost = snapshot.last30DaysCostUSD.map { UsageFormatter.usdString($0) } ?? "—"
-            return Text("\(name)：\(updated) · 30 天 \(cost)")
+            return Text(String(format: L("cost_status_snapshot"), name, updated, cost))
                 .font(.footnote)
                 .foregroundStyle(.tertiary)
         }
         if let error = self.store.tokenError(for: provider), !error.isEmpty {
             let truncated = UsageFormatter.truncatedSingleLine(error, max: 120)
-            return Text("\(name)：\(truncated)")
+            return Text(String(format: L("cost_status_error"), name, truncated))
                 .font(.footnote)
                 .foregroundStyle(.tertiary)
         }
         if let lastAttempt = self.store.tokenLastAttemptAt(for: provider) {
             let rel = RelativeDateTimeFormatter()
+            rel.locale = Locale(identifier: "en_US")
             rel.unitsStyle = .abbreviated
             let when = rel.localizedString(for: lastAttempt, relativeTo: Date())
-            return Text("\(name)：上次尝试 \(when)")
+            return Text(String(format: L("cost_status_last_attempt"), name, when))
                 .font(.footnote)
                 .foregroundStyle(.tertiary)
         }
-        return Text("\(name)：暂无数据")
+        return Text(String(format: L("cost_status_no_data"), name))
             .font(.footnote)
             .foregroundStyle(.tertiary)
     }

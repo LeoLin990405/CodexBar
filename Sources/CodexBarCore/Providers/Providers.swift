@@ -4,6 +4,7 @@ import SweetCookieKit
 // swiftformat:disable sortDeclarations
 public enum UsageProvider: String, CaseIterable, Sendable, Codable {
     case codex
+    case openai
     case claude
     case cursor
     case opencode
@@ -15,6 +16,7 @@ public enum UsageProvider: String, CaseIterable, Sendable, Codable {
     case copilot
     case zai
     case minimax
+    case manus
     case kimi
     case kilo
     case kiro
@@ -22,29 +24,35 @@ public enum UsageProvider: String, CaseIterable, Sendable, Codable {
     case augment
     case jetbrains
     case kimik2
+    case moonshot
     case amp
     case ollama
     case synthetic
     case warp
     case openrouter
+    case windsurf
     case perplexity
-    case abacus
-    case qwen
-    case doubao
-    case stepfun
-    case trae
     case mimo
-    case zenmux
-    case aigocode
+    case doubao
+    case abacus
+    case mistral
+    case deepseek
+    case codebuff
+    case crof
+    case venice
+    case commandcode
+    case stepfun
 }
 
 // swiftformat:enable sortDeclarations
 
 public enum IconStyle: Sendable, CaseIterable {
     case codex
+    case openai
     case claude
     case zai
     case minimax
+    case manus
     case gemini
     case antigravity
     case cursor
@@ -60,20 +68,24 @@ public enum IconStyle: Sendable, CaseIterable {
     case vertexai
     case augment
     case jetbrains
+    case moonshot
     case amp
     case ollama
     case synthetic
     case warp
     case openrouter
+    case windsurf
     case perplexity
-    case abacus
-    case qwen
-    case doubao
-    case stepfun
-    case trae
     case mimo
-    case zenmux
-    case aigocode
+    case doubao
+    case abacus
+    case mistral
+    case deepseek
+    case codebuff
+    case crof
+    case venice
+    case commandcode
+    case stepfun
     case combined
 }
 

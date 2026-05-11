@@ -13,6 +13,7 @@ struct DebugPane: View {
     @State private var logText: String = ""
     @State private var isClearingCostCache = false
     @State private var costCacheStatus: String?
+    @State private var cookieCacheStatus: String?
     #if DEBUG
     @State private var currentErrorProvider: UsageProvider = .codex
     @State private var simulatedErrorText: String = """
@@ -26,10 +27,10 @@ struct DebugPane: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 20) {
-                SettingsSection(title: "日志") {
+                SettingsSection(title: L("section_logging")) {
                     PreferenceToggleRow(
-                        title: "启用文件日志",
-                        subtitle: "将日志写入 \(self.fileLogPath)，用于调试。",
+                        title: L("enable_file_logging"),
+                        subtitle: String(format: L("enable_file_logging_subtitle"), self.fileLogPath),
                         binding: self.$debugFileLoggingEnabled)
                         .onChange(of: self.debugFileLoggingEnabled) { _, newValue in
                             if self.settings.debugFileLoggingEnabled != newValue {
@@ -39,9 +40,9 @@ struct DebugPane: View {
 
                     HStack(alignment: .center, spacing: 12) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("详细程度")
+                            Text(L("verbosity_title"))
                                 .font(.body)
-                            Text("控制日志记录的详细程度。")
+                            Text(L("verbosity_subtitle"))
                                 .font(.footnote)
                                 .foregroundStyle(.tertiary)
                         }
@@ -59,31 +60,31 @@ struct DebugPane: View {
                     Button {
                         NSWorkspace.shared.open(CodexBarLog.fileLogURL)
                     } label: {
-                        Label("打开日志文件", systemImage: "doc.text.magnifyingglass")
+                        Label(L("open_log_file"), systemImage: "doc.text.magnifyingglass")
                     }
                     .controlSize(.small)
                 }
 
                 SettingsSection {
                     PreferenceToggleRow(
-                        title: "下次刷新强制显示动画",
-                        subtitle: "下次刷新后临时显示加载动画。",
+                        title: L("force_animation_next_refresh"),
+                        subtitle: L("force_animation_next_refresh_subtitle"),
                         binding: self.$store.debugForceAnimation)
                 }
 
                 SettingsSection(
-                    title: "加载动画",
-                    caption: "选择一种动画样式并在菜单栏重放；“随机”保持现有行为。")
+                    title: L("section_loading_animations"),
+                    caption: L("loading_animations_caption"))
                 {
-                    Picker("动画样式", selection: self.animationPatternBinding) {
-                        Text("随机（默认）").tag(nil as LoadingPattern?)
+                    Picker("Animation pattern", selection: self.animationPatternBinding) {
+                        Text(L("animation_random_default")).tag(nil as LoadingPattern?)
                         ForEach(LoadingPattern.allCases) { pattern in
                             Text(pattern.displayName).tag(Optional(pattern))
                         }
                     }
                     .pickerStyle(.radioGroup)
 
-                    Button("重放所选动画") {
+                    Button(L("replay_selected_animation")) {
                         self.replaySelectedAnimation()
                     }
                     .keyboardShortcut(.defaultAction)
@@ -91,14 +92,14 @@ struct DebugPane: View {
                     Button {
                         NotificationCenter.default.post(name: .codexbarDebugBlinkNow, object: nil)
                     } label: {
-                        Label("立即闪动", systemImage: "eyes")
+                        Label(L("blink_now"), systemImage: "eyes")
                     }
                     .controlSize(.small)
                 }
 
                 SettingsSection(
-                    title: "探测日志",
-                    caption: "获取最新探测输出用于调试；复制会保留完整文本。")
+                    title: L("section_probe_logs"),
+                    caption: L("probe_logs_caption"))
                 {
                     Picker("服务", selection: self.$currentLogProvider) {
                         Text("Codex").tag(UsageProvider.codex)
@@ -113,23 +114,23 @@ struct DebugPane: View {
 
                     HStack(spacing: 12) {
                         Button { self.loadLog(self.currentLogProvider) } label: {
-                            Label("获取日志", systemImage: "arrow.clockwise")
+                            Label(L("fetch_log"), systemImage: "arrow.clockwise")
                         }
                         .disabled(self.isLoadingLog)
 
                         Button { self.copyToPasteboard(self.logText) } label: {
-                            Label("复制", systemImage: "doc.on.doc")
+                            Label(L("copy"), systemImage: "doc.on.doc")
                         }
                         .disabled(self.logText.isEmpty)
 
                         Button { self.saveLog(self.currentLogProvider) } label: {
-                            Label("保存到文件", systemImage: "externaldrive.badge.plus")
+                            Label(L("save_to_file"), systemImage: "externaldrive.badge.plus")
                         }
                         .disabled(self.isLoadingLog && self.logText.isEmpty)
 
                         if self.currentLogProvider == .claude {
                             Button { self.loadClaudeDump() } label: {
-                                Label("加载解析转储", systemImage: "doc.text.magnifyingglass")
+                                Label(L("load_parse_dump"), systemImage: "doc.text.magnifyingglass")
                             }
                             .disabled(self.isLoadingLog)
                         }
@@ -139,7 +140,7 @@ struct DebugPane: View {
                         self.settings.rerunProviderDetection()
                         self.loadLog(self.currentLogProvider)
                     } label: {
-                        Label("重新运行服务自动检测", systemImage: "dot.radiowaves.left.and.right")
+                        Label(L("rerun_provider_autodetect"), systemImage: "dot.radiowaves.left.and.right")
                     }
                     .controlSize(.small)
 
@@ -165,8 +166,8 @@ struct DebugPane: View {
                 }
 
                 SettingsSection(
-                    title: "抓取策略尝试",
-                    caption: "最近的抓取流程决策和错误。")
+                    title: L("section_fetch_strategy"),
+                    caption: L("fetch_strategy_caption"))
                 {
                     Picker("服务", selection: self.$currentFetchProvider) {
                         ForEach(UsageProvider.allCases, id: \.self) { provider in
@@ -190,14 +191,14 @@ struct DebugPane: View {
 
                 if !self.settings.debugDisableKeychainAccess {
                     SettingsSection(
-                        title: "OpenAI Cookie",
-                        caption: "最近一次 OpenAI Cookie 尝试的 Cookie 导入和 WebKit 抓取日志。")
+                        title: L("section_openai_cookies"),
+                        caption: L("openai_cookies_caption"))
                     {
                         HStack(spacing: 12) {
                             Button {
                                 self.copyToPasteboard(self.store.openAIDashboardCookieImportDebugLog ?? "")
                             } label: {
-                                Label("复制", systemImage: "doc.on.doc")
+                                Label(L("copy"), systemImage: "doc.on.doc")
                             }
                             .disabled((self.store.openAIDashboardCookieImportDebugLog ?? "").isEmpty)
                         }
@@ -206,7 +207,7 @@ struct DebugPane: View {
                             Text(
                                 self.store.openAIDashboardCookieImportDebugLog?.isEmpty == false
                                     ? (self.store.openAIDashboardCookieImportDebugLog ?? "")
-                                    : "暂无日志。请在“服务 → Codex”中更新 OpenAI Cookie 以运行导入。")
+                                    : L("no_log_yet"))
                                 .font(.system(.footnote, design: .monospaced))
                                 .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -219,8 +220,8 @@ struct DebugPane: View {
                 }
 
                 SettingsSection(
-                    title: "缓存",
-                    caption: "清除缓存的费用扫描结果。")
+                    title: L("section_caches"),
+                    caption: L("caches_caption"))
                 {
                     let isTokenRefreshActive = self.store.isTokenRefreshInFlight(for: .codex)
                         || self.store.isTokenRefreshInFlight(for: .claude)
@@ -229,7 +230,7 @@ struct DebugPane: View {
                         Button {
                             Task { await self.clearCostCache() }
                         } label: {
-                            Label("清除费用缓存", systemImage: "trash")
+                            Label(L("clear_cost_cache"), systemImage: "trash")
                         }
                         .disabled(self.isClearingCostCache || isTokenRefreshActive)
 
@@ -239,11 +240,25 @@ struct DebugPane: View {
                                 .foregroundStyle(.tertiary)
                         }
                     }
+
+                    HStack(spacing: 12) {
+                        Button {
+                            self.clearCookieCache()
+                        } label: {
+                            Label(L("clear_cookie_cache"), systemImage: "trash")
+                        }
+
+                        if let status = self.cookieCacheStatus {
+                            Text(status)
+                                .font(.footnote)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
                 }
 
                 SettingsSection(
-                    title: "通知",
-                    caption: "触发 5 小时会话窗口的测试通知（耗尽/恢复）。")
+                    title: L("section_notifications"),
+                    caption: L("notifications_caption"))
                 {
                     Picker("服务", selection: self.$currentLogProvider) {
                         Text("Codex").tag(UsageProvider.codex)
@@ -256,26 +271,26 @@ struct DebugPane: View {
                         Button {
                             self.postSessionNotification(.depleted, provider: self.currentLogProvider)
                         } label: {
-                            Label("发送耗尽通知", systemImage: "bell.badge")
+                            Label(L("post_depleted"), systemImage: "bell.badge")
                         }
                         .controlSize(.small)
 
                         Button {
                             self.postSessionNotification(.restored, provider: self.currentLogProvider)
                         } label: {
-                            Label("发送恢复通知", systemImage: "bell")
+                            Label(L("post_restored"), systemImage: "bell")
                         }
                         .controlSize(.small)
                     }
                 }
 
                 SettingsSection(
-                    title: "CLI 会话",
-                    caption: "探测后保持 Codex/Claude CLI 会话存活；默认在捕获数据后退出。")
+                    title: L("section_cli_sessions"),
+                    caption: L("cli_sessions_caption"))
                 {
                     PreferenceToggleRow(
-                        title: "保持 CLI 会话存活",
-                        subtitle: "在探测之间跳过关闭流程（仅调试）。",
+                        title: L("keep_cli_sessions_alive"),
+                        subtitle: L("keep_cli_sessions_alive_subtitle"),
                         binding: self.$settings.debugKeepCLISessionsAlive)
 
                     Button {
@@ -283,15 +298,15 @@ struct DebugPane: View {
                             await CLIProbeSessionResetter.resetAll()
                         }
                     } label: {
-                        Label("重置 CLI 会话", systemImage: "arrow.counterclockwise")
+                        Label(L("reset_cli_sessions"), systemImage: "arrow.counterclockwise")
                     }
                     .controlSize(.small)
                 }
 
                 #if DEBUG
                 SettingsSection(
-                    title: "错误模拟",
-                    caption: "向菜单卡片注入假错误消息以测试布局。")
+                    title: L("section_error_simulation"),
+                    caption: L("error_simulation_caption"))
                 {
                     Picker("服务", selection: self.$currentErrorProvider) {
                         Text("Codex").tag(UsageProvider.codex)
@@ -314,14 +329,14 @@ struct DebugPane: View {
                                 self.simulatedErrorText,
                                 provider: self.currentErrorProvider)
                         } label: {
-                            Label("设置菜单错误", systemImage: "exclamationmark.triangle")
+                            Label(L("set_menu_error"), systemImage: "exclamationmark.triangle")
                         }
                         .controlSize(.small)
 
                         Button {
                             self.store._setErrorForTesting(nil, provider: self.currentErrorProvider)
                         } label: {
-                            Label("清除菜单错误", systemImage: "xmark.circle")
+                            Label(L("clear_menu_error"), systemImage: "xmark.circle")
                         }
                         .controlSize(.small)
                     }
@@ -333,7 +348,7 @@ struct DebugPane: View {
                                 self.simulatedErrorText,
                                 provider: self.currentErrorProvider)
                         } label: {
-                            Label("设置费用错误", systemImage: "banknote")
+                            Label(L("set_cost_error"), systemImage: "banknote")
                         }
                         .controlSize(.small)
                         .disabled(!supportsTokenError)
@@ -341,7 +356,7 @@ struct DebugPane: View {
                         Button {
                             self.store._setTokenErrorForTesting(nil, provider: self.currentErrorProvider)
                         } label: {
-                            Label("清除费用错误", systemImage: "xmark.circle")
+                            Label(L("clear_cost_error"), systemImage: "xmark.circle")
                         }
                         .controlSize(.small)
                         .disabled(!supportsTokenError)
@@ -350,19 +365,19 @@ struct DebugPane: View {
                 #endif
 
                 SettingsSection(
-                    title: "CLI 路径",
-                    caption: "已解析的 Codex 二进制和 PATH 层级；启动时捕获登录 shell PATH（短超时）。")
+                    title: L("section_cli_paths"),
+                    caption: L("cli_paths_caption"))
                 {
-                    self.binaryRow(title: "Codex 二进制", value: self.store.pathDebugInfo.codexBinary)
-                    self.binaryRow(title: "Claude 二进制", value: self.store.pathDebugInfo.claudeBinary)
+                    self.binaryRow(title: L("codex_binary"), value: self.store.pathDebugInfo.codexBinary)
+                    self.binaryRow(title: L("claude_binary"), value: self.store.pathDebugInfo.claudeBinary)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("生效 PATH")
+                        Text(L("effective_path"))
                             .font(.callout.weight(.semibold))
                         ScrollView {
                             Text(
                                 self.store.pathDebugInfo.effectivePATH.isEmpty
-                                    ? "不可用"
+                                    ? L("unavailable")
                                     : self.store.pathDebugInfo.effectivePATH)
                                 .font(.system(.footnote, design: .monospaced))
                                 .textSelection(.enabled)
@@ -376,7 +391,7 @@ struct DebugPane: View {
 
                     if let loginPATH = self.store.pathDebugInfo.loginShellPATH {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("登录 shell PATH（启动捕获）")
+                            Text(L("login_shell_path"))
                                 .font(.callout.weight(.semibold))
                             ScrollView {
                                 Text(loginPATH)
@@ -422,7 +437,7 @@ struct DebugPane: View {
 
     private var displayedLog: String {
         if self.logText.isEmpty {
-            return self.isLoadingLog ? "加载中…" : "暂无日志。获取后显示。"
+            return self.isLoadingLog ? L("loading") : L("no_log_yet_fetch")
         }
         return self.logText
     }
@@ -472,7 +487,7 @@ struct DebugPane: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.callout.weight(.semibold))
-            Text(value ?? "未找到")
+            Text(value ?? L("not_found"))
                 .font(.system(.footnote, design: .monospaced))
                 .foregroundStyle(value == nil ? .secondary : .primary)
         }
@@ -504,12 +519,21 @@ struct DebugPane: View {
             return
         }
 
-        self.costCacheStatus = "已清除。"
+        self.costCacheStatus = L("cleared")
+    }
+
+    private func clearCookieCache() {
+        let cleared = CookieHeaderCache.clearAll()
+        if cleared > 0 {
+            self.cookieCacheStatus = "Cleared \(cleared) provider\(cleared == 1 ? "" : "s")."
+        } else {
+            self.cookieCacheStatus = "No cached cookies found."
+        }
     }
 
     private func fetchAttemptsText(for provider: UsageProvider) -> String {
         let attempts = self.store.fetchAttempts(for: provider)
-        guard !attempts.isEmpty else { return "暂无抓取尝试。" }
+        guard !attempts.isEmpty else { return L("no_fetch_attempts") }
         return attempts.map { attempt in
             let kind = Self.fetchKindLabel(attempt.kind)
             var line = "\(attempt.strategyID) (\(kind))"

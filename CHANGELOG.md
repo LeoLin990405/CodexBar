@@ -1,13 +1,144 @@
 # Changelog
 
-## 0.23 — Unreleased
+## 0.26 — Unreleased
 
-### Changes
-- Development ongoing.
+### Added
+- Moonshot / Kimi API: add API-key balance tracking, CLI support, docs, and menu bar balance copy (#899). Thanks @giuseppebisemi!
+
+### Fixed
+- Settings: apply the selected app language from packaged SwiftPM resources instead of falling back to English when the `.lproj` directory casing differs (#908).
+- ChatGPT credits: restrict purchase links to real HTTPS `chatgpt.com` settings/usage/billing/credits paths and drop query/fragment data (#903). Thanks @ThiagoCAltoe!
+- z.ai: show the MCP quota bucket as monthly instead of a misleading 1-minute window (#904). Thanks @ThiagoCAltoe!
+
+## 0.25.1 — 2026-05-11
+
+### Fixed
+- Settings: avoid packaged-app crashes from SwiftPM localization bundle lookup when opening Settings or About (#896, fixes #891). Thanks @lederniermagicien!
+- CLI: include a VERSION file in standalone release archives so `--version` reports the release tag outside the app bundle (#898). Thanks @ThiagoCAltoe!
+- Pi: rebuild stale session cost caches after cache-version migrations so refreshed cost history reflects current scanner data.
+- Keychain cache: reduce repeated development prompt churn by trusting the bundled helper when writing CodexBar-owned cache items (#888).
+## 0.25 — 2026-05-10
+
+### Highlights
+- Localization: add Simplified Chinese app strings and an in-app language selector (#819). Thanks @markhome1!
+- New providers: Manus, MiMo, Qwen, Doubao, Command Code, StepFun, Crof, Venice, and OpenAI API balance support.
+- MiniMax: add multi-service quota cards for text, speech, image, video, and music coding-plan usage (#605). Thanks @XWind18!
+- Notifications: add opt-in quota warning notifications, warning markers, and provider-level thresholds for session and weekly quota windows (#852). Thanks @Alekstodo!
+- Codex: add stacked multi-account switchers and show official Pro 5x/Pro 20x plan labels (#869, #882). Thanks @ajmccall and @xiaoqianWX!
+- Cost history: use live models.dev pricing metadata, preserve tiered pricing boundaries, and keep large Codex/Claude log scans incremental (#863, #884, #886). Thanks @iam-brain!
+- Menu bar: fix hidden/stale status items, keep manual refreshes open, and improve balance-style menu bar text for providers without useful quota percentages (#845, #853, #861). Thanks @OlimjonovOtabek and @willytop8!
+- Accessibility: add VoiceOver labels for status icons, menu rows, provider switcher buttons, and usage charts (#860, fixes #859). Thanks @WadydX!
+
+### Providers & Usage
+- Manus: add browser-cookie provider support for credit balance, monthly credits, and daily refresh tracking (#700). Thanks @hhh2210!
+- MiMo: add browser-cookie provider support for Xiaomi token-plan usage, plan labels, balance fallback, CLI, widget, and docs (#651). Thanks @debpramanik!
+- Qwen and Doubao: add API-key provider support for Alibaba Qwen and Volcengine Ark request-limit tracking (#498). Thanks @LeoLin990405!
+- MiniMax: add multi-service quota cards for text, speech, image, video, and music coding-plan usage (#605). Thanks @XWind18!
+- Antigravity: add OAuth-backed remote usage fetching so quotas can refresh even when the IDE is closed (#635). Thanks @abnormal749!
+- Venice: add API-key balance provider support with DIEM/USD balance display and token-account CLI wiring (#865). Thanks @clawSean!
+- Crof: add API-key provider support with request quota and credit balance tracking (#872). Thanks @baanish!
+- OpenAI API: add optional platform credit-balance tracking from the billing credit-grants endpoint (#877).
+- Command Code: add browser-cookie provider support for monthly USD billing credits (#857). Thanks @sixhobbits!
+- StepFun: add username/password or Oasis-Token provider support for Step Plan rate-limit tracking (#815). Thanks @tevenfeng!
+- Factory/Droid: add token-rate-limit billing windows, Core fallback buckets, and extra usage balance display (#878). Thanks @dantemoon1!
+- OpenRouter, Mistral, and Kimi K2: show balance/spend metrics in menu bar text when quota percentage is not useful (#853). Thanks @willytop8!
+- Usage pace: show session-level pace indicators for Codex and Claude 5-hour windows, and compute pace for any explicit reset window instead of a provider allowlist (#355, #875). Thanks @johnlarkin1 and @ViperThanks!
+- Cost history: add a models.dev pricing metadata parser/cache pipeline and prefer cached models.dev pricing for Codex and Claude before bundled fallback tables (#863, #884). Thanks @iam-brain!
+- Browser cookies: bump SweetCookieKit to 0.4.1 for Comet and Yandex browser discovery, Safari profile cookie stores, and per-browser Chromium Safe Storage keys.
+
+### Menu & Settings
+- Codex: add a stacked multi-account menu layout for account switchers (#869). Thanks @ajmccall!
+- Notifications: add opt-in quota warning notifications, warning markers, and provider-level thresholds for session and weekly quota windows (#852). Thanks @Alekstodo!
+- Accessibility: add VoiceOver labels for status icons, menu rows, provider switcher buttons, and usage charts (#860, fixes #859). Thanks @WadydX!
+- Menu bar: keep status items visible on launch by avoiding macOS autosaved hidden menu-extra state from v0.24 (#861).
+- Menu bar: remove stale split provider status items instead of hiding them, avoiding leftover second-icon slots on macOS 26.4.
+- Menu: keep the status menu open when manually refreshing usage from the menu (#845). Thanks @OlimjonovOtabek!
+- Menu: route provider switcher tab clicks through the parent view's mouse tracking so a sub-provider tab still responds after switching back from the Overview tab (#867). Thanks @Karl-Dai!
+- Menu: keep long Codex account labels from widening the status menu when switching to the Codex tab.
+- Menu: keep Cost and Subscription Utilization submenus stable by deferring parent card rebuilds while hosted submenus are open (#862).
+- Settings: avoid a crash when opening the display overview provider picker.
 
 ### Fixes
-- Codex: clean up cached CLI status probes during app shutdown so `codex -s read-only` workers are not orphaned after restart.
-- Widgets: package `Metadata.appintents` for the widget extension and use App Intent parameter defaults so configurable widgets load correctly in WidgetKit. Thanks @vincentyangch!
+- Startup: avoid blocking menu-bar creation on synchronous defaults migration/default seeding when macOS preferences services stall.
+- Codex: honor the legacy `openAIWebAccess` defaults key when importing OpenAI web extras preferences, so existing terminal workarounds no longer get ignored on launch (#794).
+- Codex: restrict OAuth auto fallback to missing/invalid auth so transient API/decode errors do not spawn `codex app-server` and burn tokens (#876, fixes #874). Thanks @ViperThanks!
+- Codex: show official Pro 5x/Pro 20x plan labels instead of Pro Lite/Pro in menu and CLI output (#882). Thanks @xiaoqianWX!
+- Cost history: keep manual refreshes on the incremental scanner cache and drain per-line JSON parse allocations so large Codex/Claude histories do not trigger full local log rescans and CPU/memory spikes.
+- Cost history: preserve cached models.dev pricing when an upstream catalog only changes a pinned snapshot suffix for the same model family (#883). Thanks @iam-brain!
+- Cost history: preserve per-request tiered pricing boundaries when aggregating Claude/Pi daily reports (#886). Thanks @iam-brain!
+- Keychain cache: trust the bundled CodexBarCLI helper when writing CodexBar-owned cache items, reducing repeated "CodexBar Cache" prompts from CLI usage (#679). Thanks @QuarkAssistant!
+- Locale: keep relative timestamps in hardcoded-English UI labels consistently English on non-English macOS systems (#868, fixes #866). Thanks @Karl-Dai!
+- Droid: send the bearer JWT subject as the usage `userId` when Factory omits `userProfile.id`, avoiding false login failures (#626). Thanks @CrystalChen1017!
+- Droid: fall back to token/allowance math when the Factory API reports a zero ratio despite non-zero usage (#864). Thanks @proxynico!
+- Alibaba: point the International Coding Plan dashboard link at the current `coding_plan` route and clarify unsupported API-key quota errors (#612).
+- Claude: allow web/sessionKey token accounts to specify `organizationId` so linked Anthropic emails can target the intended org (#848).
+- DeepSeek: show a positive CNY balance when the API also returns an empty USD balance (#873).
+- Vertex AI: detect service-account ADC files from `GOOGLE_APPLICATION_CREDENTIALS` and use `gcloud` to fetch access tokens (#871).
+- Gemini: retry direct API requests with curl when URLSession times out on hosts where curl succeeds (#826).
+- Gemini: locate Homebrew-installed CLI bundles and parse bundled OAuth client constants so token refresh works with newer `gemini-cli` installs (#695).
+- OpenRouter: keep the menu bar rendering the usage meter instead of falling back to the provider logo when no key limit is configured (#854). Thanks @willytop8!
+- DeepSeek: show balance as plain text instead of a misleading quota-style progress bar (#856). Thanks @jb381!
+- Augment: report the real 1-minute keepalive check/min-refresh intervals in startup logs and docs (#434). Thanks @guglielmofonda!
+- Website: refresh codex.bar with the current canonical domain, structured background, and updated social preview.
+
+## 0.24 — 2026-05-06
+
+### Providers & Usage
+- Windsurf: add provider support with web-session usage fetching and local SQLite-cache fallback (#583). Thanks @Coooolfan!
+- Codebuff: add provider support with credit balance tracking, weekly rate-limit usage, API-token settings, and `codebuff login` credential import (#837). Thanks @anandghegde!
+- Copilot: add multi-account support with GitHub OAuth sign-in, account switching, and per-account usage cards (#637). Thanks @ajmccall!
+- DeepSeek: add provider support with token-account balance tracking, paid vs. granted credit breakdown, and CLI support (#811). Thanks @willytop8!
+- Storage: add an opt-in menu view for local provider storage usage with background scans and copyable path breakdowns (#829). Thanks @fatiheminoge!
+- OpenRouter and DeepSeek: show remaining account balances in the menu bar, while preserving OpenRouter's API-key limit metric when explicitly selected (#832). Thanks @giuseppebisemi!
+- Claude: add a peak-hours menu-card indicator with countdowns and a provider setting to hide it (#611). Thanks @hello-amed!
+- Cost history: show per-model cost details as a compact vertical list when hovering daily bars (#513). Thanks @iam-brain!
+- Copilot: support GitHub Enterprise hosts for the device-flow login and usage API paths (#827). Thanks @ramzesenok!
+- Alibaba: clarify China-region API-key failures when the console endpoint requires a browser session (#628). Thanks @XWind18!
+
+### Fixes
+- Codex: time out hung `codex app-server` RPC reads and cap loading animation runtime so stalled refreshes no longer keep the menu bar redrawing indefinitely (#842, #844). Thanks @hyspacex!
+- Codex: make OpenAI dashboard refreshes handle non-English pages, lazy-loaded credits history, timeout retries, and unrelated Skillusage rows (#825). Thanks @xiaoqianWX!
+- Cursor: show Enterprise/Team usage from personal caps and shared pools instead of reporting 100% remaining (#813). Thanks @fcamus00!
+- Codex: keep same-workspace managed accounts distinct by matching workspace identity with email, so different OpenAI users in one workspace no longer overwrite each other (#796). Thanks @leezhuuuuu!
+- Claude: enable Claude and switch to OAuth after a successful login, clear stale selected-provider state when Claude is disabled, and tolerate OAuth payloads that omit the five-hour window (#816, #726). Thanks @pdurlej and @Brandawg93!
+- Claude: recognize OAuth `subscriptionType` before `rateLimitTier` so Pro accounts with generic Claude Code tiers
+  open the subscription usage dashboard correctly (#836, fixes #824). Thanks @shixy96!
+- Usage: preserve known reset countdowns when a refresh returns current usage without reset metadata (#427). Thanks @Whoaa512!
+- Menu: refresh open usage cards after live data changes so the “Updated” timestamp advances after manual or cadence refreshes (#715). Thanks @cooper-matt!
+- Menu: make the global open-menu shortcut behave as a true toggle when the menu is already open, avoiding queued reopens after repeated key presses (#218).
+- Menu bar: preserve existing status items and assign stable autosave names so provider icon positions survive provider toggles (#538). Thanks @hxy91819!
+- Settings: make the Preferences window 10% wider and taller so dense provider/settings panes have more breathing room.
+- CLI releases: publish macOS arm64 and x86_64 CLI tarballs alongside Linux artifacts, with release-workflow smoke tests and docs (#457, #839). Thanks @androidshu and @mondary!
+- CLI: query only enabled providers by default when three or more providers are enabled instead of expanding to every registered provider (#830). Thanks @lhoBas!
+- CLI: read MiniMax coding-plan tokens from `MINIMAX_CODING_API_KEY`, accept Alibaba Qwen/DashScope API-key aliases, and avoid duplicate generic JSON error rows after provider failures.
+- CLI discovery: prefer known install paths before interactive shell probing so common Claude installs no longer run shell init hooks during binary detection (#775).
+- CLI lookup: drain login-shell probe output and terminate spawned process groups so interactive shell helpers cannot leak after path detection (#822, fixes #821). Thanks @LPFchan!
+- OpenCode Go: open the workspace-specific usage dashboard when a workspace ID is configured (#667). Thanks @RizaSatya!
+- Augment: use the API-provided credits limit when available instead of reconstructing the limit from consumed plus remaining credits (#338). Thanks @bcharleson!
+- MiniMax: ignore login strings embedded in scripts when checking web-session pages for signed-out state (#508). Thanks @qipihen!
+- Accounts: refresh the selected provider data and open menu after switching token accounts, even while a menu-open refresh is running (#799, fixes #798). Thanks @Zeko369!
+- Codex: prefer session turn-context model metadata when calculating local cost history so GPT-5.4 sessions are not bucketed as GPT-5 (#620). Thanks @betive37!
+- Codex: stop falling back from app-server RPC to bare CLI TUI during automatic usage refreshes, preventing unexpected OpenAI auth browser tabs.
+- Menu/keychain: block delayed test-time menu mutations after teardown and enforce no-UI keychain reads more reliably (#381). Thanks @artuskg!
+- Menu bar: fix invisible status item icon on macOS 26.4 by removing remaining RenderBox-triggering SwiftUI compositing modifiers from `UsageProgressBar` (rewritten as a single Canvas) and eliminating ~28 redundant Keychain reads on every launch after the first-run migration (#805). Thanks @willytop8!
+
+## 0.23 — 2026-04-26
+
+### Highlights
+- Mistral: add provider support with monthly spend tracking, browser-cookie import, manual cookies, and CLI/token-account support (#607). Thanks @welcoMattic!
+- Claude: show Designs and Daily Routines usage bars from live Claude OAuth/Web quota data, and restore the Web-mode Sonnet bar (#740). Thanks @AISupplyGuy!
+- Cursor: add an Extra usage menu bar metric for on-demand budgets (#789). Thanks @huiye98!
+- Usage: add an opt-in confetti celebration when weekly limits reset after active use (#785). Thanks @zats!
+- Codex: add GPT-5.5 and GPT-5.5 Pro pricing so local cost scanning recognizes the new models.
+- Copilot: show a clearer GitHub Device Flow hint in Settings when the copied device code needs to be pasted into GitHub (#369). Thanks @amoranio!
+
+### Fixes
+- Droid: preserve Factory session fallbacks, use the current usage endpoint, and clarify browser-login messaging (#792). Thanks @JosephDoUrden for the original stale-session fix!
+- Widgets: package App Intents metadata for the widget extension and use configuration defaults so configurable widgets load correctly in WidgetKit (#783). Thanks @ngutman and @vincentyangch!
+- Menu: keep merged-menu cards, switcher rows, wrapped status text, and hosted chart submenus aligned with the real AppKit menu width so menus no longer grow oversized or show narrower chart submenus after width changes. Thanks @ngutman!
+- Codex: ignore invalid zero-minute subscription history so the utilization submenu no longer shows duplicate Session tabs.
+- CLI: report the app bundle version correctly when the bundled helper is launched through a symlink.
+- Codex/Claude: clean up cached CLI status probes during app shutdown so `codex -s read-only` workers are not orphaned after restart.
 
 ## 0.22 — 2026-04-21
 
@@ -28,7 +159,6 @@
 
 ### Menu & Settings
 - Menu: show and handle standard shortcuts for Refresh (⌘R), Settings (⌘,), and Quit (⌘Q) while the status menu is open (#737). Thanks @anirudhvee!
-- Widgets: migrate app-group sharing to the Team-ID-prefixed container and carry widget state across the move (#701). Thanks @ngutman!
 - Settings: fix provider-sidebar clipping on macOS Tahoe and resize the Preferences window when switching tabs (#580). Thanks @chadneal!
 
 ### Fixes
@@ -75,6 +205,7 @@
 - Codex: add an OpenAI web battery-saver toggle, keep manual refresh available when battery saver is on, and hide OpenAI web submenus when web extras are disabled.
 
 ### Development & Tooling
+- CLI / Debug: add user-facing browser-cookie cache clearing, including provider-scoped CLI clearing that removes managed Codex account cookie caches (#592, fixes #591). Thanks @coygeek!
 - Diagnostics: add lightweight battery instrumentation for menu updates and refresh work (#708).
 - Build script: make CodexBar-owned ad-hoc keychain cleanup opt-in with `--clear-adhoc-keychain`, and extend the explicit reset path to clear both `com.steipete.CodexBar` and `com.steipete.codexbar.cache`. Thanks @magnaprog!
 
@@ -85,7 +216,7 @@
 - Add Perplexity provider support with recurring, bonus, and purchased-credit tracking, Pro/Max plan detection, browser-cookie auto-import, and manual-cookie fallback (#449). Thanks @BeelixGit!
 - Add OpenCode Go as a separate provider with 5-hour, weekly, and monthly web usage tracking, widget integration, and browser-cookie support.
 - Claude: fix token and cost inflation caused by cross-file double counting of subagent JSONL logs, fix streaming chunk deduplication, and add `claude-sonnet-4-6` pricing. Thanks @enzonaute for the investigation!
-- Cost history: merge supported pi session usage into Codex/Claude provider history (#653). Thanks @ngutman!
+- Cost history: include supported pi session usage in Codex/Claude provider history so provider charts reflect those local runs (#653). Thanks @ngutman!
 
 ### Providers & Usage
 - Perplexity: add recurring, bonus, and purchased-credit tracking; plan detection for Pro/Max; browser-cookie auto-import; and manual-cookie fallback (#449). Thanks @BeelixGit!

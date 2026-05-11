@@ -18,14 +18,15 @@ struct DoubaoProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "doubao-api-token",
                 title: "API key",
-                subtitle: "保存在 ~/.codexbar/config.json。可在火山引擎 Ark 控制台获取 API key。",
+                subtitle: "Stored in ~/.codexbar/config.json. Get your API key from the Volcengine "
+                    + "Ark console.",
                 kind: .secure,
                 placeholder: "ark-...",
                 binding: context.stringBinding(\.doubaoAPIToken),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "doubao-open-dashboard",
-                        title: "打开火山引擎 Ark 控制台",
+                        title: "Open Volcengine Ark Console",
                         style: .link,
                         isVisible: nil,
                         perform: {

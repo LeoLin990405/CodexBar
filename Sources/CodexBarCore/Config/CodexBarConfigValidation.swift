@@ -154,6 +154,15 @@ public enum CodexBarConfigValidator {
                         code: "invalid_region",
                         message: "\(region) 不是有效的阿里云百炼 Coding Plan 区域。"))
                 }
+            case .moonshot:
+                if MoonshotRegion(rawValue: region) == nil {
+                    issues.append(CodexBarConfigIssue(
+                        severity: .error,
+                        provider: provider,
+                        field: "region",
+                        code: "invalid_region",
+                        message: "Region \(region) is not a valid Moonshot region."))
+                }
             default:
                 issues.append(CodexBarConfigIssue(
                     severity: .warning,
@@ -175,6 +184,18 @@ public enum CodexBarConfigValidator {
                 field: "workspaceID",
                 code: "workspace_unused",
                 message: "已设置 workspaceID，但只有 opencode 和 opencodego 支持 workspaceID。"))
+        }
+
+        if let enterpriseHost = entry.enterpriseHost,
+           !enterpriseHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           provider != .copilot
+        {
+            issues.append(CodexBarConfigIssue(
+                severity: .warning,
+                provider: provider,
+                field: "enterpriseHost",
+                code: "enterprise_host_unused",
+                message: "enterpriseHost is set but only copilot supports enterpriseHost."))
         }
 
         if let tokenAccounts = entry.tokenAccounts, !tokenAccounts.accounts.isEmpty,

@@ -1,19 +1,28 @@
 import AppKit
 import CodexBarCore
 
-extension StatusItemController {
+extension StatusItemController: StatusItemMenuPersistentActionDelegate {
     // MARK: - Actions reachable from menus
 
     func refreshStore(forceTokenUsage: Bool) {
         Task {
             await ProviderInteractionContext.$current.withValue(.userInitiated) {
-                await self.store.refresh(forceTokenUsage: forceTokenUsage, reason: .userInitiated)
+                await self.store.refresh(forceTokenUsage: forceTokenUsage)
+                self.store.scheduleStorageFootprintRefreshForOverview(force: true)
+                self.invalidateMenus()
+                self.refreshOpenMenusIfNeeded()
             }
         }
     }
 
     @objc func refreshNow() {
         self.refreshStore(forceTokenUsage: true)
+    }
+
+    nonisolated func performPersistentRefreshAction() {
+        Task { @MainActor [weak self] in
+            self?.refreshNow()
+        }
     }
 
     @objc func refreshAugmentSession() {
@@ -42,6 +51,13 @@ extension StatusItemController {
     func dashboardURL(for provider: UsageProvider) -> URL? {
         if provider == .alibaba {
             return self.settings.alibabaCodingPlanAPIRegion.dashboardURL
+        }
+        if provider == .minimax {
+            return self.settings.minimaxAPIRegion.dashboardURL
+        }
+
+        if provider == .opencodego {
+            return self.settings.opencodegoDashboardURL
         }
 
         let meta = self.store.metadata(for: provider)
@@ -74,13 +90,22 @@ extension StatusItemController {
         self.creditsPurchaseWindow = controller
     }
 
-    private static func sanitizedCreditsPurchaseURL(_ raw: String?) -> String? {
+    static func sanitizedCreditsPurchaseURL(_ raw: String?) -> String? {
         guard let raw, let url = URL(string: raw) else { return nil }
-        guard let host = url.host?.lowercased(), host.contains("chatgpt.com") else { return nil }
-        let path = url.path.lowercased()
+        guard Self.isAllowedChatGPTPurchaseHost(url) else { return nil }
+        let pathComponents = url.pathComponents.map { $0.lowercased() }
         let allowed = ["settings", "usage", "billing", "credits"]
-        guard allowed.contains(where: { path.contains($0) }) else { return nil }
-        return url.absoluteString
+        guard pathComponents.contains(where: { allowed.contains($0) }) else { return nil }
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.query = nil
+        components?.fragment = nil
+        return components?.url?.absoluteString ?? url.absoluteString
+    }
+
+    private static func isAllowedChatGPTPurchaseHost(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "https" else { return false }
+        guard let host = url.host?.lowercased() else { return false }
+        return host == "chatgpt.com" || host.hasSuffix(".chatgpt.com")
     }
 
     @objc func openStatusPage() {
@@ -157,25 +182,18 @@ extension StatusItemController {
         let rawProvider = sender.representedObject as? String
         let provider = rawProvider.flatMap(UsageProvider.init(rawValue:)) ?? self.lastMenuProvider ?? .codex
         self.loginLogger.info("Switch Account tapped", metadata: ["provider": provider.rawValue])
+        self.startLoginFlow(provider: provider)
+    }
 
-        self.loginTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-            defer {
-                self.activeLoginProvider = nil
-                self.loginTask = nil
-            }
-            self.activeLoginProvider = provider
-            self.loginPhase = .requesting
-            self.loginLogger.info("Starting login task", metadata: ["provider": provider.rawValue])
-
-            let shouldRefresh = await self.runLoginFlow(provider: provider)
-            if shouldRefresh {
-                await ProviderInteractionContext.$current.withValue(.userInitiated) {
-                    await self.store.refresh()
-                }
-                self.loginLogger.info("Triggered refresh after login", metadata: ["provider": provider.rawValue])
-            }
+    func runLoginFlowFromSettings(provider: UsageProvider) async {
+        guard self.loginTask == nil else {
+            self.loginLogger.info(
+                "Settings login tap ignored: login already in-flight",
+                metadata: ["provider": provider.rawValue])
+            return
         }
+        self.startLoginFlow(provider: provider)
+        await self.loginTask?.value
     }
 
     @objc func showSettingsGeneral() {
@@ -187,6 +205,10 @@ extension StatusItemController {
     }
 
     func openMenuFromShortcut() {
+        if self.closeOpenMenusFromShortcutIfNeeded() {
+            return
+        }
+
         if self.shouldMergeIcons {
             self.statusItem.button?.performClick(nil)
             return
@@ -196,6 +218,38 @@ extension StatusItemController {
         // Use the lazy accessor to ensure the item exists
         let item = self.lazyStatusItem(for: provider)
         item.button?.performClick(nil)
+    }
+
+    @discardableResult
+    func closeOpenMenusFromShortcutIfNeeded() -> Bool {
+        guard !self.openMenus.isEmpty else { return false }
+
+        let menus = Array(self.openMenus.values)
+        for menu in menus {
+            menu.cancelTrackingWithoutAnimation()
+            self.forgetClosedMenu(menu)
+        }
+        return true
+    }
+
+    func celebrationOriginPoint(for provider: UsageProvider?) -> CGPoint? {
+        let item: NSStatusItem = if self.shouldMergeIcons {
+            self.statusItem
+        } else if let provider, let existing = self.statusItems[provider], existing.isVisible {
+            existing
+        } else {
+            self.lazyStatusItem(for: provider ?? .codex)
+        }
+
+        guard let button = item.button,
+              let window = button.window
+        else {
+            return nil
+        }
+
+        let buttonFrameInWindow = button.convert(button.bounds, to: nil)
+        let screenFrame = window.convertToScreen(buttonFrameInWindow)
+        return CGPoint(x: screenFrame.midX, y: screenFrame.midY)
     }
 
     private func openSettings(tab: PreferencesTab) {
@@ -252,6 +306,27 @@ extension StatusItemController {
         return .codex
     }
 
+    private func startLoginFlow(provider: UsageProvider) {
+        self.loginTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer {
+                self.activeLoginProvider = nil
+                self.loginTask = nil
+            }
+            self.activeLoginProvider = provider
+            self.loginPhase = .requesting
+            self.loginLogger.info("Starting login task", metadata: ["provider": provider.rawValue])
+
+            let shouldRefresh = await self.runLoginFlow(provider: provider)
+            if shouldRefresh {
+                await ProviderInteractionContext.$current.withValue(.userInitiated) {
+                    await self.store.refresh()
+                }
+                self.loginLogger.info("Triggered refresh after login", metadata: ["provider": provider.rawValue])
+            }
+        }
+    }
+
     func presentCodexLoginResult(_ result: CodexLoginRunner.Result) {
         guard let info = CodexLoginAlertPresentation.alertInfo(for: result) else { return }
         self.presentLoginAlert(title: info.title, message: info.message)
@@ -270,8 +345,10 @@ extension StatusItemController {
             case .loginFailed:
                 "托管 Codex 登录未完成。请完成浏览器登录流程后重试。"
             case .missingEmail:
-                "Codex 登录已完成，但没有获取到账户邮箱。" +
-                    "请确认账号已完整登录后重试。"
+                "Codex login completed, but no account email was available. " +
+                    "Try again after confirming the account is fully signed in."
+            case .workspaceSelectionCancelled:
+                "CodexBar found multiple workspaces, but no workspace was selected."
             case let .unsafeManagedHome(path):
                 "CodexBar 拒绝修改异常的托管 home 路径：\(path)"
             }
@@ -332,8 +409,28 @@ extension StatusItemController {
         }
     }
 
+    func describe(_ outcome: AntigravityLoginRunner.Result.Outcome) -> String {
+        switch outcome {
+        case let .success(email):
+            "success(email: \(email ?? "nil"))"
+        case .cancelled:
+            "cancelled"
+        case .timedOut:
+            "timedOut"
+        case let .launchFailed(message):
+            "launchFailed(\(message))"
+        case let .failed(message):
+            "failed(\(message))"
+        }
+    }
+
     func presentGeminiLoginResult(_ result: GeminiLoginRunner.Result) {
         guard let info = Self.geminiLoginAlertInfo(for: result) else { return }
+        self.presentLoginAlert(title: info.title, message: info.message)
+    }
+
+    func presentAntigravityLoginResult(_ result: AntigravityLoginRunner.Result) {
+        guard let info = Self.antigravityLoginAlertInfo(for: result) else { return }
         self.presentLoginAlert(title: info.title, message: info.message)
     }
 
@@ -352,6 +449,23 @@ extension StatusItemController {
                 message: "请安装 Gemini CLI（npm i -g @google/gemini-cli）后重试。")
         case let .launchFailed(message):
             LoginAlertInfo(title: "无法为 Gemini 打开终端", message: message)
+        }
+    }
+
+    nonisolated static func antigravityLoginAlertInfo(for result: AntigravityLoginRunner.Result) -> LoginAlertInfo? {
+        switch result.outcome {
+        case .success, .cancelled:
+            nil
+        case .timedOut:
+            LoginAlertInfo(
+                title: "Antigravity login timed out",
+                message: "The browser login did not complete in time. Try Antigravity login again.")
+        case let .launchFailed(message):
+            LoginAlertInfo(
+                title: "Could not open browser for Antigravity",
+                message: "Open this URL manually to continue login:\n\n\(message)")
+        case let .failed(message):
+            LoginAlertInfo(title: "Antigravity login failed", message: message)
         }
     }
 

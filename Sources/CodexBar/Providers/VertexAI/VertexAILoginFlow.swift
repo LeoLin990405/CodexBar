@@ -7,20 +7,11 @@ extension StatusItemController {
     func runVertexAILoginFlow() async {
         // Show alert with instructions
         let alert = NSAlert()
-        alert.messageText = "Vertex AI 登录"
-        alert.informativeText = """
-        要使用 Vertex AI 跟踪，需要先通过 Google Cloud 认证。
-
-        1. 打开终端
-        2. 运行：gcloud auth application-default login
-        3. 按浏览器提示完成登录
-        4. 设置项目：gcloud config set project PROJECT_ID
-
-        现在要打开终端吗？
-        """
+        alert.messageText = L("Vertex AI Login")
+        alert.informativeText = L("vertex_ai_login_instructions")
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "打开终端")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: L("Open Terminal"))
+        alert.addButton(withTitle: L("Cancel"))
 
         let response = alert.runModal()
 

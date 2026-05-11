@@ -9,6 +9,7 @@ enum LocalSafetyMode {
     static let launchAtLogin = false
     static let debugDisableKeychainAccess = true
     static let claudeOAuthKeychainPromptMode: ClaudeOAuthKeychainPromptMode = .never
+    static let appLanguage = "zh-Hans"
 
     private static var isRunningTests: Bool {
         let env = ProcessInfo.processInfo.environment
@@ -25,6 +26,7 @@ enum LocalSafetyMode {
         userDefaults.set(
             self.claudeOAuthKeychainPromptMode.rawValue,
             forKey: "claudeOAuthKeychainPromptMode")
+        userDefaults.set(self.appLanguage, forKey: "appLanguage")
         sharedDefaults?.set(self.debugDisableKeychainAccess, forKey: "debugDisableKeychainAccess")
     }
 }

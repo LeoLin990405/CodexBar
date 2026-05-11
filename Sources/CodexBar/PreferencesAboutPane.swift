@@ -51,14 +51,14 @@ struct AboutPane: View {
             VStack(spacing: 2) {
                 Text("CodexBar")
                     .font(.title3).bold()
-                Text("版本 \(self.versionString)")
+                Text(String(format: L("version_format"), self.versionString))
                     .foregroundStyle(.secondary)
                 if let buildTimestamp {
-                    Text("构建于 \(buildTimestamp)")
+                    Text(String(format: L("built_format"), buildTimestamp))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-                Text("愿你的 token 永不耗尽，也愿额度始终一眼可见。")
+                Text(L("about_tagline"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -66,11 +66,11 @@ struct AboutPane: View {
             VStack(alignment: .center, spacing: 10) {
                 AboutLinkRow(
                     icon: "chevron.left.slash.chevron.right",
-                    title: "GitHub",
+                    title: L("link_github"),
                     url: "https://github.com/steipete/CodexBar")
-                AboutLinkRow(icon: "globe", title: "网站", url: "https://steipete.me")
-                AboutLinkRow(icon: "bird", title: "Twitter", url: "https://twitter.com/steipete")
-                AboutLinkRow(icon: "envelope", title: "邮箱", url: "mailto:peter@steipete.me")
+                AboutLinkRow(icon: "globe", title: L("link_website"), url: "https://steipete.me")
+                AboutLinkRow(icon: "bird", title: L("link_twitter"), url: "https://twitter.com/steipete")
+                AboutLinkRow(icon: "envelope", title: L("link_email"), url: "mailto:peter@steipete.me")
             }
             .padding(.top, 8)
             .frame(maxWidth: .infinity)
@@ -80,12 +80,12 @@ struct AboutPane: View {
 
             if self.updater.isAvailable {
                 VStack(spacing: 10) {
-                    Toggle("自动检查更新", isOn: self.$autoUpdateEnabled)
+                    Toggle(L("check_updates_auto"), isOn: self.$autoUpdateEnabled)
                         .toggleStyle(.checkbox)
                         .frame(maxWidth: .infinity, alignment: .center)
                     VStack(spacing: 6) {
                         HStack(spacing: 12) {
-                            Text("更新通道")
+                            Text(L("update_channel"))
                             Spacer()
                             Picker("", selection: self.updateChannelBinding) {
                                 ForEach(UpdateChannel.allCases) { channel in
@@ -102,14 +102,14 @@ struct AboutPane: View {
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: 280)
                     }
-                    Button("检查更新…") { self.updater.checkForUpdates(nil) }
+                    Button(L("check_for_updates")) { self.updater.checkForUpdates(nil) }
                 }
             } else {
-                Text(self.updater.unavailableReason ?? "此构建无法使用更新功能。")
+                Text(self.updater.unavailableReason ?? L("updates_unavailable"))
                     .foregroundStyle(.secondary)
             }
 
-            Text("© 2026 Peter Steinberger。MIT 许可证。")
+            Text(L("copyright"))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)

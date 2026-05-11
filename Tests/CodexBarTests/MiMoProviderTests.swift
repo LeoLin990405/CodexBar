@@ -168,9 +168,9 @@ struct MiMoProviderTests {
 
         let usage = snapshot.toUsageSnapshot()
 
-        #expect(usage.primary?.usedPercent == 0)
+        #expect(usage.primary == nil)
         #expect(usage.secondary == nil)
-        #expect(usage.loginMethod(for: .mimo) == "余额：$25.51")
+        #expect(usage.loginMethod(for: .mimo) == "Balance: $25.51")
     }
 
     @Test
@@ -190,7 +190,7 @@ struct MiMoProviderTests {
         let usage = snapshot.toUsageSnapshot()
 
         #expect(usage.primary != nil)
-        #expect(abs((usage.primary?.usedPercent ?? 0) - 5.05) < 0.0001)
+        #expect(abs((usage.primary?.usedPercent ?? .nan) - 5.05) < 0.0001)
         #expect(usage.primary?.resetDescription == "10,100,158 / 200,000,000 Credits")
         #expect(usage.primary?.resetsAt == resetDate)
         #expect(usage.loginMethod(for: .mimo) == "Standard")
@@ -211,149 +211,8 @@ struct MiMoProviderTests {
 
         let usage = snapshot.toUsageSnapshot()
 
-        #expect(usage.primary?.usedPercent == 0)
-        #expect(usage.loginMethod(for: .mimo) == "余额：$0.00")
-    }
-
-    @Test
-    func `mimo api strategy is available from api key`() async {
-        let strategy = MiMoAPIFetchStrategy()
-        let context = self.makeContext(environment: ["MIMO_API_KEY": "mimo-token"])
-
-        let available = await strategy.isAvailable(context)
-
-        #expect(available)
-    }
-
-    @Test
-    func `mimo descriptor supports api source`() async {
-        let descriptor = ProviderDescriptorRegistry.descriptor(for: .mimo)
-        let context = self.makeContext(
-            environment: ["MIMO_API_KEY": "mimo-token"],
-            sourceMode: .api)
-
-        let strategies = await descriptor.fetchPlan.pipeline.resolveStrategies(context)
-
-        #expect(descriptor.fetchPlan.sourceModes.contains(.api))
-        #expect(strategies.map(\.id) == ["mimo.api"])
-    }
-
-    @Test
-    func `mimo token plan regions use anthropic base url`() {
-        let sgpURL = MiMoSettingsReader.apiBaseURL(environment: ["MIMO_REGION": "sgp"])
-        let cnURL = MiMoSettingsReader.apiBaseURL(environment: ["MIMO_REGION": "cn"])
-        let amsURL = MiMoSettingsReader.apiBaseURL(environment: ["MIMO_REGION": "ams"])
-        let fallbackURLs = MiMoSettingsReader.apiBaseURLs(environment: ["MIMO_REGION": "sgp"])
-
-        #expect(sgpURL.absoluteString == "https://token-plan-sgp.xiaomimimo.com/anthropic")
-        #expect(cnURL.absoluteString == "https://token-plan-cn.xiaomimimo.com/anthropic")
-        #expect(amsURL.absoluteString == "https://token-plan-ams.xiaomimimo.com/anthropic")
-        #expect(fallbackURLs.map(\.label) == [
-            "sgp anthropic x-api-key",
-            "sgp anthropic bearer",
-            "sgp openai",
-            "cn anthropic x-api-key",
-            "cn anthropic bearer",
-            "cn openai",
-            "ams anthropic x-api-key",
-            "ams anthropic bearer",
-            "ams openai",
-            "global anthropic bearer",
-            "global anthropic x-api-key",
-            "global openai",
-        ])
-    }
-
-    @Test
-    func `mimo token plan api strategy validates key through anthropic messages endpoint`() async throws {
-        let registered = URLProtocol.registerClass(MiMoStubURLProtocol.self)
-        defer {
-            if registered {
-                URLProtocol.unregisterClass(MiMoStubURLProtocol.self)
-            }
-            MiMoStubURLProtocol.handler = nil
-        }
-
-        var requestedPath: String?
-        var requestedAPIKey: String?
-        var requestedAnthropicVersion: String?
-        MiMoStubURLProtocol.handler = { request in
-            requestedPath = request.url?.path
-            requestedAPIKey = request.value(forHTTPHeaderField: "x-api-key")
-            requestedAnthropicVersion = request.value(forHTTPHeaderField: "anthropic-version")
-            let response = HTTPURLResponse(
-                url: request.url!,
-                statusCode: 200,
-                httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "application/json"])!
-            let body = """
-            {
-              "id": "msg-test",
-              "model": "mimo-v2.5",
-              "usage": {
-                "input_tokens": 2,
-                "output_tokens": 1
-              }
-            }
-            """
-            return (response, Data(body.utf8))
-        }
-
-        let strategy = MiMoAPIFetchStrategy()
-        let result = try await strategy.fetch(self.makeContext(environment: [
-            "MIMO_API_KEY": "mimo-token",
-            "MIMO_API_BASE_URL": "https://mimo.test/anthropic",
-        ]))
-
-        #expect(requestedPath == "/anthropic/v1/messages")
-        #expect(requestedAPIKey == "mimo-token")
-        #expect(requestedAnthropicVersion == "2023-06-01")
-        #expect(result.strategyID == "mimo.api")
-        #expect(result.usage.primary?.usedPercent == 0)
-        #expect(result.usage.primary?.resetDescription == "Validation used 3 tokens")
-        #expect(result.usage.loginMethod(for: .mimo) == "Token Plan")
-    }
-
-    @Test
-    func `mimo api strategy tries fallback regions after invalid configured region`() async throws {
-        let registered = URLProtocol.registerClass(MiMoStubURLProtocol.self)
-        defer {
-            if registered {
-                URLProtocol.unregisterClass(MiMoStubURLProtocol.self)
-            }
-            MiMoStubURLProtocol.handler = nil
-        }
-
-        var requestedHosts: [String] = []
-        MiMoStubURLProtocol.handler = { request in
-            let host = request.url?.host ?? ""
-            requestedHosts.append(host)
-            let statusCode = host.contains("token-plan-cn") ? 200 : 401
-            let response = HTTPURLResponse(
-                url: request.url!,
-                statusCode: statusCode,
-                httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "application/json"])!
-            let body = statusCode == 200
-                ? #"{"id":"msg-test","usage":{"input_tokens":2,"output_tokens":1}}"#
-                : #"{"error":{"type":"invalid_key"}}"#
-            return (response, Data(body.utf8))
-        }
-
-        let strategy = MiMoAPIFetchStrategy()
-        let result = try await strategy.fetch(self.makeContext(environment: [
-            "MIMO_API_KEY": "mimo-token",
-            "MIMO_REGION": "sgp",
-        ]))
-
-        #expect(requestedHosts == [
-            "token-plan-sgp.xiaomimimo.com",
-            "token-plan-sgp.xiaomimimo.com",
-            "token-plan-sgp.xiaomimimo.com",
-            "token-plan-cn.xiaomimimo.com",
-        ])
-        #expect(result.strategyID == "mimo.api")
-        #expect(result.usage.primary?.resetDescription == "Validation used 3 tokens")
+        #expect(usage.primary == nil)
+        #expect(usage.loginMethod(for: .mimo) == "Balance: $0.00")
     }
 
     @Test
@@ -438,11 +297,25 @@ struct MiMoProviderTests {
         let detailJSON = """
         {"code":0,"message":"","data":{"planCode":"standard","currentPeriodEnd":"2026-05-04 23:59:59","expired":false}}
         """
-        // swiftlint:disable line_length
         let usageJSON = """
-        {"code":0,"message":"","data":{"monthUsage":{"percent":0.0505,"items":[{"name":"month_total_token","used":10100158,"limit":200000000,"percent":0.0505}]}}}
+        {
+          "code": 0,
+          "message": "",
+          "data": {
+            "monthUsage": {
+              "percent": 0.0505,
+              "items": [
+                {
+                  "name": "month_total_token",
+                  "used": 10100158,
+                  "limit": 200000000,
+                  "percent": 0.0505
+                }
+              ]
+            }
+          }
+        }
         """
-        // swiftlint:enable line_length
 
         let snapshot = try MiMoUsageFetcher.parseCombinedSnapshot(
             balanceData: Data(balanceJSON.utf8),
@@ -458,7 +331,7 @@ struct MiMoProviderTests {
         #expect(snapshot.tokenPercent == 0.0505)
     }
 
-    @Test(.disabled("Fetcher hits tokenPlan/* endpoints too; test from PR 651 assumes single balance endpoint"))
+    @Test
     func `fetch usage hits mimo balance endpoint with browser headers`() async throws {
         let registered = URLProtocol.registerClass(MiMoStubURLProtocol.self)
         defer {
@@ -468,9 +341,13 @@ struct MiMoProviderTests {
             MiMoStubURLProtocol.handler = nil
         }
 
+        let lock = NSLock()
+        var requestedPaths: [String] = []
         MiMoStubURLProtocol.handler = { request in
             guard let url = request.url else { throw URLError(.badURL) }
-            #expect(url.path == "/api/v1/balance")
+            lock.withLock {
+                requestedPaths.append(url.path)
+            }
             #expect(request.value(forHTTPHeaderField: "Cookie") == "api-platform_serviceToken=svc-token; userId=123")
             #expect(request.value(forHTTPHeaderField: "Accept-Language") == "en-US,en;q=0.9")
             #expect(request.value(forHTTPHeaderField: "x-timeZone") == "UTC+01:00")
@@ -495,14 +372,15 @@ struct MiMoProviderTests {
 
         #expect(snapshot.balance == 25.51)
         #expect(snapshot.currency == "USD")
+        #expect(requestedPaths.contains("/api/v1/balance"))
     }
 
     @Test
     @MainActor
     func `provider detail plan row formats mimo as balance`() {
-        let row = ProviderDetailView<EmptyView>.planRow(provider: .mimo, planText: "余额：$25.51")
+        let row = ProviderDetailView<Text>.planRow(provider: .mimo, planText: "Balance: $25.51")
 
-        #expect(row?.label == "余额")
+        #expect(row?.label == "Balance")
         #expect(row?.value == "$25.51")
     }
 
@@ -541,8 +419,8 @@ struct MiMoProviderTests {
                 return text
             }
 
-        #expect(lines.contains("余额：$25.51"))
-        #expect(!lines.contains("余额：余额：$25.51"))
+        #expect(lines.contains("Balance: $25.51"))
+        #expect(!lines.contains("Balance: Balance: $25.51"))
     }
 
     @Test
@@ -602,7 +480,7 @@ struct MiMoProviderTests {
         }
     }
 
-    @Test(.disabled("Cookie retry state depends on MiMoUsageFetcher single-endpoint flow from PR 651"))
+    @Test
     func `mimo web strategy retries imported sessions after decode failure`() async throws {
         let registered = URLProtocol.registerClass(MiMoStubURLProtocol.self)
         defer {
@@ -628,11 +506,14 @@ struct MiMoProviderTests {
             ]
         }
 
+        let lock = NSLock()
         var requestedCookies: [String] = []
         MiMoStubURLProtocol.handler = { request in
             guard let url = request.url else { throw URLError(.badURL) }
             let cookie = request.value(forHTTPHeaderField: "Cookie") ?? ""
-            requestedCookies.append(cookie)
+            lock.withLock {
+                requestedCookies.append(cookie)
+            }
 
             if cookie.contains("expired-token") {
                 let response = HTTPURLResponse(
@@ -660,10 +541,10 @@ struct MiMoProviderTests {
         let result = try await strategy
             .fetch(self.makeContext(environment: ["MIMO_API_URL": "https://mimo.test/api/v1"]))
 
-        #expect(requestedCookies.count == 2)
-        #expect(requestedCookies[0].contains("expired-token"))
-        #expect(requestedCookies[1].contains("valid-token"))
-        #expect(result.usage.loginMethod(for: .mimo) == "余额：$25.51")
+        #expect(requestedCookies.count == 6)
+        #expect(requestedCookies.contains(where: { $0.contains("expired-token") }))
+        #expect(requestedCookies.contains(where: { $0.contains("valid-token") }))
+        #expect(result.usage.loginMethod(for: .mimo) == "Balance: $25.51")
         #expect(CookieHeaderCache.load(provider: .mimo)?.sourceLabel == "Active Chrome")
     }
 
@@ -758,13 +639,12 @@ struct MiMoProviderTests {
 
     private func makeContext(
         settings: ProviderSettingsSnapshot? = nil,
-        environment: [String: String] = [:],
-        sourceMode: ProviderSourceMode = .auto) -> ProviderFetchContext
+        environment: [String: String] = [:]) -> ProviderFetchContext
     {
         let browserDetection = BrowserDetection(cacheTTL: 0)
         return ProviderFetchContext(
             runtime: .app,
-            sourceMode: sourceMode,
+            sourceMode: .auto,
             includeCredits: false,
             webTimeout: 1,
             webDebugDumpHTML: false,
@@ -799,8 +679,7 @@ final class MiMoStubURLProtocol: URLProtocol {
     nonisolated(unsafe) static var handler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
 
     override static func canInit(with request: URLRequest) -> Bool {
-        guard let host = request.url?.host else { return false }
-        return host == "mimo.test" || host.hasSuffix(".xiaomimimo.com")
+        request.url?.host == "mimo.test"
     }
 
     override static func canonicalRequest(for request: URLRequest) -> URLRequest {
