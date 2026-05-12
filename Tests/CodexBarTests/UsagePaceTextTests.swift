@@ -84,7 +84,7 @@ struct UsagePaceTextTests {
         let detail = UsagePaceText.sessionDetail(provider: .claude, window: window, now: now)
 
         #expect(detail != nil)
-        #expect(detail?.leftLabel == "20% in deficit")
+        #expect(detail?.leftLabel == "超额 20%")
         #expect(detail?.rightLabel != nil)
         #expect(detail?.stage == .farAhead)
     }
@@ -103,8 +103,8 @@ struct UsagePaceTextTests {
         let detail = UsagePaceText.sessionDetail(provider: .claude, window: window, now: now)
 
         #expect(detail != nil)
-        #expect(detail?.leftLabel == "50% in reserve")
-        #expect(detail?.rightLabel == "Lasts until reset")
+        #expect(detail?.leftLabel == "余量 50%")
+        #expect(detail?.rightLabel == "可撑到重置")
     }
 
     @Test
