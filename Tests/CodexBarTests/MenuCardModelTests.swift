@@ -69,7 +69,7 @@ struct FactoryMenuCardModelTests {
             hidePersonalInfo: false,
             now: now))
 
-        #expect(model.metrics.map(\.title) == ["Standard", "Premium"])
+        #expect(model.metrics.map(\.title) == ["标准", "高级"])
     }
 
     @Test
