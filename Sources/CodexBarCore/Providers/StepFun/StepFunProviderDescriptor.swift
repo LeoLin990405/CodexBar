@@ -33,8 +33,19 @@ public enum StepFunProviderDescriptor {
                 supportsTokenCost: false,
                 noDataMessage: { "StepFun per-day cost history is not available via API." }),
             fetchPlan: ProviderFetchPlan(
-                sourceModes: [.auto, .web],
-                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [StepFunWebFetchStrategy()] })),
+                sourceModes: [.auto, .web, .api],
+                pipeline: ProviderFetchPipeline(resolveStrategies: { context in
+                    var strategies: [any ProviderFetchStrategy] = []
+                    #if os(macOS)
+                    if context.sourceMode.usesWeb {
+                        strategies.append(StepFunWebDashboardFetchStrategy())
+                    }
+                    #endif
+                    if context.sourceMode == .auto || context.sourceMode == .api {
+                        strategies.append(StepFunAPIFetchStrategy())
+                    }
+                    return strategies
+                })),
             cli: ProviderCLIConfig(
                 name: "stepfun",
                 aliases: ["step-fun", "sf"],
@@ -42,32 +53,43 @@ public enum StepFunProviderDescriptor {
     }
 }
 
-struct StepFunWebFetchStrategy: ProviderFetchStrategy {
-    let id: String = "stepfun.web"
-    let kind: ProviderFetchKind = .web
+#if os(macOS)
+struct StepFunWebDashboardFetchStrategy: ProviderFetchStrategy {
+    let id: String = "stepfun.webDashboard"
+    let kind: ProviderFetchKind = .webDashboard
+    let backgroundPolicy: ProviderFetchBackgroundPolicy = .userInitiatedOnly
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {
-        context.settings?.stepfun?.cookieSource != .off
+        context.sourceMode.usesWeb && context.settings?.stepfun?.cookieSource != .off
     }
 
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        let cookieSource = context.settings?.stepfun?.cookieSource ?? .auto
+        let snapshot = try await StepFunDashboardFetcher.fetchFromMainActor(timeout: context.webTimeout)
+        return self.makeResult(
+            usage: snapshot.toUsageSnapshot(),
+            sourceLabel: "webDashboard")
+    }
 
-        do {
-            let token = try await Self.resolveToken(context: context, allowCached: true)
-            let usage = try await StepFunUsageFetcher.fetchUsage(token: token)
-            return self.makeResult(
-                usage: usage.toUsageSnapshot(),
-                sourceLabel: "web")
-        } catch StepFunUsageError.apiError where cookieSource != .manual {
-            // Token may be stale — clear cache and retry with fresh login
-            CookieHeaderCache.clear(provider: .stepfun)
-            let token = try await Self.resolveToken(context: context, allowCached: false)
-            let usage = try await StepFunUsageFetcher.fetchUsage(token: token)
-            return self.makeResult(
-                usage: usage.toUsageSnapshot(),
-                sourceLabel: "web")
-        }
+    func shouldFallback(on _: Error, context: ProviderFetchContext) -> Bool {
+        context.sourceMode == .auto
+    }
+}
+#endif
+
+struct StepFunAPIFetchStrategy: ProviderFetchStrategy {
+    let id: String = "stepfun.api"
+    let kind: ProviderFetchKind = .apiToken
+
+    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
+        Self.hasCredentials(context: context)
+    }
+
+    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
+        let token = try await Self.resolveToken(context: context)
+        let usage = try await StepFunUsageFetcher.fetchUsage(token: token)
+        return self.makeResult(
+            usage: usage.toUsageSnapshot(),
+            sourceLabel: "api")
     }
 
     func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {
@@ -76,48 +98,55 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
 
     // MARK: - Token Resolution
 
-    private static func resolveToken(
-        context: ProviderFetchContext,
-        allowCached: Bool) async throws -> String
-    {
+    private static func hasCredentials(context: ProviderFetchContext) -> Bool {
+        let settings = context.settings?.stepfun
+        if let settings {
+            if !settings.manualToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return true
+            }
+            if !settings.username.isEmpty, !settings.password.isEmpty {
+                return true
+            }
+        }
+        if StepFunSettingsReader.token(environment: context.env) != nil {
+            return true
+        }
+        if StepFunSettingsReader.username(environment: context.env) != nil,
+           StepFunSettingsReader.password(environment: context.env) != nil
+        {
+            return true
+        }
+        return false
+    }
+
+    private static func resolveToken(context: ProviderFetchContext) async throws -> String {
         let settings = context.settings?.stepfun
 
-        // 1. Manual mode: use the token directly from settings
-        if settings?.cookieSource == .manual {
-            let manualToken = settings?.manualToken ?? ""
-            guard !manualToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                throw StepFunUsageError.missingToken
+        // 1. Manual settings token
+        if let settings {
+            let manualToken = settings.manualToken
+            if !manualToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return StepFunTokenNormalizer.normalize(manualToken)
             }
-            return StepFunTokenNormalizer.normalize(manualToken)
+
+            // 2. Username + password from Settings UI
+            if !settings.username.isEmpty, !settings.password.isEmpty {
+                return try await StepFunUsageFetcher.login(
+                    username: settings.username,
+                    password: settings.password)
+            }
         }
 
-        // 2. Cached token from previous login
-        if allowCached, let cached = CookieHeaderCache.load(provider: .stepfun) {
-            return StepFunTokenNormalizer.normalize(cached.cookieHeader)
-        }
-
-        // 3. Username + password from Settings UI → perform full login flow
-        //    (register device → sign in by password → get Oasis-Token)
-        if let settings, !settings.username.isEmpty, !settings.password.isEmpty {
-            let token = try await StepFunUsageFetcher.login(
-                username: settings.username,
-                password: settings.password)
-            CookieHeaderCache.store(provider: .stepfun, cookieHeader: token, sourceLabel: "login")
-            return token
-        }
-
-        // 4. Direct token from env var
+        // 3. Direct token from env var
         if let token = StepFunSettingsReader.token(environment: context.env) {
             return token
         }
 
-        // 5. Username + password from env vars → perform full login flow
+        // 4. Username + password from env vars
         if let username = StepFunSettingsReader.username(environment: context.env),
            let password = StepFunSettingsReader.password(environment: context.env)
         {
-            let token = try await StepFunUsageFetcher.login(username: username, password: password)
-            CookieHeaderCache.store(provider: .stepfun, cookieHeader: token, sourceLabel: "login")
-            return token
+            return try await StepFunUsageFetcher.login(username: username, password: password)
         }
 
         throw StepFunUsageError.missingCredentials

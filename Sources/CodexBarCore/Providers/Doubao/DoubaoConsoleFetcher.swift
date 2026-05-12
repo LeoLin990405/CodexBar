@@ -41,6 +41,33 @@ public enum DoubaoConsoleFetcher {
         public func quota(level: String) -> QuotaLevel? {
             self.quotas.first { $0.level == level }
         }
+
+        public func toUsageSnapshot() -> UsageSnapshot {
+            func window(from quota: QuotaLevel?) -> RateWindow? {
+                guard let quota else { return nil }
+                return RateWindow(
+                    usedPercent: max(0, min(100, quota.percent)),
+                    windowMinutes: nil,
+                    resetsAt: quota.resetAt,
+                    resetDescription: quota.level)
+            }
+
+            let primaryQuota = self.quota(level: "Standard") ?? self.quotas.first
+            let secondaryQuota = self.quota(level: "Premium")
+                ?? self.quotas.dropFirst().first
+            let identity = ProviderIdentitySnapshot(
+                providerID: .doubao,
+                accountEmail: nil,
+                accountOrganization: nil,
+                loginMethod: self.status)
+
+            return UsageSnapshot(
+                primary: window(from: primaryQuota),
+                secondary: window(from: secondaryQuota),
+                tertiary: nil,
+                updatedAt: self.updatedAt,
+                identity: identity)
+        }
     }
 
     public enum Error: Swift.Error {
