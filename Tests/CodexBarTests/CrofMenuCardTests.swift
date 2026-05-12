@@ -37,7 +37,7 @@ struct CrofMenuCardTests {
         #expect(model.creditsText == nil)
         #expect(model.metrics.map(\.title) == ["Requests", "Credits"])
         #expect(model.metrics.first?.percent == 99)
-        #expect(model.metrics.first?.resetText?.hasPrefix("Resets") == true)
+        #expect(model.metrics.first?.resetText?.contains("重置") == true)
         #expect(model.metrics.first?.detailRightText == "998 requests left")
         #expect(model.metrics.last?.resetText == "$10.00")
     }
