@@ -80,16 +80,16 @@ struct StepFunProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.stepfunCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "Uses username + password to login and obtain an Oasis-Token automatically.",
-                manual: "Manually paste an Oasis-Token from a browser session.",
-                off: "StepFun authentication is disabled.")
+                auto: "Uses username + password to read Step Plan / TokenPlan usage automatically.",
+                manual: "Manually paste a Step Plan / TokenPlan browser credential.",
+                off: "StepFun TokenPlan checks are disabled.")
         }
 
         return [
             ProviderSettingsPickerDescriptor(
                 id: "stepfun-cookie-source",
                 title: "Auth source",
-                subtitle: "Uses username + password to login and obtain an Oasis-Token automatically.",
+                subtitle: "Uses username + password to read Step Plan / TokenPlan usage automatically.",
                 dynamicSubtitle: cookieSubtitle,
                 binding: cookieBinding,
                 options: cookieOptions,
@@ -135,19 +135,19 @@ struct StepFunProviderImplementation: ProviderImplementation {
         let manualFields: [ProviderSettingsFieldDescriptor] = [
             ProviderSettingsFieldDescriptor(
                 id: "stepfun-token",
-                title: "Oasis-Token",
-                subtitle: "Paste the Oasis-Token from a logged-in browser session on platform.stepfun.com.",
+                title: "TokenPlan credential",
+                subtitle: "Paste a Step Plan / TokenPlan browser credential from platform.stepfun.com.",
                 kind: .secure,
-                placeholder: "Oasis-Token=…",
+                placeholder: "Paste TokenPlan credential…",
                 binding: context.stringBinding(\.stepfunToken),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "stepfun-open-platform",
-                        title: "Open StepFun Platform",
+                        title: "Open StepFun TokenPlan",
                         style: .link,
                         isVisible: nil,
                         perform: {
-                            if let url = URL(string: "https://platform.stepfun.com/plan-usage") {
+                            if let url = URL(string: "https://platform.stepfun.com/plan-subscribe") {
                                 NSWorkspace.shared.open(url)
                             }
                         }),

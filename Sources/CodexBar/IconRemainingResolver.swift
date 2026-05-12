@@ -44,6 +44,11 @@ enum IconRemainingResolver {
                 primary: windows.first,
                 secondary: windows.dropFirst().first)
         }
+        if style == .zai {
+            return (
+                primary: snapshot.primary,
+                secondary: snapshot.tertiary ?? snapshot.secondary)
+        }
         return (
             primary: snapshot.primary,
             secondary: snapshot.secondary)

@@ -27,7 +27,7 @@ extension SettingsStore {
         }
     }
 
-    /// Manual Oasis-Token — stored in the region config field (repurposed for token).
+    /// Manual Step Plan / TokenPlan browser credential — stored in the region config field.
     var stepfunToken: String {
         get { self.configSnapshot.providerConfig(for: .stepfun)?.region ?? "" }
         set {
