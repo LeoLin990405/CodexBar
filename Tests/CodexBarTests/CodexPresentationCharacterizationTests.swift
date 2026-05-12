@@ -90,9 +90,9 @@ struct CodexPresentationCharacterizationTests {
 
         let lines = self.textLines(from: descriptor)
         #expect(lines.contains("账号：codex@example.com"))
-        #expect(lines.contains("方案：Free"))
+        #expect(lines.contains("Plan: Free"))
         #expect(!lines.contains("账号：claude@example.com"))
-        #expect(!lines.contains("方案：Max"))
+        #expect(!lines.contains("Plan: Max"))
     }
 
     @Test
@@ -187,9 +187,9 @@ struct CodexPresentationCharacterizationTests {
 
         let lines = self.textLines(from: descriptor)
         #expect(lines.contains("账号：snapshot@example.com"))
-        #expect(lines.contains("方案：Enterprise"))
+        #expect(lines.contains("Plan: Enterprise"))
         #expect(!lines.contains("账号：fallback@example.com"))
-        #expect(!lines.contains("方案：Plus"))
+        #expect(!lines.contains("Plan: Plus"))
     }
 
     @Test
@@ -243,7 +243,7 @@ struct CodexPresentationCharacterizationTests {
 
         let lines = self.textLines(from: descriptor)
         #expect(lines.contains("账号：snapshot@example.com"))
-        #expect(lines.contains("方案：Plus"))
+        #expect(lines.contains("Plan: Plus"))
         #expect(!lines.contains("账号：fallback@example.com"))
     }
 
