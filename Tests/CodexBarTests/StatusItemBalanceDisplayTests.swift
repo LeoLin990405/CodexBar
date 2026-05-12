@@ -142,7 +142,7 @@ struct StatusItemBalanceDisplayTests {
         let displayText = controller.menuBarDisplayText(for: .kimik2, snapshot: snapshot)
 
         #expect(snapshot.primary == nil)
-        #expect(snapshot.identity?.loginMethod == "Credits: 1234.5 left")
+        #expect(snapshot.identity?.loginMethod == "Credits: 剩余 1234.5")
         #expect(displayText == "1234.5")
     }
 
