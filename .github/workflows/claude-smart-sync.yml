@@ -1,0 +1,106 @@
+name: Claude Smart Sync
+
+# Goal: hand the hard cases to Claude Code when the no-LLM auto-sync workflow
+# cannot finish on its own. Two entry points:
+#   1. Manual: any maintainer comments `@claude <instruction>` on an issue or
+#      PR and Claude reads the surrounding context, resolves it, and pushes a
+#      branch / opens a PR.
+#   2. Automatic: when auto-sync-upstream.yml opens an `upstream-sync conflict`
+#      issue, this workflow kicks Claude in immediately.
+#
+# Auth: uses CLAUDE_CODE_OAUTH_TOKEN (Pro/Max subscription, no API key needed).
+# Budget control: each run is one Claude Code session, so cost scales with the
+# size of the diff and the number of test cycles.
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Free-form instructions for Claude'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude:
+    runs-on: ubuntu-latest
+    # Gate the heavy job tightly so random comments never trigger it.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == 'upstream-sync' && contains(github.event.issue.labels.*.name, 'conflict')) ||
+      (github.event_name == 'issues' && github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'upstream-sync') && contains(github.event.issue.labels.*.name, 'conflict'))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git remote add upstream https://github.com/steipete/CodexBar.git || true
+          git fetch upstream main || true
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Constrain what Claude is allowed to touch.
+          claude_args: |
+            --allowed-tools Bash(git*),Bash(gh*),Bash(make*),Bash(swift*),Bash(python3*),Edit,Read,Glob,Grep,Write
+          # The prompt is intentionally short; the GitHub event context is
+          # injected automatically by the action, so Claude sees the triggering
+          # issue / PR / comment without us repeating it.
+          prompt: |
+            You are operating as the maintenance Claude for this CodexBar fork
+            (LeoLin990405/CodexBar). The fork's stated goals:
+
+            - Stay synced with upstream steipete/CodexBar.
+            - Keep the user-facing UI Chinese (zh-Hans.lproj). Brand and product
+              terms stay verbatim: Codex, Claude, Cursor, Gemini, Copilot, Kimi,
+              StepFun, Zai, Token, OAuth, API key, Cookie.
+            - Long-lived branch is `feat/trae-dollar-usage`. Never push directly
+              to it — always work on `auto/claude-<short-sha>` and open a PR.
+
+            Pick one of these jobs based on the triggering event:
+
+            1. If an `upstream-sync conflict` issue is open and the conflict is
+               from auto-sync-upstream.yml: check out `feat/trae-dollar-usage`,
+               try `git merge upstream/main`, resolve every conflict manually,
+               run `make format`, run `make check`, push the working branch,
+               open a PR targeting `feat/trae-dollar-usage`, then close the
+               original issue with a link to the PR.
+
+            2. If the trigger is a `@claude` mention on an existing PR:
+               read the PR diff and the user's instruction, then apply the
+               requested change. Always run `make format` and `make check`
+               before committing. Push to the same PR branch.
+
+            3. If the trigger is a `@claude` mention on any other issue:
+               read the issue, do whatever is asked, and reply on the same
+               issue when finished.
+
+            Rules:
+            - Always inspect new user-facing English strings in any merged
+              commit. Localize them into
+              `Sources/CodexBar/Resources/zh-Hans.lproj/Localizable.strings`
+              following the style used for similar nearby entries.
+            - Never edit files inside `Sources/CodexBarCore/Vendored/`.
+            - If `swift test` would obviously fail, fix it before pushing,
+              otherwise stop and explain.
+            - On every PR you open, include a "Reviewer checklist" with
+              `make check` and `swift test` items.
