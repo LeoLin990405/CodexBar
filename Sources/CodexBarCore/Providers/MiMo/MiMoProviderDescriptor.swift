@@ -23,14 +23,14 @@ public enum MiMoProviderDescriptor {
             id: .mimo,
             metadata: ProviderMetadata(
                 id: .mimo,
-                displayName: "Xiaomi MiMo",
+                displayName: "小米 Mimo",
                 sessionLabel: "Credits",
-                weeklyLabel: "Window",
+                weeklyLabel: "窗口",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: true,
-                creditsHint: "Token plan credits usage.",
-                toggleTitle: "Show Xiaomi MiMo token plan & balance",
+                creditsHint: "Token Plan Credits 使用情况。",
+                toggleTitle: "显示小米 Mimo Token Plan 与余额",
                 cliName: "mimo",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -44,7 +44,7 @@ public enum MiMoProviderDescriptor {
                 color: ProviderColor(red: 1.0, green: 105 / 255, blue: 0)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Xiaomi MiMo cost summary is not supported." }),
+                noDataMessage: { "小米 Mimo 暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),
