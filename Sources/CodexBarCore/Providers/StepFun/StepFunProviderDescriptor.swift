@@ -22,7 +22,7 @@ public enum StepFunProviderDescriptor {
                 isPrimaryProvider: false,
                 usesAccountFallback: false,
                 browserCookieOrder: nil,
-                dashboardURL: "https://platform.stepfun.com/plan-usage",
+                dashboardURL: "https://platform.stepfun.com/plan-subscribe",
                 statusPageURL: nil,
                 statusLinkURL: nil),
             branding: ProviderBranding(
@@ -156,8 +156,8 @@ struct StepFunAPIFetchStrategy: ProviderFetchStrategy {
 // MARK: - Token Normalizer
 
 public enum StepFunTokenNormalizer {
-    /// Normalize a StepFun token value — extracts the Oasis-Token from a cookie header
-    /// or returns the raw token value if it's not a cookie header.
+    /// Normalize a StepFun TokenPlan credential. Cookie headers still contain the internal
+    /// Oasis-Token field, but the user-facing feature is Step Plan / TokenPlan usage.
     public static func normalize(_ raw: String) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "" }

@@ -74,6 +74,40 @@ struct StatusItemAnimationTests {
     }
 
     @Test
+    func `zai icon uses 5-hour lane for lower bar when available`() {
+        let snapshot = UsageSnapshot(
+            primary: RateWindow(usedPercent: 9, windowMinutes: 10080, resetsAt: nil, resetDescription: nil),
+            secondary: RateWindow(usedPercent: 64, windowMinutes: nil, resetsAt: nil, resetDescription: "Monthly"),
+            tertiary: RateWindow(usedPercent: 0, windowMinutes: 300, resetsAt: nil, resetDescription: nil),
+            updatedAt: Date())
+
+        let remaining = IconRemainingResolver.resolvedPercents(
+            snapshot: snapshot,
+            style: .zai,
+            showUsed: false)
+
+        #expect(remaining.primary == 91)
+        #expect(remaining.secondary == 100)
+    }
+
+    @Test
+    func `zai icon falls back to MCP lane when 5-hour lane is missing`() {
+        let snapshot = UsageSnapshot(
+            primary: RateWindow(usedPercent: 9, windowMinutes: 10080, resetsAt: nil, resetDescription: nil),
+            secondary: RateWindow(usedPercent: 64, windowMinutes: nil, resetsAt: nil, resetDescription: "Monthly"),
+            tertiary: nil,
+            updatedAt: Date())
+
+        let remaining = IconRemainingResolver.resolvedPercents(
+            snapshot: snapshot,
+            style: .zai,
+            showUsed: false)
+
+        #expect(remaining.primary == 91)
+        #expect(remaining.secondary == 36)
+    }
+
+    @Test
     func `merged icon loading animation does not flip layout when weekly hits zero`() {
         let settings = SettingsStore(
             configStore: testConfigStore(suiteName: "StatusItemAnimationTests-weekly"),

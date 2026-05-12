@@ -77,6 +77,32 @@ struct StepFunProviderTokenResolverTests {
     }
 }
 
+struct StepFunTokenPlanPresentationTests {
+    @Test
+    func `token account support uses TokenPlan language`() throws {
+        let support = try #require(TokenAccountSupportCatalog.support(for: .stepfun))
+
+        #expect(support.title == "TokenPlan credentials")
+        #expect(support.subtitle.contains("TokenPlan"))
+        #expect(support.placeholder.contains("TokenPlan"))
+        #expect(!support.title.localizedCaseInsensitiveContains("balance"))
+        #expect(!support.subtitle.localizedCaseInsensitiveContains("balance"))
+        #expect(!support.placeholder.localizedCaseInsensitiveContains("balance"))
+        #expect(!support.title.localizedCaseInsensitiveContains("Oasis-Token"))
+        #expect(!support.subtitle.localizedCaseInsensitiveContains("Oasis-Token"))
+        #expect(!support.placeholder.localizedCaseInsensitiveContains("Oasis-Token"))
+    }
+
+    @Test
+    func `descriptor points users to Step Plan dashboard`() {
+        let descriptor = ProviderDescriptorRegistry.descriptor(for: .stepfun)
+
+        #expect(descriptor.metadata.dashboardURL == "https://platform.stepfun.com/plan-subscribe")
+        #expect(descriptor.metadata.sessionLabel == "5h Window")
+        #expect(descriptor.metadata.weeklyLabel == "Weekly Window")
+    }
+}
+
 struct StepFunUsageFetcherParsingTests {
     @Test
     func `parses real API response format with string timestamps and integer rates`() throws {

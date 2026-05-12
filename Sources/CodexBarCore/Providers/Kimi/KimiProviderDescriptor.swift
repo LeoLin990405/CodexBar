@@ -57,6 +57,13 @@ public enum KimiProviderDescriptor {
 struct KimiTokenFetchStrategy: ProviderFetchStrategy {
     let id: String = "kimi.token"
     let kind: ProviderFetchKind = .apiToken
+    private let fetchUsage: @Sendable (String) async throws -> KimiUsageSnapshot
+
+    init(fetchUsage: @escaping @Sendable (String) async throws -> KimiUsageSnapshot = { token in
+        try await KimiUsageFetcher.fetchUsage(authToken: token)
+    }) {
+        self.fetchUsage = fetchUsage
+    }
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {
         self.resolveToken(context: context) != nil
@@ -67,7 +74,7 @@ struct KimiTokenFetchStrategy: ProviderFetchStrategy {
             throw KimiAPIError.missingToken
         }
 
-        let snapshot = try await KimiUsageFetcher.fetchUsage(authToken: token)
+        let snapshot = try await self.fetchUsage(token)
         return self.makeResult(
             usage: snapshot.toUsageSnapshot(),
             sourceLabel: "token")
@@ -91,32 +98,31 @@ struct KimiWebFetchStrategy: ProviderFetchStrategy {
     let id: String = "kimi.web"
     let kind: ProviderFetchKind = .web
     private static let log = CodexBarLog.logger(LogCategories.kimiWeb)
+    private let fetchUsage: @Sendable (String) async throws -> KimiUsageSnapshot
+    private let browserTokenResolver: @Sendable (ProviderFetchContext) -> String?
+
+    init(
+        fetchUsage: @escaping @Sendable (String) async throws -> KimiUsageSnapshot = { token in
+            try await KimiUsageFetcher.fetchUsage(authToken: token)
+        },
+        browserTokenResolver: @escaping @Sendable (ProviderFetchContext) -> String? = { context in
+            KimiWebFetchStrategy.resolveBrowserToken(context: context)
+        })
+    {
+        self.fetchUsage = fetchUsage
+        self.browserTokenResolver = browserTokenResolver
+    }
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {
-        if KimiCookieHeader.resolveCookieOverride(context: context) != nil {
-            return true
-        }
-
-        if Self.resolveToken(environment: context.env) != nil {
-            return true
-        }
-
-        #if os(macOS)
-        if context.settings?.kimi?.cookieSource != .off {
-            if KimiCookieImporter.hasSession() { return true }
-            if KimiLocalStorageImporter.hasSession() { return true }
-        }
-        #endif
-
-        return false
+        self.browserTokenResolver(context) != nil
     }
 
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        guard let token = self.resolveToken(context: context) else {
+        guard let token = self.browserTokenResolver(context) else {
             throw KimiAPIError.missingToken
         }
 
-        let snapshot = try await KimiUsageFetcher.fetchUsage(authToken: token)
+        let snapshot = try await self.fetchUsage(token)
         return self.makeResult(
             usage: snapshot.toUsageSnapshot(),
             sourceLabel: "web")
@@ -128,18 +134,13 @@ struct KimiWebFetchStrategy: ProviderFetchStrategy {
         return true
     }
 
-    private func resolveToken(context: ProviderFetchContext) -> String? {
-        // Check manual cookie first (highest priority when set)
-        if let override = KimiCookieHeader.resolveCookieOverride(context: context) {
-            return override.token
-        }
-
+    private static func resolveBrowserToken(context: ProviderFetchContext) -> String? {
         // Try browser cookie import when auto mode is enabled
         #if os(macOS)
         if context.settings?.kimi?.cookieSource != .off {
             // Try cookies first (legacy kimi-auth cookie)
             do {
-                let session = try KimiCookieImporter.importSession()
+                let session = try KimiCookieImporter.importSession(browserDetection: context.browserDetection)
                 if let token = session.authToken {
                     return token
                 }
@@ -148,20 +149,11 @@ struct KimiWebFetchStrategy: ProviderFetchStrategy {
             }
 
             // Try localStorage (current: access_token JWT)
-            if let lsSession = KimiLocalStorageImporter.importSession() {
+            if let lsSession = KimiLocalStorageImporter.importSession(browserDetection: context.browserDetection) {
                 return lsSession.accessToken
             }
         }
         #endif
-
-        // Fall back to environment
-        if let override = Self.resolveToken(environment: context.env) {
-            return override
-        }
         return nil
-    }
-
-    private static func resolveToken(environment: [String: String]) -> String? {
-        ProviderTokenResolver.kimiAuthToken(environment: environment)
     }
 }

@@ -136,9 +136,9 @@ extension TokenAccountSupportCatalog {
             requiresManualCookieSource: false,
             cookieName: nil),
         .stepfun: TokenAccountSupport(
-            title: "Session tokens",
-            subtitle: "Store multiple StepFun Oasis-Token values.",
-            placeholder: "Oasis-Token=…",
+            title: "TokenPlan credentials",
+            subtitle: "Store multiple StepFun Step Plan / TokenPlan credentials.",
+            placeholder: "Paste TokenPlan credential…",
             injection: .cookieHeader,
             requiresManualCookieSource: true,
             cookieName: nil),

@@ -309,3 +309,112 @@ struct KimiAPIErrorTests {
         #expect(KimiAPIError.parseFailed("Invalid JSON").errorDescription?.contains("Invalid JSON") == true)
     }
 }
+
+struct KimiFetchStrategyFallbackTests {
+    private struct StubClaudeFetcher: ClaudeUsageFetching {
+        func loadLatestUsage(model _: String) async throws -> ClaudeUsageSnapshot {
+            throw ClaudeUsageError.parseFailed("stub")
+        }
+
+        func debugRawProbe(model _: String) async -> String {
+            "stub"
+        }
+
+        func detectVersion() -> String? {
+            nil
+        }
+    }
+
+    private actor FetchRecorder {
+        var tokens: [String] = []
+
+        func fetch(token: String, validToken: String) throws -> KimiUsageSnapshot {
+            self.tokens.append(token)
+            if token != validToken {
+                throw KimiAPIError.invalidToken
+            }
+            return KimiFetchStrategyFallbackTests.snapshot()
+        }
+
+        func values() -> [String] {
+            self.tokens
+        }
+    }
+
+    @Test
+    func `auto fallback tries browser token after invalid manual token`() async throws {
+        let recorder = FetchRecorder()
+        let context = self.makeContext(env: ["KIMI_AUTH_TOKEN": "bad-manual-token"])
+        let pipeline = ProviderFetchPipeline(resolveStrategies: { _ in
+            [
+                KimiTokenFetchStrategy(fetchUsage: { token in
+                    try await recorder.fetch(token: token, validToken: "fresh-browser-token")
+                }),
+                KimiWebFetchStrategy(
+                    fetchUsage: { token in
+                        try await recorder.fetch(token: token, validToken: "fresh-browser-token")
+                    },
+                    browserTokenResolver: { _ in "fresh-browser-token" }),
+            ]
+        })
+
+        let outcome = await pipeline.fetch(context: context, provider: .kimi)
+        let result = try outcome.result.get()
+
+        #expect(result.sourceLabel == "web")
+        #expect(outcome.attempts.map(\.strategyID) == ["kimi.token", "kimi.web"])
+        #expect(await recorder.values() == ["bad-manual-token", "fresh-browser-token"])
+    }
+
+    @Test
+    func `auto fallback reports invalid token only after every source fails`() async throws {
+        let recorder = FetchRecorder()
+        let context = self.makeContext(env: ["KIMI_AUTH_TOKEN": "bad-manual-token"])
+        let pipeline = ProviderFetchPipeline(resolveStrategies: { _ in
+            [
+                KimiTokenFetchStrategy(fetchUsage: { token in
+                    try await recorder.fetch(token: token, validToken: "never")
+                }),
+                KimiWebFetchStrategy(
+                    fetchUsage: { token in
+                        try await recorder.fetch(token: token, validToken: "never")
+                    },
+                    browserTokenResolver: { _ in "bad-browser-token" }),
+            ]
+        })
+
+        let outcome = await pipeline.fetch(context: context, provider: .kimi)
+
+        #expect(throws: KimiAPIError.invalidToken) {
+            try outcome.result.get()
+        }
+        #expect(outcome.attempts.map(\.strategyID) == ["kimi.token", "kimi.web"])
+        #expect(await recorder.values() == ["bad-manual-token", "bad-browser-token"])
+    }
+
+    private func makeContext(env: [String: String]) -> ProviderFetchContext {
+        ProviderFetchContext(
+            runtime: .app,
+            sourceMode: .auto,
+            includeCredits: false,
+            webTimeout: 1,
+            webDebugDumpHTML: false,
+            verbose: false,
+            env: env,
+            settings: nil,
+            fetcher: UsageFetcher(environment: env),
+            claudeFetcher: StubClaudeFetcher(),
+            browserDetection: BrowserDetection(cacheTTL: 0))
+    }
+
+    private static func snapshot() -> KimiUsageSnapshot {
+        KimiUsageSnapshot(
+            weekly: KimiUsageDetail(
+                limit: "2048",
+                used: "1",
+                remaining: "2047",
+                resetTime: "2026-01-09T15:23:13.373329235Z"),
+            rateLimit: nil,
+            updatedAt: Date())
+    }
+}
