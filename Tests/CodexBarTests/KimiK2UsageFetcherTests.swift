@@ -96,6 +96,6 @@ struct KimiK2UsageFetcherTests {
 
         #expect(usage.primary == nil)
         #expect(usage.identity?.providerID == .kimik2)
-        #expect(usage.identity?.loginMethod == "Credits: 25 left")
+        #expect(usage.identity?.loginMethod == "Credits: 剩余 25")
     }
 }
