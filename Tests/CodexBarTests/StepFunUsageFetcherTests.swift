@@ -82,7 +82,10 @@ struct StepFunTokenPlanPresentationTests {
     func `token account support uses TokenPlan language`() throws {
         let support = try #require(TokenAccountSupportCatalog.support(for: .stepfun))
 
-        #expect(support.title == "TokenPlan credentials")
+        // Title may be localized (e.g. "TokenPlan 凭证" in zh-Hans); the
+        // load-bearing invariant is that "TokenPlan" still appears in all
+        // three user-facing slots and "balance"/"Oasis-Token" never do.
+        #expect(support.title.contains("TokenPlan"))
         #expect(support.subtitle.contains("TokenPlan"))
         #expect(support.placeholder.contains("TokenPlan"))
         #expect(!support.title.localizedCaseInsensitiveContains("balance"))
