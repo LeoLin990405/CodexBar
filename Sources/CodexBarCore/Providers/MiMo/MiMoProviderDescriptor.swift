@@ -61,7 +61,10 @@ public enum MiMoProviderDescriptor {
         case .web:
             [MiMoWebFetchStrategy()]
         case .auto:
-            [MiMoAPIFetchStrategy(), MiMoWebFetchStrategy()]
+            // Cookie path returns real Token Plan usage (balance + month-usage),
+            // API key path only confirms a key is present — prefer cookies in
+            // auto mode so users with both still see live numbers.
+            [MiMoWebFetchStrategy(), MiMoAPIFetchStrategy()]
         case .cli, .oauth:
             []
         }
