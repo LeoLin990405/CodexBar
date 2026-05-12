@@ -813,8 +813,8 @@ extension UsageMenuCardView.Model {
 
         if input.provider == .mimo, input.snapshot != nil {
             return [
-                "Balance updates in near-real time (up to 5 min lag)",
-                "Daily billing data finalizes at 07:00 UTC",
+                "余额近实时更新（最多 5 分钟延迟）",
+                "每日账单数据在 UTC 07:00 截止结算",
             ]
         }
 

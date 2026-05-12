@@ -10,7 +10,7 @@ struct StorageMenuCardSectionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Storage")
+            Text("存储占用")
                 .font(.body)
                 .fontWeight(.medium)
             Text(self.storageText)
@@ -67,16 +67,16 @@ struct StorageBreakdownMenuView: View {
     private var content: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
-                Text("Storage")
+                Text("存储占用")
                     .font(.body)
                     .fontWeight(.medium)
-                Text("Total: \(UsageFormatter.byteCountString(self.footprint.totalBytes))")
+                Text("合计：\(UsageFormatter.byteCountString(self.footprint.totalBytes))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             if self.visibleComponents.isEmpty {
-                Text("No local data found")
+                Text("未发现本地数据")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
@@ -88,7 +88,7 @@ struct StorageBreakdownMenuView: View {
             }
 
             if self.footprint.components.count > self.visibleComponents.count {
-                Text("\(self.footprint.components.count - self.visibleComponents.count) more items")
+                Text("另有 \(self.footprint.components.count - self.visibleComponents.count) 项")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -96,7 +96,7 @@ struct StorageBreakdownMenuView: View {
                 Divider()
                     .padding(.vertical, 2)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Cleanup ideas")
+                    Text("清理建议")
                         .font(.body)
                         .fontWeight(.medium)
                     ForEach(self.cleanupRecommendations) { recommendation in
@@ -105,7 +105,7 @@ struct StorageBreakdownMenuView: View {
                 }
             }
             if !self.footprint.unreadablePaths.isEmpty {
-                Text("\(self.footprint.unreadablePaths.count) unreadable item(s) skipped")
+                Text("已跳过 \(self.footprint.unreadablePaths.count) 项无法读取的内容")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
