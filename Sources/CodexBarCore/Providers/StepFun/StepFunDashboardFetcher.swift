@@ -33,6 +33,36 @@ public struct StepFunDashboardFetcher {
         public let fiveHourResetTime: String?
         public let weeklyLeftPercent: Double?
         public let weeklyResetTime: String?
+
+        public func toUsageSnapshot(now: Date = Date()) -> UsageSnapshot {
+            let primary = self.fiveHourLeftPercent.map { leftPercent in
+                RateWindow(
+                    usedPercent: max(0, min(100, 100 - leftPercent)),
+                    windowMinutes: 300,
+                    resetsAt: nil,
+                    resetDescription: self.fiveHourResetTime)
+            }
+            let secondary = self.weeklyLeftPercent.map { leftPercent in
+                RateWindow(
+                    usedPercent: max(0, min(100, 100 - leftPercent)),
+                    windowMinutes: 10080,
+                    resetsAt: nil,
+                    resetDescription: self.weeklyResetTime)
+            }
+            let trimmedPlan = self.planName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let identity = ProviderIdentitySnapshot(
+                providerID: .stepfun,
+                accountEmail: nil,
+                accountOrganization: nil,
+                loginMethod: (trimmedPlan?.isEmpty ?? true) ? nil : trimmedPlan)
+
+            return UsageSnapshot(
+                primary: primary,
+                secondary: secondary,
+                tertiary: nil,
+                updatedAt: now,
+                identity: identity)
+        }
     }
 
     private static let log = CodexBarLog.logger(LogCategories.stepfunUsage)

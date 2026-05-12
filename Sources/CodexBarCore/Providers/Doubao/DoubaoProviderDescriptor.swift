@@ -32,14 +32,48 @@ public enum DoubaoProviderDescriptor {
                 supportsTokenCost: false,
                 noDataMessage: { "Doubao cost summary is not available." }),
             fetchPlan: ProviderFetchPlan(
-                sourceModes: [.auto, .api],
-                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [DoubaoAPIFetchStrategy()] })),
+                sourceModes: [.auto, .web, .api],
+                pipeline: ProviderFetchPipeline(resolveStrategies: { context in
+                    var strategies: [any ProviderFetchStrategy] = []
+                    #if os(macOS)
+                    if context.sourceMode.usesWeb {
+                        strategies.append(DoubaoConsoleFetchStrategy())
+                    }
+                    #endif
+                    if context.sourceMode == .auto || context.sourceMode == .api {
+                        strategies.append(DoubaoAPIFetchStrategy())
+                    }
+                    return strategies
+                })),
             cli: ProviderCLIConfig(
                 name: "doubao",
                 aliases: ["volcengine", "ark", "bytedance"],
                 versionDetector: nil))
     }
 }
+
+#if os(macOS)
+struct DoubaoConsoleFetchStrategy: ProviderFetchStrategy {
+    let id: String = "doubao.console"
+    let kind: ProviderFetchKind = .webDashboard
+    let backgroundPolicy: ProviderFetchBackgroundPolicy = .userInitiatedOnly
+
+    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
+        context.sourceMode.usesWeb
+    }
+
+    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
+        let result = try await DoubaoConsoleFetcher.fetch(browserDetection: context.browserDetection)
+        return self.makeResult(
+            usage: result.toUsageSnapshot(),
+            sourceLabel: "console")
+    }
+
+    func shouldFallback(on _: Error, context: ProviderFetchContext) -> Bool {
+        context.sourceMode == .auto
+    }
+}
+#endif
 
 struct DoubaoAPIFetchStrategy: ProviderFetchStrategy {
     let id: String = "doubao.api"
