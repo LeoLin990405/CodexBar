@@ -9,7 +9,8 @@ read_when:
 # StepFun provider
 
 StepFun (阶跃星辰) is a web-based provider. Usage data comes from the Step Plan rate limit API,
-authenticated via an Oasis-Token obtained through a username + password login flow.
+authenticated via a Step Plan / TokenPlan credential. The user-facing label is "TokenPlan credential";
+on the wire this is the `Oasis-Token` cookie, obtained through a username + password login flow.
 
 ## Data sources
 
@@ -20,7 +21,8 @@ authenticated via an Oasis-Token obtained through a username + password login fl
        2. `POST …/RegisterDevice` → anonymous token
        3. `POST …/SignInByPassword` → authenticated Oasis-Token
      The token is cached in Keychain-backed `CookieHeaderCache` and reused until it expires.
-   - **Manual mode**: Paste an Oasis-Token directly in Settings → Providers → StepFun.
+   - **Manual mode**: Paste a Step Plan / TokenPlan credential (an `Oasis-Token` from a logged-in
+     browser session at platform.stepfun.com) into Settings → Providers → StepFun → "TokenPlan credential".
    - **Environment variables**: `STEPFUN_USERNAME` + `STEPFUN_PASSWORD`, or `STEPFUN_TOKEN`.
 
 2. **Rate limit endpoint**

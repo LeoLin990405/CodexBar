@@ -59,27 +59,13 @@ enum IconRemainingResolver {
         style: IconStyle)
         -> (primary: Double?, secondary: Double?)
     {
-        if style == .perplexity {
-            let windows = snapshot.orderedPerplexityDisplayWindows()
-            return (
-                primary: windows.first?.remainingPercent,
-                secondary: windows.dropFirst().first?.remainingPercent)
-        }
-        if style == .antigravity {
-            let windows = [snapshot.primary, snapshot.secondary, snapshot.tertiary].compactMap(\.self)
-            return (
-                primary: windows.first?.remainingPercent,
-                secondary: windows.dropFirst().first?.remainingPercent)
-        }
-        if style == .codex {
-            let windows = self.codexVisibleWindows(snapshot: snapshot)
-            return (
-                primary: windows.first?.remainingPercent,
-                secondary: windows.dropFirst().first?.remainingPercent)
-        }
+        // Share lane selection with resolvedWindows so that resolvedRemaining,
+        // resolvedWindows, and resolvedPercents all stay in agreement for every
+        // style (z.ai, codex, perplexity, antigravity, …).
+        let windows = Self.resolvedWindows(snapshot: snapshot, style: style)
         return (
-            primary: snapshot.primary?.remainingPercent,
-            secondary: snapshot.secondary?.remainingPercent)
+            primary: windows.primary?.remainingPercent,
+            secondary: windows.secondary?.remainingPercent)
     }
 
     static func resolvedPercents(

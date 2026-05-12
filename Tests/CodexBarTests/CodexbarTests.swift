@@ -140,6 +140,34 @@ struct CodexBarTests {
     }
 
     @Test
+    func `zai resolvedRemaining promotes 5-hour lane into secondary slot`() {
+        // resolvedRemaining must agree with resolvedWindows / resolvedPercents for .zai —
+        // the 5-hour tertiary lane should win the secondary slot when present.
+        let snapshot = UsageSnapshot(
+            primary: RateWindow(usedPercent: 9, windowMinutes: 10080, resetsAt: nil, resetDescription: nil),
+            secondary: RateWindow(usedPercent: 64, windowMinutes: nil, resetsAt: nil, resetDescription: "Monthly"),
+            tertiary: RateWindow(usedPercent: 0, windowMinutes: 300, resetsAt: nil, resetDescription: nil),
+            updatedAt: Date())
+
+        let remaining = IconRemainingResolver.resolvedRemaining(snapshot: snapshot, style: .zai)
+        #expect(remaining.primary == 91)
+        #expect(remaining.secondary == 100)
+    }
+
+    @Test
+    func `zai resolvedRemaining falls back to MCP lane when 5-hour lane is missing`() {
+        let snapshot = UsageSnapshot(
+            primary: RateWindow(usedPercent: 9, windowMinutes: 10080, resetsAt: nil, resetDescription: nil),
+            secondary: RateWindow(usedPercent: 64, windowMinutes: nil, resetsAt: nil, resetDescription: "Monthly"),
+            tertiary: nil,
+            updatedAt: Date())
+
+        let remaining = IconRemainingResolver.resolvedRemaining(snapshot: snapshot, style: .zai)
+        #expect(remaining.primary == 91)
+        #expect(remaining.secondary == 36)
+    }
+
+    @Test
     func `icon renderer codex eyes punch through when unknown`() {
         // Regression: when remaining is nil, CoreGraphics inherits the previous fill alpha which caused
         // destinationOut “eyes” to become semi-transparent instead of fully punched through.
