@@ -294,11 +294,6 @@ extension SettingsStore {
             userDefaults.set(true, forKey: "sessionQuotaNotificationsEnabled")
         }
         let quotaWarnings = Self.loadQuotaWarningDefaults(userDefaults: userDefaults)
-        let quotaWarningMarkersVisibleDefault = userDefaults.object(forKey: "quotaWarningMarkersVisible") as? Bool
-        let quotaWarningMarkersVisible = quotaWarningMarkersVisibleDefault ?? true
-        if Self.isRunningTests, quotaWarningMarkersVisibleDefault == nil {
-            userDefaults.set(true, forKey: "quotaWarningMarkersVisible")
-        }
         let usageBarsShowUsed = userDefaults.object(forKey: "usageBarsShowUsed") as? Bool ?? false
         let resetTimesShowAbsolute = userDefaults.object(forKey: "resetTimesShowAbsolute") as? Bool ?? false
         let menuBarShowsBrandIconWithPercent = userDefaults.object(
@@ -378,7 +373,7 @@ extension SettingsStore {
             quotaWarningSessionEnabled: quotaWarnings.sessionEnabled,
             quotaWarningWeeklyEnabled: quotaWarnings.weeklyEnabled,
             quotaWarningSoundEnabled: quotaWarnings.soundEnabled,
-            quotaWarningMarkersVisible: quotaWarningMarkersVisible,
+            quotaWarningMarkersVisible: quotaWarnings.markersVisible,
             usageBarsShowUsed: usageBarsShowUsed,
             resetTimesShowAbsolute: resetTimesShowAbsolute,
             menuBarShowsBrandIconWithPercent: menuBarShowsBrandIconWithPercent,
@@ -415,6 +410,7 @@ extension SettingsStore {
         var sessionEnabled: Bool
         var weeklyEnabled: Bool
         var soundEnabled: Bool
+        var markersVisible: Bool
     }
 
     private static func loadQuotaWarningDefaults(userDefaults: UserDefaults) -> LoadedQuotaWarningDefaults {
@@ -443,12 +439,19 @@ extension SettingsStore {
             userDefaults.set(true, forKey: "quotaWarningSoundEnabled")
         }
 
+        let markersDefault = userDefaults.object(forKey: "quotaWarningMarkersVisible") as? Bool
+        let markersVisible = markersDefault ?? true
+        if Self.isRunningTests, markersDefault == nil {
+            userDefaults.set(true, forKey: "quotaWarningMarkersVisible")
+        }
+
         return LoadedQuotaWarningDefaults(
             notificationsEnabled: notificationsEnabled,
             thresholdsRaw: thresholdsRaw,
             sessionEnabled: sessionEnabled,
             weeklyEnabled: weeklyEnabled,
-            soundEnabled: soundEnabled)
+            soundEnabled: soundEnabled,
+            markersVisible: markersVisible)
     }
 }
 
