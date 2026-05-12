@@ -408,7 +408,7 @@ struct MenuCardModelTests {
             hidePersonalInfo: false,
             now: now))
 
-        #expect(model.metrics.map(\.title) == ["Session", "Weekly", "Sonnet", "Designs", "Daily Routines"])
+        #expect(model.metrics.map(\.title) == ["会话", "每周", "Sonnet", "Designs", "Daily Routines"])
     }
 
     @Test
