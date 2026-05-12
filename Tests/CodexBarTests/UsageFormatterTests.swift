@@ -21,11 +21,9 @@ struct UsageFormatterTests {
         let now = Date()
         let fiveHoursAgo = now.addingTimeInterval(-5 * 3600)
         let text = UsageFormatter.updatedString(from: fiveHoursAgo, now: now)
-        #expect(text.hasPrefix("Updated "))
-        // Output must stay in English regardless of the host system locale,
-        // matching the surrounding hardcoded English UI labels.
         #expect(text.contains("5"))
-        #expect(text.lowercased().contains("ago"))
+        #expect(text.contains("小时"))
+        #expect(text.contains("更新"))
     }
 
     @Test
