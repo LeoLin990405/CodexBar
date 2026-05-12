@@ -150,6 +150,14 @@ extension SettingsStore {
         }
     }
 
+    var quotaWarningMarkersVisible: Bool {
+        get { self.defaultsState.quotaWarningMarkersVisible }
+        set {
+            self.defaultsState.quotaWarningMarkersVisible = newValue
+            self.userDefaults.set(newValue, forKey: "quotaWarningMarkersVisible")
+        }
+    }
+
     var usageBarsShowUsed: Bool {
         get { self.defaultsState.usageBarsShowUsed }
         set {
