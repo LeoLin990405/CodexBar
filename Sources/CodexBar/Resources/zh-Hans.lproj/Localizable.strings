@@ -1,8 +1,8 @@
 /* Chinese (Simplified) localization for CodexBar */
 
 " providers" = "";
-"(System)" = "";
-"30d" = "";
+"(System)" = "（系统）";
+"30d" = "30 天";
 "A managed Codex login is already running. Wait for it to finish before adding " = "";
 "API key" = "API 密钥";
 "API region" = "API 区域";
@@ -11,7 +11,7 @@
 "About" = "关于";
 "Account" = "账户";
 "Accounts" = "账户";
-"Accounts subtitle" = "";
+"Accounts subtitle" = "账户副标题";
 "Active" = "活跃";
 "Add" = "添加";
 "Add Workspace" = "添加工作区";
@@ -45,7 +45,7 @@
 "Balance" = "余额";
 "Battery Saver" = "省电模式";
 "Bordered" = "带边框";
-"Build" = "";
+"Build" = "构建版本";
 "Built \\(buildTimestamp)" = "";
 "Buy Credits..." = "购买 Credits…";
 "Buy Credits…" = "购买 Credits…";
@@ -125,9 +125,9 @@
 "False" = "False";
 "Fetch strategy attempts" = "拉取策略尝试";
 "Fetching" = "";
-"Field" = "";
+"Field" = "字段";
 "Field subtitle" = "";
-"Finish the current managed account change before switching the system account." = "";
+"Finish the current managed account change before switching the system account." = "请完成当前托管账户的变更后再切换系统账户。";
 "Force animation on next refresh" = "下次刷新时强制播放动画";
 "Gateway region" = "";
 "Gemini CLI not found" = "未找到 Gemini CLI";
@@ -231,7 +231,7 @@
 "Peak · ends in \\(self.formatDuration(minutes: remaining))" = "";
 "Personal" = "个人";
 "Picker" = "选择器";
-"Picker subtitle" = "";
+"Picker subtitle" = "选择器副标题";
 "Placeholder" = "占位";
 "Plan" = "计划";
 "Play full-screen confetti when weekly usage resets." = "";
@@ -276,7 +276,7 @@
 "Show details" = "显示详情";
 "Show most-used provider" = "显示最常用的 provider";
 "Show peak hours indicator" = "显示高峰时段指示器";
-"Show provider icons in the switcher (otherwise show a weekly progress line)." = "";
+"Show provider icons in the switcher (otherwise show a weekly progress line)." = "在切换器中显示 provider 图标（否则显示每周进度条）。";
 "Show reset time as clock" = "将重置时间显示为时钟";
 "Show usage as used" = "显示已使用用量";
 "Show whether Claude is in peak usage hours." = "显示 Claude 是否处于高峰使用时段。";
@@ -286,21 +286,21 @@
 "Start at Login" = "开机启动";
 "Status" = "状态";
 "Store Claude sessionKey cookies or OAuth access tokens." = "";
-"Store multiple Abacus AI Cookie headers." = "";
-"Store multiple Augment Cookie headers." = "";
-"Store multiple Cursor Cookie headers." = "";
-"Store multiple Factory Cookie headers." = "";
-"Store multiple MiniMax Cookie headers." = "";
-"Store multiple Mistral Cookie headers." = "";
-"Store multiple Ollama Cookie headers." = "";
-"Store multiple OpenCode Cookie headers." = "";
-"Store multiple OpenCode Go Cookie headers." = "";
+"Store multiple Abacus AI Cookie headers." = "保存多个 Abacus AI Cookie header。";
+"Store multiple Augment Cookie headers." = "保存多个 Augment Cookie header。";
+"Store multiple Cursor Cookie headers." = "保存多个 Cursor Cookie header。";
+"Store multiple Factory Cookie headers." = "保存多个 Factory Cookie header。";
+"Store multiple MiniMax Cookie headers." = "保存多个 MiniMax Cookie header。";
+"Store multiple Mistral Cookie headers." = "保存多个 Mistral Cookie header。";
+"Store multiple Ollama Cookie headers." = "保存多个 Ollama Cookie header。";
+"Store multiple OpenCode Cookie headers." = "保存多个 OpenCode Cookie header。";
+"Store multiple OpenCode Go Cookie headers." = "保存多个 OpenCode Go Cookie header。";
 "Stored in the CodexBar config file." = "";
 "Stored in ~/.codexbar/config.json. " = "";
 "Stored in ~/.codexbar/config.json. Generate one at kimi-k2.ai." = "";
-"Stored in ~/.codexbar/config.json. Paste the key from the Synthetic dashboard." = "";
-"Stored in ~/.codexbar/config.json. Paste your Coding Plan API key from Model Studio." = "";
-"Stored in ~/.codexbar/config.json. Paste your MiniMax API key." = "";
+"Stored in ~/.codexbar/config.json. Paste the key from the Synthetic dashboard." = "保存在 ~/.codexbar/config.json。粘贴从 Synthetic 控制台获取的 key。";
+"Stored in ~/.codexbar/config.json. Paste your Coding Plan API key from Model Studio." = "保存在 ~/.codexbar/config.json。粘贴 Model Studio 中的 Coding Plan API key。";
+"Stored in ~/.codexbar/config.json. Paste your MiniMax API key." = "保存在 ~/.codexbar/config.json。粘贴 MiniMax API 密钥。";
 "Stored in ~/.codexbar/config.json. You can also provide KILO_API_KEY or " = "";
 "Stores local Codex usage history (8 weeks) to personalize Pace predictions." = "";
 "Subscription Utilization" = "";
@@ -311,11 +311,11 @@
 "Temporarily shows the loading animation after the next refresh." = "";
 "Tertiary (\\(label))" = "";
 "Tertiary (\\(tertiaryTitle))" = "";
-"The default Codex account on this Mac." = "";
+"The default Codex account on this Mac." = "本机的默认 Codex 账户。";
 "Toggle" = "开关";
-"Toggle subtitle" = "";
+"Toggle subtitle" = "开关副标题";
 "Token" = "Token";
-"Trigger the menu bar menu from anywhere." = "";
+"Trigger the menu bar menu from anywhere." = "在任意位置触发菜单栏菜单。";
 "True" = "True";
 "Twitter" = "Twitter";
 "Unsupported" = "不支持";
@@ -334,7 +334,7 @@
 "Version \\(version)" = "";
 "Version \\(versionString)" = "";
 "Vertex AI Login" = "Vertex AI 登录";
-"Wait for the current managed Codex login to finish before adding another account." = "";
+"Wait for the current managed Codex login to finish before adding another account." = "请等待当前托管 Codex 登录完成后再添加其他账户。";
 "Waiting for Authentication..." = "等待认证…";
 "Website" = "网站";
 "Weekly limit confetti" = "";
