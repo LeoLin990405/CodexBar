@@ -22,9 +22,9 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .absolute))
 
-        #expect(output.contains("5-hour: 88% left"))
-        #expect(output.contains("Weekly: 75% left"))
-        #expect(output.contains("Monthly: 50% left"))
+        #expect(output.contains("5-hour: 88% 剩余"))
+        #expect(output.contains("Weekly: 75% 剩余"))
+        #expect(output.contains("Monthly: 50% 剩余"))
         #expect(!output.contains("Standard:"))
         #expect(!output.contains("Premium:"))
     }
@@ -47,8 +47,8 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .absolute))
 
-        #expect(output.contains("Standard: 88% left"))
-        #expect(output.contains("Premium: 75% left"))
+        #expect(output.contains("标准: 88% 剩余"))
+        #expect(output.contains("高级: 75% 剩余"))
         #expect(!output.contains("5-hour:"))
         #expect(!output.contains("Monthly:"))
     }
@@ -84,11 +84,11 @@ struct CLISnapshotTests {
         #expect(output.contains("Codex 1.2.3 (codex-cli)"))
         #expect(output.contains("状态：部分中断 – Degraded performance"))
         #expect(output.contains("Codex"))
-        #expect(output.contains("Session: 88% left"))
-        #expect(output.contains("Weekly: 75% left"))
-        #expect(output.contains("Credits: 42"))
-        #expect(output.contains("Account: user@example.com"))
-        #expect(output.contains("Plan: Pro 20x"))
+        #expect(output.contains("会话: 88% 剩余"))
+        #expect(output.contains("每周: 75% 剩余"))
+        #expect(output.contains("Credits: 剩余 42"))
+        #expect(output.contains("账号: user@example.com"))
+        #expect(output.contains("方案: Pro 20x"))
     }
 
     @Test
@@ -115,9 +115,9 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .absolute))
 
-        #expect(output.contains("Plan: Pro 5x"))
-        #expect(!output.contains("Plan: Pro Lite"))
-        #expect(!output.contains("Plan: Prolite"))
+        #expect(output.contains("方案: Pro 5x"))
+        #expect(!output.contains("方案: Pro Lite"))
+        #expect(!output.contains("方案: Prolite"))
     }
 
     @Test
@@ -225,10 +225,10 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .countdown))
 
-        #expect(output.contains("\(meta.sessionLabel): 99% left"))
-        #expect(output.contains("\(meta.weeklyLabel): 100% left"))
+        #expect(output.contains("\(meta.sessionLabel): 99% 剩余"))
+        #expect(output.contains("\(meta.weeklyLabel): 100% 剩余"))
         #expect(output.contains("$9.99"))
-        #expect(!output.contains("Resets $9.99"))
+        #expect(!output.contains("重置 $9.99"))
     }
 
     @Test
