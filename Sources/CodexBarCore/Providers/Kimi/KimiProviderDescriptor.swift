@@ -80,10 +80,10 @@ struct KimiTokenFetchStrategy: ProviderFetchStrategy {
             sourceLabel: "token")
     }
 
-    func shouldFallback(on error: Error, context _: ProviderFetchContext) -> Bool {
-        if case KimiAPIError.missingToken = error { return true }
-        if case KimiAPIError.invalidToken = error { return true }
-        return true
+    func shouldFallback(on _: Error, context _: ProviderFetchContext) -> Bool {
+        // Every token-strategy error (missing/invalid manual/env token, network blip)
+        // must fall through so the web strategy can try browser cookies + localStorage.
+        true
     }
 
     private func resolveToken(context: ProviderFetchContext) -> String? {
