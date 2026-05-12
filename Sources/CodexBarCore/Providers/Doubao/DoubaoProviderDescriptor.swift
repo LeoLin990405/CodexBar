@@ -9,14 +9,14 @@ public enum DoubaoProviderDescriptor {
             id: .doubao,
             metadata: ProviderMetadata(
                 id: .doubao,
-                displayName: "Doubao",
-                sessionLabel: "Requests",
-                weeklyLabel: "Rate limit",
+                displayName: "豆包",
+                sessionLabel: "请求",
+                weeklyLabel: "速率限制",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Doubao usage",
+                toggleTitle: "显示豆包用量",
                 cliName: "doubao",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum DoubaoProviderDescriptor {
                 color: ProviderColor(red: 51 / 255, green: 112 / 255, blue: 255 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Doubao cost summary is not available." }),
+                noDataMessage: { "豆包暂不支持费用摘要。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { context in
