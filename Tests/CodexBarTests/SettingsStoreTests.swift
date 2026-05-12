@@ -1088,47 +1088,13 @@ struct SettingsStoreTests {
             zaiTokenStore: NoopZaiTokenStore(),
             syntheticTokenStore: NoopSyntheticTokenStore())
 
-        #expect(storeA.orderedProviders() == [
-            .gemini,
+        let expectedOrder = [
+            UsageProvider.gemini,
             .codex,
-            .openai,
-            .claude,
-            .cursor,
-            .opencode,
-            .opencodego,
-            .alibaba,
-            .factory,
-            .antigravity,
-            .copilot,
-            .zai,
-            .minimax,
-            .manus,
-            .kimi,
-            .kilo,
-            .kiro,
-            .vertexai,
-            .augment,
-            .jetbrains,
-            .kimik2,
-            .moonshot,
-            .amp,
-            .ollama,
-            .synthetic,
-            .warp,
-            .openrouter,
-            .windsurf,
-            .perplexity,
-            .mimo,
-            .doubao,
-            .abacus,
-            .mistral,
-            .deepseek,
-            .codebuff,
-            .crof,
-            .venice,
-            .commandcode,
-            .stepfun,
-        ])
+        ] + UsageProvider.allCases.filter { provider in
+            provider != .gemini && provider != .codex
+        }
+        #expect(storeA.orderedProviders() == expectedOrder)
 
         // Move one provider; ensure it's persisted across instances.
         let antigravityIndex = try #require(storeA.orderedProviders().firstIndex(of: .antigravity))
