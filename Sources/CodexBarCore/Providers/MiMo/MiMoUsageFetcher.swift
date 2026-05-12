@@ -79,8 +79,13 @@ public enum MiMoSettingsReader {
 
     /// All (label, base URL, auth style) tuples the API-key strategy should try, in order.
     /// Honors `MIMO_API_BASE_URL` and `MIMO_REGION` overrides; otherwise probes the
-    /// three Token Plan regions (cn / sgp / ams) with bearer + x-api-key, then falls
-    /// back to the global pay-per-token endpoint.
+    /// three Token Plan regions (cn / sgp / ams) with OpenAI bearer auth, then
+    /// falls back to the global pay-per-token endpoint.
+    ///
+    /// Note: we only probe OpenAI endpoints because Xiaomi's Anthropic-compatible
+    /// `/anthropic/v1/models` returns 404 — Anthropic spec exposes `/v1/messages`
+    /// for inference but not a free list-models call. Probing it would generate
+    /// confusing 404 noise without adding any signal.
     public static func apiBaseURLs(
         environment: [String: String] = ProcessInfo.processInfo.environment)
         -> [(label: String, url: URL, authStyle: APIAuthStyle)]
@@ -89,13 +94,7 @@ public enum MiMoSettingsReader {
            let url = URL(string: override.trimmingCharacters(in: .whitespacesAndNewlines)),
            let scheme = url.scheme, !scheme.isEmpty
         {
-            if url.pathComponents.contains("anthropic") {
-                return [
-                    (label: "configured anthropic x-api-key", url: url, authStyle: .xAPIKey),
-                    (label: "configured anthropic bearer", url: url, authStyle: .bearer),
-                ]
-            }
-            return [(label: "configured openai", url: url, authStyle: .bearer)]
+            return [(label: "configured", url: url, authStyle: .bearer)]
         }
 
         let region = self.cleaned(environment[self.apiRegionKey])?.lowercased()
@@ -105,27 +104,13 @@ public enum MiMoSettingsReader {
             self.tokenPlanRegions
         }
 
-        var endpoints = ordered.flatMap { region in
-            [
-                (
-                    label: "\(region) openai bearer",
-                    url: self.tokenPlanOpenAIBaseURL(region: region),
-                    authStyle: APIAuthStyle.bearer),
-                (
-                    label: "\(region) anthropic bearer",
-                    url: self.tokenPlanAnthropicBaseURL(region: region),
-                    authStyle: APIAuthStyle.bearer),
-                (
-                    label: "\(region) anthropic x-api-key",
-                    url: self.tokenPlanAnthropicBaseURL(region: region),
-                    authStyle: APIAuthStyle.xAPIKey),
-            ]
+        var endpoints = ordered.map { region in
+            (
+                label: "token-plan-\(region)",
+                url: self.tokenPlanOpenAIBaseURL(region: region),
+                authStyle: APIAuthStyle.bearer)
         }
-        endpoints.append(contentsOf: [
-            (label: "global openai bearer", url: self.globalOpenAIBaseURL, authStyle: .bearer),
-            (label: "global anthropic bearer", url: self.globalAnthropicBaseURL, authStyle: .bearer),
-            (label: "global anthropic x-api-key", url: self.globalAnthropicBaseURL, authStyle: .xAPIKey),
-        ])
+        endpoints.append((label: "global", url: self.globalOpenAIBaseURL, authStyle: .bearer))
         return endpoints
     }
 
