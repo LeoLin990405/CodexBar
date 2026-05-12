@@ -77,9 +77,9 @@ struct MenuDescriptorCodexManagedFallbackTests {
             }
 
         #expect(lines.contains("账号：managed@example.com"))
-        #expect(lines.contains("方案：Enterprise"))
+        #expect(lines.contains("Plan: Enterprise"))
         #expect(!lines.contains("账号：ambient@example.com"))
-        #expect(!lines.contains("方案：Plus"))
+        #expect(!lines.contains("Plan: Plus"))
     }
 
     @Test
