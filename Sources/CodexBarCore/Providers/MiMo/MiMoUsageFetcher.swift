@@ -6,6 +6,8 @@ import FoundationNetworking
 public enum MiMoSettingsError: LocalizedError, Sendable {
     case missingCookie
     case invalidCookie
+    case missingAPIKey
+    case invalidAPIKey(String)
 
     public var errorDescription: String? {
         switch self {
@@ -13,6 +15,11 @@ public enum MiMoSettingsError: LocalizedError, Sendable {
             "No Xiaomi MiMo browser session found. Log in at platform.xiaomimimo.com first."
         case .invalidCookie:
             "Xiaomi MiMo requires the api-platform_serviceToken and userId cookies."
+        case .missingAPIKey:
+            "Set MIMO_API_KEY (Xiaomi Token Plan key, tp-…) or paste it into ~/.codexbar/config.json."
+        case let .invalidAPIKey(endpoints):
+            "Xiaomi MiMo API key rejected by all probed endpoints: \(endpoints). " +
+                "Verify the key in ~/.codexbar/config.json and the bound region."
         }
     }
 }
@@ -38,12 +45,19 @@ public enum MiMoUsageError: LocalizedError, Sendable {
 }
 
 public enum MiMoSettingsReader {
+    public enum APIAuthStyle: Sendable {
+        case bearer
+        case xAPIKey
+    }
+
     public static let apiURLKey = "MIMO_API_URL"
+    public static let apiBaseURLKey = "MIMO_API_BASE_URL"
     public static let apiRegionKey = "MIMO_REGION"
     public static let apiKeyEnvironmentKeys = [
         "MIMO_API_KEY",
         "XIAOMI_API_KEY",
     ]
+    public static let tokenPlanRegions = ["cn", "sgp", "ams"]
 
     public static func apiKey(environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
         for key in self.apiKeyEnvironmentKeys {
@@ -52,6 +66,7 @@ public enum MiMoSettingsReader {
         return nil
     }
 
+    /// Cookie-mode dashboard endpoint. Distinct from Token Plan API endpoints.
     public static func apiURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL {
         if let override = environment[self.apiURLKey],
            let url = URL(string: override.trimmingCharacters(in: .whitespacesAndNewlines)),
@@ -60,6 +75,74 @@ public enum MiMoSettingsReader {
             return url
         }
         return URL(string: "https://platform.xiaomimimo.com/api/v1")!
+    }
+
+    /// All (label, base URL, auth style) tuples the API-key strategy should try, in order.
+    /// Honors `MIMO_API_BASE_URL` and `MIMO_REGION` overrides; otherwise probes the
+    /// three Token Plan regions (cn / sgp / ams) with bearer + x-api-key, then falls
+    /// back to the global pay-per-token endpoint.
+    public static func apiBaseURLs(
+        environment: [String: String] = ProcessInfo.processInfo.environment)
+        -> [(label: String, url: URL, authStyle: APIAuthStyle)]
+    {
+        if let override = environment[self.apiBaseURLKey],
+           let url = URL(string: override.trimmingCharacters(in: .whitespacesAndNewlines)),
+           let scheme = url.scheme, !scheme.isEmpty
+        {
+            if url.pathComponents.contains("anthropic") {
+                return [
+                    (label: "configured anthropic x-api-key", url: url, authStyle: .xAPIKey),
+                    (label: "configured anthropic bearer", url: url, authStyle: .bearer),
+                ]
+            }
+            return [(label: "configured openai", url: url, authStyle: .bearer)]
+        }
+
+        let region = self.cleaned(environment[self.apiRegionKey])?.lowercased()
+        let ordered: [String] = if let region, self.tokenPlanRegions.contains(region) {
+            [region] + self.tokenPlanRegions.filter { $0 != region }
+        } else {
+            self.tokenPlanRegions
+        }
+
+        var endpoints = ordered.flatMap { region in
+            [
+                (
+                    label: "\(region) openai bearer",
+                    url: self.tokenPlanOpenAIBaseURL(region: region),
+                    authStyle: APIAuthStyle.bearer),
+                (
+                    label: "\(region) anthropic bearer",
+                    url: self.tokenPlanAnthropicBaseURL(region: region),
+                    authStyle: APIAuthStyle.bearer),
+                (
+                    label: "\(region) anthropic x-api-key",
+                    url: self.tokenPlanAnthropicBaseURL(region: region),
+                    authStyle: APIAuthStyle.xAPIKey),
+            ]
+        }
+        endpoints.append(contentsOf: [
+            (label: "global openai bearer", url: self.globalOpenAIBaseURL, authStyle: .bearer),
+            (label: "global anthropic bearer", url: self.globalAnthropicBaseURL, authStyle: .bearer),
+            (label: "global anthropic x-api-key", url: self.globalAnthropicBaseURL, authStyle: .xAPIKey),
+        ])
+        return endpoints
+    }
+
+    private static var globalOpenAIBaseURL: URL {
+        URL(string: "https://api.xiaomimimo.com/v1")!
+    }
+
+    private static var globalAnthropicBaseURL: URL {
+        URL(string: "https://api.xiaomimimo.com/anthropic")!
+    }
+
+    private static func tokenPlanOpenAIBaseURL(region: String) -> URL {
+        URL(string: "https://token-plan-\(region).xiaomimimo.com/v1")!
+    }
+
+    private static func tokenPlanAnthropicBaseURL(region: String) -> URL {
+        URL(string: "https://token-plan-\(region).xiaomimimo.com/anthropic")!
     }
 
     private static func cleaned(_ raw: String?) -> String? {
@@ -79,6 +162,104 @@ public enum MiMoSettingsReader {
 
 public enum MiMoUsageFetcher {
     private static let requestTimeout: TimeInterval = 15
+
+    /// Probes the configured base URLs with the supplied API key and returns a
+    /// minimal `UsageSnapshot` describing which endpoint accepted the key.
+    /// Uses GET /models (OpenAI) or GET /v1/models (Anthropic) so the probe is
+    /// free of LLM token consumption.
+    public static func fetchAPIUsage(
+        apiKey: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        now: Date = Date()) async throws -> UsageSnapshot
+    {
+        let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else {
+            throw MiMoSettingsError.missingAPIKey
+        }
+
+        var rejectedEndpoints: [String] = []
+        var lastError: Error?
+
+        for endpoint in MiMoSettingsReader.apiBaseURLs(environment: environment) {
+            do {
+                let request = self.makeListModelsRequest(
+                    baseURL: endpoint.url,
+                    apiKey: key,
+                    authStyle: endpoint.authStyle)
+                let (_, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw MiMoUsageError.networkError("Invalid response")
+                }
+                switch httpResponse.statusCode {
+                case 200...299:
+                    return self.makeAPIUsageSnapshot(
+                        endpointLabel: endpoint.label,
+                        now: now)
+                case 401, 403:
+                    rejectedEndpoints.append(endpoint.label)
+                    continue
+                default:
+                    rejectedEndpoints.append("\(endpoint.label) (HTTP \(httpResponse.statusCode))")
+                    continue
+                }
+            } catch {
+                lastError = error
+                continue
+            }
+        }
+
+        if !rejectedEndpoints.isEmpty {
+            throw MiMoSettingsError.invalidAPIKey(rejectedEndpoints.joined(separator: ", "))
+        }
+        if let lastError { throw lastError }
+        throw MiMoSettingsError.invalidAPIKey("configured endpoint")
+    }
+
+    private static func makeListModelsRequest(
+        baseURL: URL,
+        apiKey: String,
+        authStyle: MiMoSettingsReader.APIAuthStyle) -> URLRequest
+    {
+        let isAnthropic = baseURL.pathComponents.contains("anthropic")
+        let url = isAnthropic
+            ? baseURL.appendingPathComponent("v1").appendingPathComponent("models")
+            : baseURL.appendingPathComponent("models")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = Self.requestTimeout
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        switch authStyle {
+        case .bearer:
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        case .xAPIKey:
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        }
+        if isAnthropic {
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        }
+        return request
+    }
+
+    private static func makeAPIUsageSnapshot(endpointLabel: String, now: Date) -> UsageSnapshot {
+        let primary = RateWindow(
+            usedPercent: 0,
+            windowMinutes: nil,
+            resetsAt: nil,
+            resetDescription: "API key active via \(endpointLabel)")
+        let identity = ProviderIdentitySnapshot(
+            providerID: .mimo,
+            accountEmail: nil,
+            accountOrganization: nil,
+            loginMethod: "Token Plan API")
+        return UsageSnapshot(
+            primary: primary,
+            secondary: nil,
+            tertiary: nil,
+            providerCost: nil,
+            updatedAt: now,
+            identity: identity)
+    }
 
     public static func fetchUsage(
         cookieHeader: String,
