@@ -26,8 +26,8 @@ struct ProvidersPaneCoverageTests {
             MenuBarMetricPreference.primary.rawValue,
         ])
         #expect(picker?.options.map(\.title) == [
-            "自动",
-            "主要额度（API key 限制）",
+            "Automatic",
+            "Primary (API key limit)",
         ])
     }
 
@@ -111,7 +111,7 @@ struct ProvidersPaneCoverageTests {
         let ids = picker?.options.map(\.id) ?? []
         #expect(ids.contains(MenuBarMetricPreference.tertiary.rawValue))
         let tertiaryOption = picker?.options.first { $0.id == MenuBarMetricPreference.tertiary.rawValue }
-        #expect(tertiaryOption?.title == "第三额度（API）")
+        #expect(tertiaryOption?.title == "Tertiary (API)")
     }
 
     @Test
@@ -188,7 +188,7 @@ struct ProvidersPaneCoverageTests {
         let ids = picker?.options.map(\.id) ?? []
         #expect(ids.contains(MenuBarMetricPreference.tertiary.rawValue))
         let tertiaryOption = picker?.options.first { $0.id == MenuBarMetricPreference.tertiary.rawValue }
-        #expect(tertiaryOption?.title == "第三额度（5-hour）")
+        #expect(tertiaryOption?.title == "Tertiary (5-hour)")
     }
 
     @Test
@@ -214,7 +214,7 @@ struct ProvidersPaneCoverageTests {
     func `provider detail plan row formats moonshot as balance`() {
         let row = ProviderDetailView<EmptyView>.planRow(provider: .moonshot, planText: "Balance: $49.58")
 
-        #expect(row?.label == "Balance")
+        #expect(row?.label == "余额")
         #expect(row?.value == "$49.58")
     }
 
@@ -222,7 +222,7 @@ struct ProvidersPaneCoverageTests {
     func `provider detail plan row keeps plan label for non open router`() {
         let row = ProviderDetailView<EmptyView>.planRow(provider: .codex, planText: "Pro")
 
-        #expect(row?.label == "方案")
+        #expect(row?.label == "Plan")
         #expect(row?.value == "Pro")
     }
 
