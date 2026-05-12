@@ -304,16 +304,16 @@ struct MenuDescriptor {
             }
         } else if let loginMethodText, !loginMethodText.isEmpty {
             if provider == .openrouter || provider == .mimo,
-               loginMethodText.localizedCaseInsensitiveContains("balance:")
+               Self.isBalancePlanText(loginMethodText)
             {
                 let balanceValue = loginMethodText
                     .replacingOccurrences(
-                        of: #"(?i)^\s*balance:\s*"#,
+                        of: #"(?i)^\s*(?:balance:|余额[:：])\s*"#,
                         with: "",
                         options: [.regularExpression])
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 let value = balanceValue.isEmpty ? loginMethodText : balanceValue
-                entries.append(.text("Balance: \(AccountFormatter.plan(value, provider: provider))", .secondary))
+                entries.append(.text("余额：\(AccountFormatter.plan(value, provider: provider))", .secondary))
             } else {
                 entries.append(.text("Plan: \(AccountFormatter.plan(loginMethodText, provider: provider))", .secondary))
             }
@@ -523,6 +523,13 @@ struct MenuDescriptor {
         guard let match = regex.firstMatch(in: raw, options: [], range: range),
               let r = Range(match.range, in: raw) else { return nil }
         return String(raw[r])
+    }
+
+    private static func isBalancePlanText(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.localizedCaseInsensitiveContains("balance:")
+            || trimmed.contains("余额：")
+            || trimmed.contains("余额:")
     }
 }
 

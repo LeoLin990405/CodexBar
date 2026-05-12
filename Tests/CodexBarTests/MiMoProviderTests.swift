@@ -380,7 +380,7 @@ struct MiMoProviderTests {
     func `provider detail plan row formats mimo as balance`() {
         let row = ProviderDetailView<Text>.planRow(provider: .mimo, planText: "Balance: $25.51")
 
-        #expect(row?.label == "Balance")
+        #expect(row?.label == "余额")
         #expect(row?.value == "$25.51")
     }
 
@@ -419,8 +419,9 @@ struct MiMoProviderTests {
                 return text
             }
 
-        #expect(lines.contains("Balance: $25.51"))
+        #expect(lines.contains("余额：$25.51"))
         #expect(!lines.contains("Balance: Balance: $25.51"))
+        #expect(!lines.contains("Plan: 余额：$25.51"))
     }
 
     @Test
