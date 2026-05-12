@@ -1038,6 +1038,6 @@ struct MenuCardModelTests {
 
         let primary = try #require(model.metrics.first)
         #expect(primary.detailText == "€1.2345 this month")
-        #expect(primary.resetText?.hasPrefix("Resets") == true)
+        #expect(primary.resetText?.contains("重置") == true)
     }
 }
