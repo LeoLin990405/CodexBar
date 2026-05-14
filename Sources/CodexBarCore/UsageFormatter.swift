@@ -98,11 +98,21 @@ public enum UsageFormatter {
         return "剩余 \(formatted)"
     }
 
+    public static func kiroCreditNumber(_ value: Double) -> String {
+        let rounded = value.rounded()
+        if abs(value - rounded) < 0.005 {
+            return String(format: "%.0f", rounded)
+        }
+        return String(format: "%.2f", value)
+    }
+
     /// Formats a USD value with proper negative handling and thousand separators.
     /// Uses Swift's modern FormatStyle API (iOS 15+/macOS 12+) for robust, locale-aware formatting.
     public static func usdString(_ value: Double) -> String {
         value.formatted(.currency(code: "USD").locale(Locale(identifier: "en_US")))
     }
+
+    public static let costEstimateHint = "Estimated from local logs · may differ from your bill"
 
     /// Formats a currency value with the specified currency code.
     /// Uses FormatStyle with explicit en_US locale to ensure consistent formatting

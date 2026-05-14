@@ -79,6 +79,7 @@
 "Codex login failed" = "Codex 登录失败";
 "Codex login timed out" = "Codex 登录超时";
 "CodexBar Lifecycle Keepalive" = "";
+"CodexBar can't show its menu bar icon" = "CodexBar 无法显示其菜单栏图标";
 "CodexBar could not read managed account storage. " = "";
 "Configure…" = "配置…";
 "Connected" = "已连接";
@@ -108,6 +109,7 @@
 "Designs" = "";
 "Disable Keychain access" = "禁用 Keychain 访问";
 "Disabled" = "";
+"Dismiss" = "关闭";
 "Disconnected" = "已断开";
 "Display" = "显示";
 "Display mode" = "";
@@ -138,7 +140,7 @@
 "GitHub Login" = "";
 "Hide details" = "隐藏详情";
 "Hide personal information" = "隐藏个人信息";
-"Historical tracking" = "";
+"Historical tracking" = "历史记录追踪";
 "How often CodexBar polls providers in the background." = "";
 "Inactive" = "";
 "Install CLI" = "";
@@ -206,6 +208,7 @@
 "Open Console" = "打开控制台";
 "Open Dashboard" = "打开仪表盘";
 "Open Mistral Admin" = "打开 Mistral Admin";
+"Open Menu Bar Settings" = "打开菜单栏设置";
 "Open Ollama Settings" = "打开 Ollama 设置";
 "Open Terminal" = "打开终端";
 "Open Usage Page" = "打开用量页面";
@@ -385,8 +388,11 @@
 "metric_secondary" = "次要（%@）";
 "metric_tertiary" = "第三（%@）";
 "multiple_workspaces_found" = "CodexBar 发现了 %1$@ 的多个工作区。请选择要添加的工作区。";
+"off_peak" = "非高峰";
+"off_peak_peak_in" = "非高峰 · %@ 后进入高峰";
 "ory_session_…=…; csrftoken=…" = "";
 "overview_choose_providers" = "选择最多 %1$@ 个提供商";
+"peak_ends_in" = "高峰 · %@ 后结束";
 "remove_account_message" = "从 CodexBar 中移除 %@？其托管的 Codex 主目录将被删除。";
 "version_format" = "版本 %@";
 "vertex_ai_login_instructions" = "要使用 Vertex AI 跟踪，您需要通过 Google Cloud 进行认证。
@@ -599,6 +605,7 @@
 "login_shell_path" = "登录 shell PATH（启动捕获）";
 "cleared" = "已清除。";
 "no_fetch_attempts" = "尚无获取尝试。";
+"macOS Tahoe can block menu bar apps in System Settings → Menu Bar → Allow in the Menu Bar. CodexBar is running, but macOS may be hiding its icon. Open Menu Bar settings and turn CodexBar on." = "macOS Tahoe 可能会在系统设置 → 菜单栏 → 在菜单栏中允许中屏蔽菜单栏应用。CodexBar 正在运行，但 macOS 可能隐藏了其图标。请打开菜单栏设置并启用 CodexBar。";
 
 /* Metric preferences */
 "metric_pref_automatic" = "自动";
@@ -634,3 +641,11 @@
 
 /* Additional keys */
 "not_found" = "未找到";
+
+/* Cost estimation */
+"cost_header_estimated" = "费用（估算）";
+"cost_estimate_hint" = "根据本地日志估算 · 可能与账单不同";
+
+/* Placeholder states */
+"placeholder_no_usage_yet" = "暂无用量";
+"placeholder_limits_not_available" = "限额数据不可用";
