@@ -148,9 +148,11 @@ struct CostHistoryChartMenuView: View {
             }
 
             if let total = self.totalCostUSD {
-                Text("总计（30 天）：\(UsageFormatter.usdString(total))")
+                Text("估算总计（30 天）：\(UsageFormatter.usdString(total))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.head)
             }
         }
         .padding(.horizontal, 16)
