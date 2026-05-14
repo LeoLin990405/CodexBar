@@ -59,7 +59,8 @@ struct AntigravityProviderImplementation: ProviderImplementation {
     func settingsActions(context: ProviderSettingsContext) -> [ProviderSettingsActionsDescriptor] {
         let accountCount = context.settings.tokenAccounts(for: .antigravity).count
         let loginTitle = accountCount > 0 ? "添加 Google 账户" : "使用 Google 登录"
-        let subtitle = "保存每个已登录的 Google 账户以快速切换 Antigravity。优先使用 Antigravity.app OAuth，也可通过 ANTIGRAVITY_OAUTH_CLIENT_ID 和 ANTIGRAVITY_OAUTH_CLIENT_SECRET 覆盖。"
+        let subtitle = "保存每个已登录的 Google 账户以快速切换 Antigravity。"
+            + "优先使用 Antigravity.app OAuth，也可通过 ANTIGRAVITY_OAUTH_CLIENT_ID 和 ANTIGRAVITY_OAUTH_CLIENT_SECRET 覆盖。"
         return [
             ProviderSettingsActionsDescriptor(
                 id: "antigravity-oauth",
