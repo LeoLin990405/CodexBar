@@ -30,6 +30,9 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  # Required by anthropic/claude-code-action to mint an OIDC token for
+  # the Pro/Max subscription OAuth flow.
+  id-token: write
 
 jobs:
   claude:
