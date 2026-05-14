@@ -4,10 +4,13 @@
 
 ### Added
 - Display: add a setting to hide quota-warning tick marks on usage bars while keeping quota warning notifications active (#918, fixes #916). Thanks @ThiagoCAltoe!
+- Menu: add an opt-in setting for provider changelog links, starting with Codex, Claude Code, and Gemini CLI (#929, fixes #660). Thanks @ThiagoCAltoe!
 - Moonshot / Kimi API: add API-key balance tracking, CLI support, docs, and menu bar balance copy (#899). Thanks @giuseppebisemi!
 
 ### Fixed
+- Settings: let stale managed Codex account records be removed even when their stored home path is outside CodexBar's managed-home directory, and keep CLI known-owner tests from writing fixtures into the live app store.
 - Settings: apply the selected app language from packaged SwiftPM resources instead of falling back to English when the `.lproj` directory casing differs (#908).
+- Codex: route menu account refreshes through the resolved live-vs-managed account source so matched accounts keep using the stable `CODEX_HOME` (#932, fixes #931). Thanks @ThiagoCAltoe!
 - ChatGPT credits: restrict purchase links to real HTTPS `chatgpt.com` settings/usage/billing/credits paths and drop query/fragment data (#903). Thanks @ThiagoCAltoe!
 - z.ai: show the MCP quota bucket as monthly instead of a misleading 1-minute window (#904). Thanks @ThiagoCAltoe!
 - Menu: middle-truncate long account emails in Codex account controls and keep the Codex account switcher visible during merged-menu refreshes with transient account snapshots.
