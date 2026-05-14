@@ -1,0 +1,150 @@
+name: Watch CodexBar-Mobile Upstream Sync
+
+# Goal: every night around 北京时间 02:00, poll o1xhack/CodexBar-Mobile's
+# Issue #6 (上游同步: vX.Y / vX.Y+1 / ...) for changes. When the body
+# differs from the cached snapshot, open / update a tracking issue in
+# this repo and @-mention claude so the existing claude-smart-sync.yml
+# workflow picks it up and produces a per-version triage report. A
+# human still decides whether to merge.
+
+on:
+  schedule:
+    - cron: '0 18 * * *'   # UTC 18:00 == 北京 02:00
+  workflow_dispatch:
+    inputs:
+      force_update:
+        description: 'Update tracking issue even if content unchanged'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  WATCHED_OWNER: o1xhack
+  WATCHED_REPO: CodexBar-Mobile
+  WATCHED_ISSUE: 6
+  TRACKING_LABEL: mobile-fork-watch
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Fetch upstream mobile-fork issue body
+        id: fetch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh issue view "$WATCHED_ISSUE" \
+            -R "$WATCHED_OWNER/$WATCHED_REPO" \
+            --json title,body,updatedAt,url \
+            > /tmp/upstream-issue.json
+
+          jq -r '.body' /tmp/upstream-issue.json > /tmp/upstream-body.md
+          HASH=$(sha256sum /tmp/upstream-body.md | cut -d' ' -f1)
+          UPDATED=$(jq -r '.updatedAt' /tmp/upstream-issue.json)
+          TITLE=$(jq -r '.title' /tmp/upstream-issue.json)
+          URL=$(jq -r '.url'   /tmp/upstream-issue.json)
+          BYTES=$(wc -c < /tmp/upstream-body.md)
+          echo "hash=$HASH"      >> "$GITHUB_OUTPUT"
+          echo "updated=$UPDATED" >> "$GITHUB_OUTPUT"
+          echo "title=$TITLE"    >> "$GITHUB_OUTPUT"
+          echo "url=$URL"        >> "$GITHUB_OUTPUT"
+          echo "bytes=$BYTES"    >> "$GITHUB_OUTPUT"
+          echo "Hash: $HASH ($BYTES bytes, updated $UPDATED)"
+
+      - name: Restore previous hash
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/mobile-fork-watch
+          key: mobile-fork-watch-${{ steps.fetch.outputs.hash }}
+          restore-keys: |
+            mobile-fork-watch-
+
+      - name: Decide whether to open / update tracking issue
+        id: decide
+        run: |
+          NEW_HASH='${{ steps.fetch.outputs.hash }}'
+          PREV=''
+          if [ -f .cache/mobile-fork-watch/hash ]; then
+            PREV=$(cat .cache/mobile-fork-watch/hash)
+          fi
+          FORCE='${{ github.event.inputs.force_update }}'
+          if [ "$NEW_HASH" = "$PREV" ] && [ "$FORCE" != "true" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Upstream mobile-fork issue body unchanged (hash $NEW_HASH); nothing to do."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Upstream changed: $PREV -> $NEW_HASH"
+          fi
+          mkdir -p .cache/mobile-fork-watch
+          echo "$NEW_HASH" > .cache/mobile-fork-watch/hash
+
+      - name: Ensure tracking label exists
+        if: steps.decide.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create "$TRACKING_LABEL" \
+            -R "$GITHUB_REPOSITORY" \
+            --description 'Auto-opened tracker for o1xhack/CodexBar-Mobile upstream sync issue' \
+            --color FBCA04 \
+            --force
+
+      - name: Open / update tracking issue
+        if: steps.decide.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          BODY_FILE=$(mktemp)
+          {
+            echo "Daily watcher for [${{ steps.fetch.outputs.title }}](${{ steps.fetch.outputs.url }})"
+            echo "(snapshot taken ${{ steps.fetch.outputs.updated }}, hash \`${{ steps.fetch.outputs.hash }}\`)."
+            echo
+            echo "Upstream body:"
+            echo
+            echo '<details><summary>Click to expand mobile-fork Issue #${{ env.WATCHED_ISSUE }} content</summary>'
+            echo
+            cat /tmp/upstream-body.md
+            echo
+            echo '</details>'
+            echo
+            echo "---"
+            echo
+            echo "@claude please:"
+            echo "1. Compare the upstream mobile-fork sync targets above against \`feat/trae-dollar-usage\` HEAD."
+            echo "2. For each version (v0.24 / v0.25 / v0.25.1 / 后续) list:"
+            echo "   - Which items this fork already has (since we merged upstream/main directly)."
+            echo "   - Which items the mobile fork did differently — and whether that approach is preferable."
+            echo "   - Which items still need cherry-picking, ranked by user-visible impact."
+            echo "3. Stop there. Do NOT auto-merge. Report findings as a follow-up comment on this issue."
+          } > "$BODY_FILE"
+
+          EXISTING=$(gh issue list \
+            -R "$GITHUB_REPOSITORY" \
+            --label "$TRACKING_LABEL" \
+            --state open \
+            --json number \
+            --jq '.[0].number')
+
+          if [ -n "$EXISTING" ]; then
+            echo "Updating existing tracking issue #$EXISTING"
+            gh issue comment "$EXISTING" \
+              -R "$GITHUB_REPOSITORY" \
+              --body-file "$BODY_FILE"
+          else
+            echo "Creating new tracking issue"
+            gh issue create \
+              -R "$GITHUB_REPOSITORY" \
+              --title "📱 Watch: CodexBar-Mobile upstream sync (Issue #${{ env.WATCHED_ISSUE }})" \
+              --label "$TRACKING_LABEL" \
+              --body-file "$BODY_FILE"
+          fi
