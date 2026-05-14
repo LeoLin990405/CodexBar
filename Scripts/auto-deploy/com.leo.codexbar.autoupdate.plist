@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.leo.codexbar.autoupdate</string>
+
+    <!--
+      Run the auto-update poll every 10 minutes. The script is idempotent
+      (writes ~/.codexbar/auto-deploy-state.json) so re-runs are cheap.
+      Adjust StartInterval to taste; 600s = 10 minutes is the recommended
+      balance between freshness and GitHub API budget.
+    -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/leo/Projects/CodexBar/Scripts/auto-deploy/auto-update.sh</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>600</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/leo/.codexbar/auto-deploy.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/leo/.codexbar/auto-deploy.stderr.log</string>
+
+    <!--
+      Need PATH so gh / jq / pkill / open are found. macOS launchd
+      starts with a minimal PATH by default.
+    -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/leo</string>
+    </dict>
+</dict>
+</plist>
