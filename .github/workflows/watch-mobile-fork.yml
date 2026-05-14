@@ -98,7 +98,8 @@ jobs:
             --color FBCA04 \
             --force
 
-      - name: Open / update tracking issue
+      - name: Open / update tracking issue (snapshot only, no @claude)
+        id: tracker
         if: steps.decide.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -117,15 +118,8 @@ jobs:
             echo
             echo '</details>'
             echo
-            echo "---"
-            echo
-            echo "@claude please:"
-            echo "1. Compare the upstream mobile-fork sync targets above against \`feat/trae-dollar-usage\` HEAD."
-            echo "2. For each version (v0.24 / v0.25 / v0.25.1 / 后续) list:"
-            echo "   - Which items this fork already has (since we merged upstream/main directly)."
-            echo "   - Which items the mobile fork did differently — and whether that approach is preferable."
-            echo "   - Which items still need cherry-picking, ranked by user-visible impact."
-            echo "3. Stop there. Do NOT auto-merge. Report findings as a follow-up comment on this issue."
+            echo "The follow-up comment will @-mention claude with the review instructions."
+            echo "Reply on this issue with extra instructions for Claude if needed."
           } > "$BODY_FILE"
 
           EXISTING=$(gh issue list \
@@ -136,15 +130,36 @@ jobs:
             --jq '.[0].number')
 
           if [ -n "$EXISTING" ]; then
-            echo "Updating existing tracking issue #$EXISTING"
-            gh issue comment "$EXISTING" \
+            echo "Refreshing existing tracking issue #$EXISTING"
+            gh issue edit "$EXISTING" \
               -R "$GITHUB_REPOSITORY" \
               --body-file "$BODY_FILE"
+            ISSUE_NUMBER="$EXISTING"
           else
             echo "Creating new tracking issue"
-            gh issue create \
+            ISSUE_URL=$(gh issue create \
               -R "$GITHUB_REPOSITORY" \
               --title "📱 Watch: CodexBar-Mobile upstream sync (Issue #${{ env.WATCHED_ISSUE }})" \
               --label "$TRACKING_LABEL" \
-              --body-file "$BODY_FILE"
+              --body-file "$BODY_FILE")
+            ISSUE_NUMBER=$(basename "$ISSUE_URL")
           fi
+          echo "issue=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Post @claude trigger comment
+        if: steps.decide.outputs.changed == 'true' && steps.tracker.outputs.issue != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # The body lives in the issue itself — keep the comment short so the
+          # claude-smart-sync workflow picks up only the actionable prompt.
+          gh issue comment "${{ steps.tracker.outputs.issue }}" \
+            -R "$GITHUB_REPOSITORY" \
+            --body "@claude please review the upstream mobile-fork sync items captured in the issue body above. For each version (v0.24 / v0.25 / v0.25.1 / 任何后续) list:
+
+          1. **Already absorbed** — items this fork already has via direct steipete/CodexBar merges (point at the merge commit when possible).
+          2. **Mobile-fork variant** — items the mobile fork implemented differently; flag whether their approach is preferable for our macOS fork.
+          3. **Pending cherry-pick** — items still missing, ranked by user-visible impact.
+
+          Stop after the report. Do NOT auto-merge or push code. Reply on this issue. I will pick what to cherry-pick manually."
