@@ -15,6 +15,7 @@ extension UsageStore {
         _ = self.lastFetchAttempts
         _ = self.accountSnapshots
         _ = self.codexAccountSnapshots
+        _ = self.kiloScopeSnapshots
         _ = self.tokenSnapshots
         _ = self.tokenErrors
         _ = self.tokenRefreshInFlight
@@ -56,6 +57,8 @@ extension UsageStore {
             _ = self.settings.sessionQuotaNotificationsEnabled
             _ = self.settings.quotaWarningNotificationsEnabled
             _ = self.settings.quotaWarningThresholds
+            _ = self.settings.quotaWarningThresholds(.session)
+            _ = self.settings.quotaWarningThresholds(.weekly)
             _ = self.settings.quotaWarningSoundEnabled
             _ = self.settings.usageBarsShowUsed
             _ = self.settings.costUsageEnabled
@@ -131,6 +134,7 @@ final class UsageStore {
     var lastFetchAttempts: [UsageProvider: [ProviderFetchAttempt]] = [:]
     var accountSnapshots: [UsageProvider: [TokenAccountUsageSnapshot]] = [:]
     var codexAccountSnapshots: [CodexAccountUsageSnapshot] = []
+    var kiloScopeSnapshots: [KiloScopeSnapshot] = []
     var tokenSnapshots: [UsageProvider: CostUsageTokenSnapshot] = [:]
     var tokenErrors: [UsageProvider: String] = [:]
     var tokenRefreshInFlight: Set<UsageProvider> = []
@@ -221,6 +225,7 @@ final class UsageStore {
     @ObservationIgnored var lastKnownSessionWindowSource: [UsageProvider: SessionQuotaWindowSource] = [:]
     @ObservationIgnored var quotaWarningState: [QuotaWarningStateKey: QuotaWarningState] = [:]
     @ObservationIgnored var lastTokenFetchAt: [UsageProvider: Date] = [:]
+    @ObservationIgnored var lastTokenFetchScope: [UsageProvider: String] = [:]
     @ObservationIgnored var planUtilizationHistory: [UsageProvider: PlanUtilizationHistoryBuckets] = [:]
     @ObservationIgnored var weeklyLimitResetDetectorStates: [String: WeeklyLimitResetDetectorState] = [:]
     @ObservationIgnored private var hasCompletedInitialRefresh: Bool = false
@@ -1415,6 +1420,7 @@ extension UsageStore {
         self.tokenSnapshots.removeAll()
         self.tokenErrors.removeAll()
         self.lastTokenFetchAt.removeAll()
+        self.lastTokenFetchScope.removeAll()
         self.tokenFailureGates[.codex]?.reset()
         self.tokenFailureGates[.claude]?.reset()
         return nil
@@ -1426,6 +1432,7 @@ extension UsageStore {
             self.tokenErrors[provider] = nil
             self.tokenFailureGates[provider]?.reset()
             self.lastTokenFetchAt.removeValue(forKey: provider)
+            self.lastTokenFetchScope.removeValue(forKey: provider)
             return
         }
 
@@ -1434,6 +1441,7 @@ extension UsageStore {
             self.tokenErrors[provider] = nil
             self.tokenFailureGates[provider]?.reset()
             self.lastTokenFetchAt.removeValue(forKey: provider)
+            self.lastTokenFetchScope.removeValue(forKey: provider)
             return
         }
 
@@ -1442,19 +1450,23 @@ extension UsageStore {
             self.tokenErrors[provider] = nil
             self.tokenFailureGates[provider]?.reset()
             self.lastTokenFetchAt.removeValue(forKey: provider)
+            self.lastTokenFetchScope.removeValue(forKey: provider)
             return
         }
 
         guard !self.tokenRefreshInFlight.contains(provider) else { return }
 
         let now = Date()
+        let costScope = self.tokenCostScope(for: provider)
         if !force,
            let last = self.lastTokenFetchAt[provider],
+           self.lastTokenFetchScope[provider] == costScope.signature,
            now.timeIntervalSince(last) < self.tokenFetchTTL
         {
             return
         }
         self.lastTokenFetchAt[provider] = now
+        self.lastTokenFetchScope[provider] = costScope.signature
         self.tokenRefreshInFlight.insert(provider)
         defer { self.tokenRefreshInFlight.remove(provider) }
 
@@ -1466,18 +1478,14 @@ extension UsageStore {
         do {
             let fetcher = self.costUsageFetcher
             let timeoutSeconds = self.tokenFetchTimeout
-            // CostUsageFetcher scans local Codex session logs from this machine. That data is
-            // intentionally presented as provider-level local telemetry rather than managed-account
-            // remote state, so managed Codex account selection does not retarget this fetch.
-            // If the UI later needs account-scoped token history, it should label and source that
-            // separately instead of silently changing the meaning of this section.
             let snapshot = try await withThrowingTaskGroup(of: CostUsageTokenSnapshot.self) { group in
                 group.addTask(priority: .utility) {
                     try await fetcher.loadTokenSnapshot(
                         provider: provider,
                         now: now,
                         forceRefresh: force,
-                        allowVertexClaudeFallback: !self.isEnabled(.claude))
+                        allowVertexClaudeFallback: !self.isEnabled(.claude),
+                        codexHomePath: costScope.codexHomePath)
                 }
                 group.addTask {
                     try await Task.sleep(nanoseconds: UInt64(timeoutSeconds * 1_000_000_000))

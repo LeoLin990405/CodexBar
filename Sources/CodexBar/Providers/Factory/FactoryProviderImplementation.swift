@@ -49,7 +49,7 @@ struct FactoryProviderImplementation: ProviderImplementation {
                 source: context.settings.factoryCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
                 auto: "自动导入浏览器 Cookie 和 WorkOS token。",
-                manual: "粘贴来自 app.factory.ai 的 Cookie header。",
+                manual: "粘贴来自 app.factory.ai 的 Cookie 或 Authorization header。",
                 off: "Factory Cookie 已禁用。")
         }
 
