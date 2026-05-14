@@ -147,9 +147,12 @@ jobs:
           echo "issue=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Post @claude trigger comment
+        # Use a PAT (not GITHUB_TOKEN) so the resulting issue_comment event
+        # can trigger claude-smart-sync.yml. GitHub blocks workflow chains
+        # initiated by the implicit GITHUB_TOKEN as an anti-loop measure.
         if: steps.decide.outputs.changed == 'true' && steps.tracker.outputs.issue != ''
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SECRETS_ADMIN_PAT }}
         run: |
           set -euo pipefail
           # The body lives in the issue itself — keep the comment short so the
