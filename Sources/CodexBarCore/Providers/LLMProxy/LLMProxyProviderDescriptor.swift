@@ -9,14 +9,14 @@ public enum LLMProxyProviderDescriptor {
             id: .llmproxy,
             metadata: ProviderMetadata(
                 id: .llmproxy,
-                displayName: "LLM Proxy",
-                sessionLabel: "Quota",
-                weeklyLabel: "Requests",
+                displayName: "LLM 代理",
+                sessionLabel: "配额",
+                weeklyLabel: "请求次数",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show LLM Proxy usage",
+                toggleTitle: "显示 LLM 代理使用量",
                 cliName: "llmproxy",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum LLMProxyProviderDescriptor {
                 color: ProviderColor(red: 36 / 255, green: 180 / 255, blue: 126 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "LLM Proxy cost history is reported in the quota-stats summary." }),
+                noDataMessage: { "LLM 代理费用历史已在配额统计摘要中提供。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [LLMProxyAPIFetchStrategy()] })),

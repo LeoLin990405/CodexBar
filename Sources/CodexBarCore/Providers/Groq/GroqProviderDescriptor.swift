@@ -10,13 +10,13 @@ public enum GroqProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .groq,
                 displayName: "Groq",
-                sessionLabel: "Requests",
-                weeklyLabel: "Tokens",
+                sessionLabel: "请求次数",
+                weeklyLabel: "Token 数",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Groq usage",
+                toggleTitle: "显示 Groq 使用量",
                 cliName: "groqcloud",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -31,7 +31,7 @@ public enum GroqProviderDescriptor {
                 color: ProviderColor(red: 245 / 255, green: 104 / 255, blue: 68 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Groq cost history is not available via the metrics API." }),
+                noDataMessage: { "Groq 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [GroqAPIFetchStrategy()] })),

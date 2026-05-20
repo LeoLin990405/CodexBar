@@ -10,13 +10,13 @@ public enum VeniceProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .venice,
                 displayName: "Venice",
-                sessionLabel: "Balance",
-                weeklyLabel: "Balance",
+                sessionLabel: "余额",
+                weeklyLabel: "余额",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Venice usage",
+                toggleTitle: "显示 Venice 使用量",
                 cliName: "venice",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -31,7 +31,7 @@ public enum VeniceProviderDescriptor {
                 color: ProviderColor(red: 0.2, green: 0.6, blue: 1.0)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Venice per-day cost history is not available via API." }),
+                noDataMessage: { "Venice 按天费用历史暂不可用（API 不返回）。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [VeniceAPIFetchStrategy()] })),

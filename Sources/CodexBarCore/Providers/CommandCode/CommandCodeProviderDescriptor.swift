@@ -10,13 +10,13 @@ public enum CommandCodeProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .commandcode,
                 displayName: "Command Code",
-                sessionLabel: "Monthly credits",
-                weeklyLabel: "Monthly",
+                sessionLabel: "月度额度",
+                weeklyLabel: "月度",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: true,
                 creditsHint: "Monthly USD credits from Command Code billing.",
-                toggleTitle: "Show Command Code usage",
+                toggleTitle: "显示 Command Code 使用量",
                 cliName: "commandcode",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -32,7 +32,7 @@ public enum CommandCodeProviderDescriptor {
                 color: ProviderColor(red: 0 / 255, green: 0 / 255, blue: 0 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Command Code cost summary is not yet supported." }),
+                noDataMessage: { "Command Code 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [CommandCodeWebFetchStrategy()] })),

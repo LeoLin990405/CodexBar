@@ -304,7 +304,7 @@ struct ProviderSettingsTokenAccountsRowView: View {
                             }
                             .buttonStyle(.plain)
 
-                            Button("Remove") {
+                            Button("删除") {
                                 self.descriptor.removeAccount(account.id)
                             }
                             .buttonStyle(.bordered)
@@ -320,13 +320,13 @@ struct ProviderSettingsTokenAccountsRowView: View {
             if self.descriptor.primaryAddAction == nil {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
-                        TextField("Label", text: self.$newLabel)
+                        TextField("标签", text: self.$newLabel)
                             .textFieldStyle(.roundedBorder)
                             .font(.footnote)
                         SecureField(self.descriptor.placeholder, text: self.$newToken)
                             .textFieldStyle(.roundedBorder)
                             .font(.footnote)
-                        Button("Add") {
+                        Button("添加") {
                             let label = self.newLabel.trimmingCharacters(in: .whitespacesAndNewlines)
                             let token = self.newToken.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !label.isEmpty, !token.isEmpty else { return }
@@ -344,10 +344,10 @@ struct ProviderSettingsTokenAccountsRowView: View {
                             self.newToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                     if self.descriptor.showsOrganizationField {
-                        TextField("Org ID (optional)", text: self.$newOrgID)
+                        TextField("组织 ID（可选）", text: self.$newOrgID)
                             .textFieldStyle(.roundedBorder)
                             .font(.footnote)
-                            .help("Optional organization ID for accounts linked to multiple Anthropic organizations.")
+                            .help("为关联了多个 Anthropic 组织的账号提供可选的组织 ID。")
                     }
                 }
             }
@@ -411,7 +411,7 @@ struct ProviderSettingsOrganizationsRowView: View {
 
             let entries = self.descriptor.entries()
             if entries.allSatisfy(\.isLocked) {
-                Text("No organizations loaded. Click Refresh after setting your API key.")
+                Text("未加载组织。设置 API 密钥后点击刷新。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
@@ -441,7 +441,7 @@ struct ProviderSettingsOrganizationsRowView: View {
             }
 
             HStack(spacing: 10) {
-                Button("Refresh organizations") {
+                Button("刷新组织") {
                     Task { @MainActor in
                         self.isRefreshing = true
                         let result = await self.descriptor.onRefresh()

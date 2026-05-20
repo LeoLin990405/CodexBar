@@ -9,14 +9,14 @@ public enum AzureOpenAIProviderDescriptor {
             id: .azureopenai,
             metadata: ProviderMetadata(
                 id: .azureopenai,
-                displayName: "Azure OpenAI",
-                sessionLabel: "Status",
-                weeklyLabel: "Deployment",
+                displayName: "微软云 OpenAI",
+                sessionLabel: "状态",
+                weeklyLabel: "部署",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Azure OpenAI status",
+                toggleTitle: "显示微软云 OpenAI 状态",
                 cliName: "azure-openai",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -31,7 +31,7 @@ public enum AzureOpenAIProviderDescriptor {
                 color: ProviderColor(red: 0, green: 120 / 255, blue: 212 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Azure OpenAI usage history is not exposed by the deployment validation probe." }),
+                noDataMessage: { "微软云 OpenAI 使用历史暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [AzureOpenAIAPIFetchStrategy()] })),

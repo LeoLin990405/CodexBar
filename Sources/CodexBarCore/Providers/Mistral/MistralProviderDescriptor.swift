@@ -10,13 +10,13 @@ public enum MistralProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .mistral,
                 displayName: "Mistral",
-                sessionLabel: "Monthly",
+                sessionLabel: "月度",
                 weeklyLabel: "",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Mistral usage",
+                toggleTitle: "显示 Mistral 使用量",
                 cliName: "mistral",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -31,7 +31,7 @@ public enum MistralProviderDescriptor {
                 color: ProviderColor(red: 255 / 255, green: 80 / 255, blue: 15 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Mistral cost summary is not yet supported." }),
+                noDataMessage: { "Mistral 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [MistralWebFetchStrategy()] })),

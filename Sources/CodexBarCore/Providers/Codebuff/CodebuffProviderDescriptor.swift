@@ -10,13 +10,13 @@ public enum CodebuffProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .codebuff,
                 displayName: "Codebuff",
-                sessionLabel: "Credits",
-                weeklyLabel: "Weekly",
+                sessionLabel: "额度",
+                weeklyLabel: "周度",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: true,
                 creditsHint: "Credit balance from the Codebuff API",
-                toggleTitle: "Show Codebuff usage",
+                toggleTitle: "显示 Codebuff 使用量",
                 cliName: "codebuff",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -31,7 +31,7 @@ public enum CodebuffProviderDescriptor {
                 color: ProviderColor(red: 68 / 255, green: 255 / 255, blue: 0 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Codebuff cost summary is not yet supported." }),
+                noDataMessage: { "Codebuff 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [CodebuffAPIFetchStrategy()] })),

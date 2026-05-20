@@ -10,13 +10,13 @@ public enum WindsurfProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .windsurf,
                 displayName: "Windsurf",
-                sessionLabel: "Daily",
-                weeklyLabel: "Weekly",
+                sessionLabel: "日度",
+                weeklyLabel: "周度",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Windsurf usage",
+                toggleTitle: "显示 Windsurf 使用量",
                 cliName: "windsurf",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -29,7 +29,7 @@ public enum WindsurfProviderDescriptor {
                 color: ProviderColor(red: 52 / 255, green: 232 / 255, blue: 187 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Windsurf cost summary is not supported." }),
+                noDataMessage: { "Windsurf 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web, .cli],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in

@@ -10,13 +10,13 @@ public enum MoonshotProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .moonshot,
                 displayName: "Moonshot / Kimi API",
-                sessionLabel: "Balance",
-                weeklyLabel: "Balance",
+                sessionLabel: "余额",
+                weeklyLabel: "余额",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Moonshot / Kimi API balance",
+                toggleTitle: "显示 Moonshot / Kimi API 余额",
                 cliName: "moonshot",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum MoonshotProviderDescriptor {
                 color: ProviderColor(red: 32 / 255, green: 93 / 255, blue: 235 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Moonshot / Kimi API cost summary is not available." }),
+                noDataMessage: { "Moonshot / Kimi API 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [MoonshotAPIFetchStrategy()] })),

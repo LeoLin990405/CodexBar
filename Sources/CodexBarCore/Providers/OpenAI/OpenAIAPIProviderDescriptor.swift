@@ -10,13 +10,13 @@ public enum OpenAIAPIProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .openai,
                 displayName: "OpenAI",
-                sessionLabel: "Spend",
-                weeklyLabel: "Requests",
+                sessionLabel: "花费",
+                weeklyLabel: "请求次数",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show OpenAI usage",
+                toggleTitle: "显示 OpenAI 使用量",
                 cliName: "openai",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -29,7 +29,7 @@ public enum OpenAIAPIProviderDescriptor {
                 color: ProviderColor(red: 0.06, green: 0.51, blue: 0.43)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "OpenAI usage needs an Admin API key for organization usage." }),
+                noDataMessage: { "OpenAI 使用数据需要组织级管理员 API 密钥。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [OpenAIAPIBalanceFetchStrategy()] })),

@@ -10,13 +10,13 @@ public enum DeepSeekProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .deepseek,
                 displayName: "DeepSeek",
-                sessionLabel: "Balance",
-                weeklyLabel: "Balance",
+                sessionLabel: "余额",
+                weeklyLabel: "余额",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show DeepSeek usage",
+                toggleTitle: "显示 DeepSeek 使用量",
                 cliName: "deepseek",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -31,7 +31,7 @@ public enum DeepSeekProviderDescriptor {
                 color: ProviderColor(red: 0.32, green: 0.49, blue: 0.94)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "DeepSeek per-day cost history is not available via API." }),
+                noDataMessage: { "DeepSeek 按天费用历史暂不可用（API 不返回）。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [DeepSeekAPIFetchStrategy()] })),

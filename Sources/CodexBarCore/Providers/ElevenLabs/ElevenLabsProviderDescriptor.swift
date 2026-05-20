@@ -10,13 +10,13 @@ public enum ElevenLabsProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .elevenlabs,
                 displayName: "ElevenLabs",
-                sessionLabel: "Credits",
-                weeklyLabel: "Voices",
+                sessionLabel: "额度",
+                weeklyLabel: "音色",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show ElevenLabs usage",
+                toggleTitle: "显示 ElevenLabs 使用量",
                 cliName: "elevenlabs",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -32,7 +32,7 @@ public enum ElevenLabsProviderDescriptor {
                 color: ProviderColor(red: 0.92, green: 0.92, blue: 0.90)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "ElevenLabs cost history is not available via API yet." }),
+                noDataMessage: { "ElevenLabs 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [ElevenLabsAPIFetchStrategy()] })),

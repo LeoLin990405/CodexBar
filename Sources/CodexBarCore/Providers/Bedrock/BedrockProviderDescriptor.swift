@@ -10,13 +10,13 @@ public enum BedrockProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .bedrock,
                 displayName: "AWS Bedrock",
-                sessionLabel: "Budget",
-                weeklyLabel: "Cost",
+                sessionLabel: "预算",
+                weeklyLabel: "费用",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show AWS Bedrock usage",
+                toggleTitle: "显示 AWS Bedrock 使用量",
                 cliName: "bedrock",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum BedrockProviderDescriptor {
                 color: ProviderColor(red: 1, green: 0.6, blue: 0)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: true,
-                noDataMessage: { "No AWS Bedrock cost data available. Check your AWS credentials." }),
+                noDataMessage: { "AWS Bedrock 费用数据不可用，请检查 AWS 凭证。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [BedrockAPIFetchStrategy()] })),

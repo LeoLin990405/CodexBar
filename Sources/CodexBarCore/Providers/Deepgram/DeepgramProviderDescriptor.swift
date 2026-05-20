@@ -10,13 +10,13 @@ public enum DeepgramProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .deepgram,
                 displayName: "Deepgram",
-                sessionLabel: "Requests",
-                weeklyLabel: "Usage",
+                sessionLabel: "请求次数",
+                weeklyLabel: "用量",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "Usage summary from Deepgram API",
-                toggleTitle: "Show Deepgram usage",
+                toggleTitle: "显示 Deepgram 使用量",
                 cliName: "deepgram",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -35,7 +35,7 @@ public enum DeepgramProviderDescriptor {
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
                 noDataMessage: {
-                    "Deepgram cost summary is not yet supported."
+                    "Deepgram 费用摘要暂不可用。"
                 }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],

@@ -10,13 +10,13 @@ public enum CrofProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .crof,
                 displayName: "Crof",
-                sessionLabel: "Requests",
-                weeklyLabel: "Credits",
+                sessionLabel: "请求次数",
+                weeklyLabel: "额度",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "Credit balance from the Crof usage API",
-                toggleTitle: "Show Crof usage",
+                toggleTitle: "显示 Crof 使用量",
                 cliName: "crof",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -31,7 +31,7 @@ public enum CrofProviderDescriptor {
                 color: ProviderColor(red: 0.18, green: 0.67, blue: 0.58)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Crof cost summary is not available via API." }),
+                noDataMessage: { "Crof 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .api],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [CrofAPIFetchStrategy()] })),

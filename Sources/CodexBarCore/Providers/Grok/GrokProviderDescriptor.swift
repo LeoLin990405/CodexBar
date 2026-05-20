@@ -10,13 +10,13 @@ public enum GrokProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .grok,
                 displayName: "Grok",
-                sessionLabel: "Monthly",
-                weeklyLabel: "On-demand",
+                sessionLabel: "月度",
+                weeklyLabel: "按需",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Grok usage",
+                toggleTitle: "显示 Grok 使用量",
                 cliName: "grok",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -32,7 +32,7 @@ public enum GrokProviderDescriptor {
                 color: ProviderColor(red: 16 / 255, green: 163 / 255, blue: 127 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Grok cost summary is not supported yet." }),
+                noDataMessage: { "Grok 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .cli, .web],
                 pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),

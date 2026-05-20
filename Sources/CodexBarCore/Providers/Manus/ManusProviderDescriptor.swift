@@ -10,13 +10,13 @@ public enum ManusProviderDescriptor {
             metadata: ProviderMetadata(
                 id: .manus,
                 displayName: "Manus",
-                sessionLabel: "Monthly credits",
-                weeklyLabel: "Daily refresh",
+                sessionLabel: "月度额度",
+                weeklyLabel: "每日刷新",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Manus usage",
+                toggleTitle: "显示 Manus 使用量",
                 cliName: "manus",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,7 +30,7 @@ public enum ManusProviderDescriptor {
                 color: ProviderColor(red: 52 / 255, green: 50 / 255, blue: 45 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Manus cost summary is not supported." }),
+                noDataMessage: { "Manus 费用摘要暂不可用。" }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web],
                 pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [ManusWebFetchStrategy()] })),
