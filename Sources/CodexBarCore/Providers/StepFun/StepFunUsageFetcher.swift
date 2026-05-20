@@ -246,7 +246,15 @@ public struct StepFunUsageFetcher: Sendable {
         guard !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw StepFunUsageError.missingToken
         }
-        return try await self.queryUsage(token: token)
+        return try await self.queryUsage(authCookie: "Oasis-Token=\(token); Oasis-Webid=\(self.webID)")
+    }
+
+    /// Fetch usage data using a StepFun API key (Bearer auth).
+    public static func fetchUsage(apiKey: String) async throws -> StepFunUsageSnapshot {
+        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw StepFunUsageError.missingToken
+        }
+        return try await self.queryUsage(authBearer: apiKey)
     }
 
     /// Full login flow: username + password → token, then fetch usage.
@@ -390,14 +398,19 @@ public struct StepFunUsageFetcher: Sendable {
 
     // MARK: - Query usage
 
-    private static func queryUsage(token: String) async throws -> StepFunUsageSnapshot {
+    private static func queryUsage(authCookie: String? = nil, authBearer: String? = nil) async throws -> StepFunUsageSnapshot {
         var request = URLRequest(url: self.apiURL)
         request.httpMethod = "POST"
         request.httpBody = Data("{}".utf8)
         for (key, value) in self.baseHeaders {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        request.setValue("Oasis-Token=\(token); Oasis-Webid=\(self.webID)", forHTTPHeaderField: "Cookie")
+        if let cookie = authCookie {
+            request.setValue(cookie, forHTTPHeaderField: "Cookie")
+        }
+        if let bearer = authBearer {
+            request.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
+        }
         request.timeoutInterval = self.timeoutSeconds
 
         let response = try await ProviderHTTPClient.shared.response(for: request)
@@ -414,9 +427,17 @@ public struct StepFunUsageFetcher: Sendable {
 
         var snapshot = try self.parseSnapshot(data: data)
 
-        // Fetch plan name in parallel is not needed — just do it sequentially.
-        // If plan status fails, we still return usage data without plan name.
-        if let planName = try? await self.queryPlanStatus(token: token) {
+        // Fetch plan status with same auth mode
+        let planName: String?
+        if let cookie = authCookie {
+            planName = try? await self.queryPlanStatus(authCookie: cookie)
+        } else if let bearer = authBearer {
+            planName = try? await self.queryPlanStatus(authBearer: bearer)
+        } else {
+            planName = nil
+        }
+
+        if let planName {
             snapshot = StepFunUsageSnapshot(
                 fiveHourUsageLeftRate: snapshot.fiveHourUsageLeftRate,
                 weeklyUsageLeftRate: snapshot.weeklyUsageLeftRate,
@@ -431,14 +452,19 @@ public struct StepFunUsageFetcher: Sendable {
 
     // MARK: - Plan Status
 
-    private static func queryPlanStatus(token: String) async throws -> String? {
+    private static func queryPlanStatus(authCookie: String? = nil, authBearer: String? = nil) async throws -> String? {
         var request = URLRequest(url: self.planStatusURL)
         request.httpMethod = "POST"
         request.httpBody = Data("{}".utf8)
         for (key, value) in self.baseHeaders {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        request.setValue("Oasis-Token=\(token); Oasis-Webid=\(self.webID)", forHTTPHeaderField: "Cookie")
+        if let cookie = authCookie {
+            request.setValue(cookie, forHTTPHeaderField: "Cookie")
+        }
+        if let bearer = authBearer {
+            request.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
+        }
         request.timeoutInterval = self.timeoutSeconds
 
         let response = try await ProviderHTTPClient.shared.response(for: request)

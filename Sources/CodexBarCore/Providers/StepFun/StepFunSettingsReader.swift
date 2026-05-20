@@ -4,6 +4,7 @@ public struct StepFunSettingsReader: Sendable {
     public static let usernameEnvironmentKey = "STEPFUN_USERNAME"
     public static let passwordEnvironmentKey = "STEPFUN_PASSWORD"
     public static let tokenEnvironmentKey = "STEPFUN_TOKEN"
+    public static let apiKeyEnvironmentKey = "STEPFUN_API_KEY"
 
     public static func username(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
@@ -21,6 +22,12 @@ public struct StepFunSettingsReader: Sendable {
         environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
     {
         self.cleaned(environment[self.tokenEnvironmentKey])
+    }
+
+    public static func apiKey(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.cleaned(environment[self.apiKeyEnvironmentKey])
     }
 
     private static func cleaned(_ raw: String?) -> String? {

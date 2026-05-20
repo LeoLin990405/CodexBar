@@ -118,7 +118,7 @@ public enum ProviderConfigEnvironment {
         case .llmproxy:
             LLMProxySettingsReader.apiKeyEnvironmentKey
         case .stepfun:
-            StepFunSettingsReader.tokenEnvironmentKey
+            StepFunSettingsReader.apiKeyEnvironmentKey
         default:
             nil
         }

@@ -85,8 +85,7 @@ struct StepFunAPIFetchStrategy: ProviderFetchStrategy {
     }
 
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        let token = try await Self.resolveToken(context: context)
-        let usage = try await StepFunUsageFetcher.fetchUsage(token: token)
+        let usage = try await Self.resolveToken(context: context)
         return self.makeResult(
             usage: usage.toUsageSnapshot(),
             sourceLabel: "api")
@@ -108,6 +107,9 @@ struct StepFunAPIFetchStrategy: ProviderFetchStrategy {
                 return true
             }
         }
+        if StepFunSettingsReader.apiKey(environment: context.env) != nil {
+            return true
+        }
         if StepFunSettingsReader.token(environment: context.env) != nil {
             return true
         }
@@ -119,34 +121,42 @@ struct StepFunAPIFetchStrategy: ProviderFetchStrategy {
         return false
     }
 
-    private static func resolveToken(context: ProviderFetchContext) async throws -> String {
+    private static func resolveToken(context: ProviderFetchContext) async throws -> StepFunUsageSnapshot {
         let settings = context.settings?.stepfun
 
         // 1. Manual settings token
         if let settings {
             let manualToken = settings.manualToken
             if !manualToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return StepFunTokenNormalizer.normalize(manualToken)
+                let token = StepFunTokenNormalizer.normalize(manualToken)
+                return try await StepFunUsageFetcher.fetchUsage(token: token)
             }
 
             // 2. Username + password from Settings UI
             if !settings.username.isEmpty, !settings.password.isEmpty {
-                return try await StepFunUsageFetcher.login(
+                let token = try await StepFunUsageFetcher.login(
                     username: settings.username,
                     password: settings.password)
+                return try await StepFunUsageFetcher.fetchUsage(token: token)
             }
         }
 
-        // 3. Direct token from env var
-        if let token = StepFunSettingsReader.token(environment: context.env) {
-            return token
+        // 3. API key (Bearer auth) - try first since user has this
+        if let apiKey = StepFunSettingsReader.apiKey(environment: context.env) {
+            return try await StepFunUsageFetcher.fetchUsage(apiKey: apiKey)
         }
 
-        // 4. Username + password from env vars
+        // 4. Direct token from env var (Oasis-Token Cookie auth)
+        if let token = StepFunSettingsReader.token(environment: context.env) {
+            return try await StepFunUsageFetcher.fetchUsage(token: token)
+        }
+
+        // 5. Username + password from env vars
         if let username = StepFunSettingsReader.username(environment: context.env),
            let password = StepFunSettingsReader.password(environment: context.env)
         {
-            return try await StepFunUsageFetcher.login(username: username, password: password)
+            let token = try await StepFunUsageFetcher.login(username: username, password: password)
+            return try await StepFunUsageFetcher.fetchUsage(token: token)
         }
 
         throw StepFunUsageError.missingCredentials
