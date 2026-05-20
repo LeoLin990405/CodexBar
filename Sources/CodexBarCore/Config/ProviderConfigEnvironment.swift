@@ -117,6 +117,8 @@ public enum ProviderConfigEnvironment {
             GroqSettingsReader.apiKeyEnvironmentKey
         case .llmproxy:
             LLMProxySettingsReader.apiKeyEnvironmentKey
+        case .stepfun:
+            StepFunSettingsReader.tokenEnvironmentKey
         default:
             nil
         }
