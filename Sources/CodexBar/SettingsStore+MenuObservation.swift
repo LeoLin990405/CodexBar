@@ -13,6 +13,8 @@ extension SettingsStore {
         _ = self.sessionQuotaNotificationsEnabled
         _ = self.quotaWarningNotificationsEnabled
         _ = self.quotaWarningThresholds
+        _ = self.quotaWarningThresholds(.session)
+        _ = self.quotaWarningThresholds(.weekly)
         _ = self.quotaWarningWindowEnabled(.session)
         _ = self.quotaWarningWindowEnabled(.weekly)
         _ = self.quotaWarningSoundEnabled
@@ -23,10 +25,12 @@ extension SettingsStore {
         _ = self.menuBarShowsBrandIconWithPercent
         _ = self.menuBarShowsHighestUsage
         _ = self.menuBarDisplayMode
+        _ = self.kiroMenuBarDisplayMode
         _ = self.historicalTrackingEnabled
         _ = self.multiAccountMenuLayout
         _ = self.menuBarMetricPreferencesRaw
         _ = self.costUsageEnabled
+        _ = self.costUsageHistoryDays
         _ = self.hidePersonalInfo
         _ = self.randomBlinkEnabled
         _ = self.confettiOnWeeklyLimitResetsEnabled

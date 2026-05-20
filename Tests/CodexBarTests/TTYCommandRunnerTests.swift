@@ -141,6 +141,24 @@ struct TTYCommandRunnerEnvTests {
     }
 
     @Test
+    func `codex status probe uses non persistent thread storage`() {
+        let stateHome = URL(fileURLWithPath: "/tmp/codexbar status \"state\"", isDirectory: true)
+        let args = CodexStatusProbeIsolation.codexArguments(stateHome: stateHome)
+
+        #expect(args.starts(with: ["-s", "read-only", "-a", "untrusted"]))
+        #expect(args.contains("history.persistence=\"none\""))
+        #expect(args.contains("experimental_thread_store={type=\"in_memory\",id=\"codexbar-status\"}"))
+        #expect(args.contains("sqlite_home=\"/tmp/codexbar status \\\"state\\\"\""))
+    }
+
+    @Test
+    func `codex status probe avoids root working directory when home exists`() {
+        let home = "/Users/tester"
+        let workingDirectory = CodexStatusProbeIsolation.workingDirectory(environment: ["HOME": home])
+        #expect(workingDirectory?.path == home)
+    }
+
+    @Test
     func `sets working directory when provided`() throws {
         let fm = FileManager.default
         let dir = fm.temporaryDirectory.appendingPathComponent("codexbar-tty-\(UUID().uuidString)", isDirectory: true)
@@ -150,6 +168,55 @@ struct TTYCommandRunnerEnvTests {
         let result = try runner.run(binary: "/bin/pwd", send: "", options: .init(timeout: 3, workingDirectory: dir))
         let clean = result.text.replacingOccurrences(of: "\r", with: "")
         #expect(clean.contains(dir.path))
+    }
+
+    @Test
+    func `claude runner keeps normal working directory by default`() throws {
+        let runner = TTYCommandRunner()
+        let fakeClaude = try Self.makeFakeClaudeCLI()
+        let result = try runner.run(
+            binary: fakeClaude.path,
+            send: "",
+            options: .init(timeout: 3, stopOnSubstrings: ["deep-link-enabled"]))
+        let clean = result.text.replacingOccurrences(of: "\r", with: "")
+
+        #expect(clean.contains("deep-link-enabled"))
+    }
+
+    @Test
+    func `claude runner uses probe directory with deep link registration disabled when requested`() throws {
+        let runner = TTYCommandRunner()
+        let fakeClaude = try Self.makeFakeClaudeCLI()
+        let result = try runner.run(
+            binary: fakeClaude.path,
+            send: "",
+            options: .init(
+                timeout: 3,
+                stopOnSubstrings: ["deep-link-disabled"],
+                useClaudeProbeWorkingDirectory: true))
+        let clean = result.text.replacingOccurrences(of: "\r", with: "")
+
+        #expect(clean.contains("deep-link-disabled"))
+    }
+
+    @Test
+    func `claude runner uses probe directory for versioned CLI override`() throws {
+        let runner = TTYCommandRunner()
+        let fakeClaude = try Self.makeFakeClaudeCLI(fileName: "2.1.114")
+        var env = ProcessInfo.processInfo.environment
+        env["CLAUDE_CLI_PATH"] = fakeClaude.path
+
+        let result = try runner.run(
+            binary: fakeClaude.path,
+            send: "",
+            options: .init(
+                timeout: 3,
+                baseEnvironment: env,
+                stopOnSubstrings: ["deep-link-disabled"],
+                useClaudeProbeWorkingDirectory: true))
+        let clean = result.text.replacingOccurrences(of: "\r", with: "")
+
+        #expect(clean.contains("deep-link-disabled"))
     }
 
     @Test
@@ -187,6 +254,27 @@ struct TTYCommandRunnerEnvTests {
                 settleAfterStop: 0.1))
 
         #expect(result.text.contains("accepted"))
+    }
+
+    private static func makeFakeClaudeCLI(fileName: String = "claude") throws -> URL {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("codexbar-tty-\(UUID().uuidString)", isDirectory: true)
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let scriptURL = dir.appendingPathComponent(fileName)
+        let script = """
+        #!/bin/sh
+        settings="$PWD/.claude/settings.local.json"
+        if [ -f "$settings" ] \
+          && grep -q '"disableDeepLinkRegistration"' "$settings" \
+          && grep -q '"disable"' "$settings"; then
+          echo "deep-link-disabled"
+        else
+          echo "deep-link-enabled"
+        fi
+        """
+        try script.write(to: scriptURL, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+        return scriptURL
     }
 
     @Test

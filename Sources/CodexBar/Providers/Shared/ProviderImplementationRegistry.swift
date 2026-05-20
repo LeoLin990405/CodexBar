@@ -15,6 +15,7 @@ enum ProviderImplementationRegistry {
         switch provider {
         case .codex: CodexProviderImplementation()
         case .openai: OpenAIAPIProviderImplementation()
+        case .azureopenai: AzureOpenAIProviderImplementation()
         case .claude: ClaudeProviderImplementation()
         case .cursor: CursorProviderImplementation()
         case .opencode: OpenCodeProviderImplementation()
@@ -39,6 +40,7 @@ enum ProviderImplementationRegistry {
         case .ollama: OllamaProviderImplementation()
         case .synthetic: SyntheticProviderImplementation()
         case .openrouter: OpenRouterProviderImplementation()
+        case .elevenlabs: ElevenLabsProviderImplementation()
         case .warp: WarpProviderImplementation()
         case .windsurf: WindsurfProviderImplementation()
         case .perplexity: PerplexityProviderImplementation()
@@ -56,6 +58,11 @@ enum ProviderImplementationRegistry {
         case .venice: VeniceProviderImplementation()
         case .commandcode: CommandCodeProviderImplementation()
         case .stepfun: StepFunProviderImplementation()
+        case .bedrock: BedrockProviderImplementation()
+        case .grok: GrokProviderImplementation()
+        case .groq: GroqProviderImplementation()
+        case .llmproxy: LLMProxyProviderImplementation()
+        case .deepgram: DeepgramProviderImplementation()
         }
     }
 

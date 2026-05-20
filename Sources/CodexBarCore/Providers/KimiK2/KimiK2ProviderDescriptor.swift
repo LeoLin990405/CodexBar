@@ -22,7 +22,7 @@ public enum KimiK2ProviderDescriptor {
                 isPrimaryProvider: false,
                 usesAccountFallback: false,
                 browserCookieOrder: nil,
-                dashboardURL: "https://kimi-k2.ai/my-credits",
+                dashboardURL: nil,
                 statusPageURL: nil),
             branding: ProviderBranding(
                 iconStyle: .kimi,

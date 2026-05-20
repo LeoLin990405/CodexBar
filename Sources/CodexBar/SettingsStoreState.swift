@@ -13,6 +13,8 @@ struct SettingsDefaultsState {
     var sessionQuotaNotificationsEnabled: Bool
     var quotaWarningNotificationsEnabled: Bool
     var quotaWarningThresholdsRaw: [Int]
+    var quotaWarningSessionThresholdsRaw: [Int]
+    var quotaWarningWeeklyThresholdsRaw: [Int]
     var quotaWarningSessionEnabled: Bool
     var quotaWarningWeeklyEnabled: Bool
     var quotaWarningSoundEnabled: Bool
@@ -22,10 +24,12 @@ struct SettingsDefaultsState {
     var providerChangelogLinksEnabled: Bool
     var menuBarShowsBrandIconWithPercent: Bool
     var menuBarDisplayModeRaw: String?
+    var kiroMenuBarDisplayModeRaw: String?
     var historicalTrackingEnabled: Bool
     var multiAccountMenuLayoutRaw: String
     var menuBarMetricPreferencesRaw: [String: String]
     var costUsageEnabled: Bool
+    var costUsageHistoryDays: Int
     var hidePersonalInfo: Bool
     var randomBlinkEnabled: Bool
     var confettiOnWeeklyLimitResetsEnabled: Bool

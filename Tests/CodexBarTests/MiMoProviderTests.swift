@@ -426,6 +426,8 @@ struct MiMoProviderTests {
 
     @Test
     func `mimo web strategy unavailable when cookie source is off`() async {
+        KeychainCacheStore.setTestStoreForTesting(true)
+        defer { KeychainCacheStore.setTestStoreForTesting(false) }
         CookieHeaderCache.store(
             provider: .mimo,
             cookieHeader: "api-platform_serviceToken=svc-token; userId=123",
@@ -445,6 +447,8 @@ struct MiMoProviderTests {
 
     @Test
     func `mimo manual mode does not report available from cached browser session`() async {
+        KeychainCacheStore.setTestStoreForTesting(true)
+        defer { KeychainCacheStore.setTestStoreForTesting(false) }
         CookieHeaderCache.store(
             provider: .mimo,
             cookieHeader: "api-platform_serviceToken=svc-token; userId=123",
@@ -464,6 +468,8 @@ struct MiMoProviderTests {
 
     @Test
     func `mimo manual mode rejects invalid header instead of falling back to cached session`() async {
+        KeychainCacheStore.setTestStoreForTesting(true)
+        defer { KeychainCacheStore.setTestStoreForTesting(false) }
         CookieHeaderCache.store(
             provider: .mimo,
             cookieHeader: "api-platform_serviceToken=svc-token; userId=123",
@@ -483,6 +489,8 @@ struct MiMoProviderTests {
 
     @Test
     func `mimo web strategy retries imported sessions after decode failure`() async throws {
+        KeychainCacheStore.setTestStoreForTesting(true)
+        defer { KeychainCacheStore.setTestStoreForTesting(false) }
         let registered = URLProtocol.registerClass(MiMoStubURLProtocol.self)
         defer {
             if registered {

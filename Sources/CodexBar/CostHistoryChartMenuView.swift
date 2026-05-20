@@ -35,13 +35,21 @@ struct CostHistoryChartMenuView: View {
     private let provider: UsageProvider
     private let daily: [DailyEntry]
     private let totalCostUSD: Double?
+    private let historyDays: Int
     private let width: CGFloat
     @State private var selectedDateKey: String?
 
-    init(provider: UsageProvider, daily: [DailyEntry], totalCostUSD: Double?, width: CGFloat) {
+    init(
+        provider: UsageProvider,
+        daily: [DailyEntry],
+        totalCostUSD: Double?,
+        historyDays: Int = 30,
+        width: CGFloat)
+    {
         self.provider = provider
         self.daily = daily
         self.totalCostUSD = totalCostUSD
+        self.historyDays = max(1, min(365, historyDays))
         self.width = width
     }
 
@@ -148,9 +156,11 @@ struct CostHistoryChartMenuView: View {
             }
 
             if let total = self.totalCostUSD {
-                Text("总计（30 天）：\(UsageFormatter.usdString(total))")
+                Text("总计（\(Self.windowLabel(days: self.historyDays))）：\(UsageFormatter.usdString(total))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.head)
             }
         }
         .padding(.horizontal, 16)
@@ -175,6 +185,10 @@ struct CostHistoryChartMenuView: View {
     private static let detailPrimaryLineHeight: CGFloat = 16
     private static let detailRowHeight: CGFloat = 24
     private static let detailSpacing: CGFloat = 6
+
+    private static func windowLabel(days: Int) -> String {
+        days == 1 ? "today" : "\(days)d"
+    }
 
     private static func capHeight(maxValue: Double) -> Double {
         maxValue * 0.05

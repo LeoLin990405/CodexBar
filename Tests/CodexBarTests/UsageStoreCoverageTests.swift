@@ -80,6 +80,19 @@ struct UsageStoreCoverageTests {
     }
 
     @Test
+    func `permission prompt errors are detected for notifications`() {
+        let errors: [LocalizedTestError] = [
+            LocalizedTestError("Waiting for folder trust prompt"),
+            LocalizedTestError("Permission prompt is waiting in the CLI"),
+        ]
+
+        for error in errors {
+            #expect(UsageStore.isPermissionPromptWaiting(error))
+        }
+        #expect(!UsageStore.isPermissionPromptWaiting(LocalizedTestError("network timeout")))
+    }
+
+    @Test
     func `provider with highest usage prefers kimi rate limit window`() throws {
         let settings = Self.makeSettingsStore(suite: "UsageStoreCoverageTests-kimi-highest")
         let store = Self.makeUsageStore(settings: settings)
@@ -412,7 +425,7 @@ struct UsageStoreCoverageTests {
         defaults.removePersistentDomain(forName: suite)
         let configStore = testConfigStore(suiteName: suite)
 
-        return SettingsStore(
+        let settings = SettingsStore(
             userDefaults: defaults,
             configStore: configStore,
             zaiTokenStore: zaiTokenStore,
@@ -430,6 +443,8 @@ struct UsageStoreCoverageTests {
             ampCookieStore: InMemoryCookieHeaderStore(),
             copilotTokenStore: InMemoryCopilotTokenStore(),
             tokenAccountStore: InMemoryTokenAccountStore())
+        settings.providerDetectionCompleted = true
+        return settings
     }
 
     private static func makeUsageStore(settings: SettingsStore) -> UsageStore {
@@ -470,5 +485,17 @@ private final class InMemorySyntheticTokenStore: SyntheticTokenStoring, @uncheck
 
     func storeToken(_ token: String?) throws {
         self.value = token
+    }
+}
+
+private struct LocalizedTestError: LocalizedError {
+    let message: String
+
+    init(_ message: String) {
+        self.message = message
+    }
+
+    var errorDescription: String? {
+        self.message
     }
 }

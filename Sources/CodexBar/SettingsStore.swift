@@ -62,6 +62,36 @@ enum MenuBarMetricPreference: String, CaseIterable, Identifiable {
     }
 }
 
+enum KiroMenuBarDisplayMode: String, CaseIterable, Identifiable {
+    case automatic
+    case hidden
+    case creditsLeft
+    case percentLeft
+    case creditsAndPercent
+    case usedAndTotal
+    case overageCreditsWhenExhausted
+    case overageCostWhenExhausted
+    case overageCreditsAndCostWhenExhausted
+
+    var id: String {
+        self.rawValue
+    }
+
+    var label: String {
+        switch self {
+        case .automatic: "Automatic"
+        case .hidden: "Hidden"
+        case .creditsLeft: "Credits left"
+        case .percentLeft: "Percent left"
+        case .creditsAndPercent: "Credits + percent"
+        case .usedAndTotal: "Used / total"
+        case .overageCreditsWhenExhausted: "Overage credits at zero"
+        case .overageCostWhenExhausted: "Overage cost at zero"
+        case .overageCreditsAndCostWhenExhausted: "Overage credits + cost at zero"
+        }
+    }
+}
+
 enum MultiAccountMenuLayout: String, CaseIterable, Identifiable {
     case segmented
     case stacked
@@ -302,21 +332,17 @@ extension SettingsStore {
             forKey: "menuBarShowsBrandIconWithPercent") as? Bool ?? false
         let menuBarDisplayModeRaw = userDefaults.string(forKey: "menuBarDisplayMode")
             ?? MenuBarDisplayMode.percent.rawValue
+        let kiroMenuBarDisplayModeRaw = userDefaults.string(forKey: "kiroMenuBarDisplayMode")
+            ?? KiroMenuBarDisplayMode.automatic.rawValue
         let historicalTrackingEnabled = userDefaults.object(forKey: "historicalTrackingEnabled") as? Bool ?? false
         let multiAccountMenuLayoutRaw = userDefaults.string(forKey: "multiAccountMenuLayout") ?? {
             let legacyShowAll = userDefaults.object(forKey: "showAllTokenAccountsInMenu") as? Bool ?? false
             return legacyShowAll ? MultiAccountMenuLayout.stacked.rawValue : MultiAccountMenuLayout.segmented.rawValue
         }()
-        let storedPreferences = userDefaults.dictionary(forKey: "menuBarMetricPreferences") as? [String: String] ?? [:]
-        var resolvedPreferences = storedPreferences
-        if resolvedPreferences.isEmpty,
-           let menuBarMetricRaw = userDefaults.string(forKey: "menuBarMetricPreference"),
-           let legacyPreference = MenuBarMetricPreference(rawValue: menuBarMetricRaw)
-        {
-            resolvedPreferences = Dictionary(
-                uniqueKeysWithValues: UsageProvider.allCases.map { ($0.rawValue, legacyPreference.rawValue) })
-        }
+        let resolvedPreferences = Self.loadMenuBarMetricPreferences(userDefaults: userDefaults)
         let costUsageEnabled = userDefaults.object(forKey: "tokenCostUsageEnabled") as? Bool ?? false
+        let rawCostUsageHistoryDays = userDefaults.object(forKey: "tokenCostUsageHistoryDays") as? Int ?? 30
+        let costUsageHistoryDays = max(1, min(365, rawCostUsageHistoryDays))
         let hidePersonalInfo = userDefaults.object(forKey: "hidePersonalInfo") as? Bool ?? false
         let randomBlinkEnabled = userDefaults.object(forKey: "randomBlinkEnabled") as? Bool ?? false
         let confettiOnWeeklyLimitResetsEnabled = userDefaults.object(
@@ -372,6 +398,8 @@ extension SettingsStore {
             sessionQuotaNotificationsEnabled: sessionQuotaNotificationsEnabled,
             quotaWarningNotificationsEnabled: quotaWarnings.notificationsEnabled,
             quotaWarningThresholdsRaw: quotaWarnings.thresholdsRaw,
+            quotaWarningSessionThresholdsRaw: quotaWarnings.sessionThresholdsRaw,
+            quotaWarningWeeklyThresholdsRaw: quotaWarnings.weeklyThresholdsRaw,
             quotaWarningSessionEnabled: quotaWarnings.sessionEnabled,
             quotaWarningWeeklyEnabled: quotaWarnings.weeklyEnabled,
             quotaWarningSoundEnabled: quotaWarnings.soundEnabled,
@@ -381,10 +409,12 @@ extension SettingsStore {
             providerChangelogLinksEnabled: providerChangelogLinksEnabled,
             menuBarShowsBrandIconWithPercent: menuBarShowsBrandIconWithPercent,
             menuBarDisplayModeRaw: menuBarDisplayModeRaw,
+            kiroMenuBarDisplayModeRaw: kiroMenuBarDisplayModeRaw,
             historicalTrackingEnabled: historicalTrackingEnabled,
             multiAccountMenuLayoutRaw: multiAccountMenuLayoutRaw,
             menuBarMetricPreferencesRaw: resolvedPreferences,
             costUsageEnabled: costUsageEnabled,
+            costUsageHistoryDays: costUsageHistoryDays,
             hidePersonalInfo: hidePersonalInfo,
             randomBlinkEnabled: randomBlinkEnabled,
             confettiOnWeeklyLimitResetsEnabled: confettiOnWeeklyLimitResetsEnabled,
@@ -407,9 +437,22 @@ extension SettingsStore {
             appLanguageRaw: appLanguageRaw)
     }
 
+    private static func loadMenuBarMetricPreferences(userDefaults: UserDefaults) -> [String: String] {
+        let storedPreferences = userDefaults.dictionary(forKey: "menuBarMetricPreferences") as? [String: String] ?? [:]
+        if !storedPreferences.isEmpty {
+            return storedPreferences
+        }
+        guard let menuBarMetricRaw = userDefaults.string(forKey: "menuBarMetricPreference"),
+              let legacyPreference = MenuBarMetricPreference(rawValue: menuBarMetricRaw)
+        else { return [:] }
+        return Dictionary(uniqueKeysWithValues: UsageProvider.allCases.map { ($0.rawValue, legacyPreference.rawValue) })
+    }
+
     private struct LoadedQuotaWarningDefaults {
         var notificationsEnabled: Bool
         var thresholdsRaw: [Int]
+        var sessionThresholdsRaw: [Int]
+        var weeklyThresholdsRaw: [Int]
         var sessionEnabled: Bool
         var weeklyEnabled: Bool
         var soundEnabled: Bool
@@ -422,6 +465,16 @@ extension SettingsStore {
         let thresholdsRaw = QuotaWarningThresholds.sanitized(rawThresholds ?? QuotaWarningThresholds.defaults)
         if Self.isRunningTests, rawThresholds != thresholdsRaw {
             userDefaults.set(thresholdsRaw, forKey: "quotaWarningThresholds")
+        }
+        let rawSessionThresholds = userDefaults.array(forKey: "quotaWarningSessionThresholds") as? [Int]
+        let sessionThresholdsRaw = QuotaWarningThresholds.sanitized(rawSessionThresholds ?? thresholdsRaw)
+        if Self.isRunningTests, rawSessionThresholds != sessionThresholdsRaw {
+            userDefaults.set(sessionThresholdsRaw, forKey: "quotaWarningSessionThresholds")
+        }
+        let rawWeeklyThresholds = userDefaults.array(forKey: "quotaWarningWeeklyThresholds") as? [Int]
+        let weeklyThresholdsRaw = QuotaWarningThresholds.sanitized(rawWeeklyThresholds ?? thresholdsRaw)
+        if Self.isRunningTests, rawWeeklyThresholds != weeklyThresholdsRaw {
+            userDefaults.set(weeklyThresholdsRaw, forKey: "quotaWarningWeeklyThresholds")
         }
 
         let sessionDefault = userDefaults.object(forKey: "quotaWarningSessionEnabled") as? Bool
@@ -451,6 +504,8 @@ extension SettingsStore {
         return LoadedQuotaWarningDefaults(
             notificationsEnabled: notificationsEnabled,
             thresholdsRaw: thresholdsRaw,
+            sessionThresholdsRaw: sessionThresholdsRaw,
+            weeklyThresholdsRaw: weeklyThresholdsRaw,
             sessionEnabled: sessionEnabled,
             weeklyEnabled: weeklyEnabled,
             soundEnabled: soundEnabled,

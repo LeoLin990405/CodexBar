@@ -55,6 +55,7 @@ public enum ProviderDescriptorRegistry {
     private static let descriptorsByID: [UsageProvider: ProviderDescriptor] = [
         .codex: CodexProviderDescriptor.descriptor,
         .openai: OpenAIAPIProviderDescriptor.descriptor,
+        .azureopenai: AzureOpenAIProviderDescriptor.descriptor,
         .claude: ClaudeProviderDescriptor.descriptor,
         .cursor: CursorProviderDescriptor.descriptor,
         .opencode: OpenCodeProviderDescriptor.descriptor,
@@ -79,6 +80,7 @@ public enum ProviderDescriptorRegistry {
         .ollama: OllamaProviderDescriptor.descriptor,
         .synthetic: SyntheticProviderDescriptor.descriptor,
         .openrouter: OpenRouterProviderDescriptor.descriptor,
+        .elevenlabs: ElevenLabsProviderDescriptor.descriptor,
         .warp: WarpProviderDescriptor.descriptor,
         .windsurf: WindsurfProviderDescriptor.descriptor,
         .perplexity: PerplexityProviderDescriptor.descriptor,
@@ -96,6 +98,11 @@ public enum ProviderDescriptorRegistry {
         .venice: VeniceProviderDescriptor.descriptor,
         .commandcode: CommandCodeProviderDescriptor.descriptor,
         .stepfun: StepFunProviderDescriptor.descriptor,
+        .bedrock: BedrockProviderDescriptor.descriptor,
+        .grok: GrokProviderDescriptor.descriptor,
+        .groq: GroqProviderDescriptor.descriptor,
+        .llmproxy: LLMProxyProviderDescriptor.descriptor,
+        .deepgram: DeepgramProviderDescriptor.descriptor,
     ]
     private static let bootstrap: Void = {
         for provider in UsageProvider.allCases {

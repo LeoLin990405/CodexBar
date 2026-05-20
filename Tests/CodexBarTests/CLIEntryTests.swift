@@ -92,6 +92,26 @@ final class CLIEntryTests: XCTestCase {
         try self.expectAdjacentVersionFile(raw: "version-3.2.3\n", expected: "version-3.2.3")
     }
 
+    func test_cliVersionPrefersAdjacentVersionOverStandaloneBundleName() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("codexbar-cli-version-bundle-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let binURL = root.appendingPathComponent("bin", isDirectory: true)
+        try FileManager.default.createDirectory(at: binURL, withIntermediateDirectories: true)
+
+        let helperURL = binURL.appendingPathComponent("CodexBarCLI")
+        try Data().write(to: helperURL)
+        try "4.5.6\n".write(
+            to: binURL.appendingPathComponent("VERSION"),
+            atomically: false,
+            encoding: .utf8)
+
+        XCTAssertEqual(
+            CodexBarCLI.currentVersion(bundleVersion: "CodexBar", executablePath: helperURL.path),
+            "4.5.6")
+    }
+
     private func expectAdjacentVersionFile(raw: String, expected: String) throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("codexbar-cli-version-file-\(UUID().uuidString)", isDirectory: true)
@@ -162,13 +182,13 @@ final class CLIEntryTests: XCTestCase {
         }
     }
 
-    func test_providerSelectionDefaultsToCodexWhenEmpty() {
+    func test_providerSelectionHonorsEmptyEnabledSet() {
         let selection = CodexBarCLI.providerSelection(rawOverride: nil, enabled: [])
         switch selection {
-        case let .single(provider):
-            XCTAssertEqual(provider, .codex)
+        case let .custom(providers):
+            XCTAssertEqual(providers, [])
         default:
-            XCTFail("Expected single Codex selection")
+            XCTFail("Expected empty custom selection")
         }
     }
 
@@ -252,6 +272,8 @@ final class CLIEntryTests: XCTestCase {
         XCTAssertTrue(CodexBarCLI.sourceModeRequiresWebSupport(.web, provider: .kilo))
         XCTAssertTrue(CodexBarCLI.sourceModeRequiresWebSupport(.auto, provider: .codex))
         XCTAssertFalse(CodexBarCLI.sourceModeRequiresWebSupport(.auto, provider: .kilo))
+        XCTAssertFalse(CodexBarCLI.sourceModeRequiresWebSupport(.auto, provider: .grok))
+        XCTAssertFalse(CodexBarCLI.sourceModeRequiresWebSupport(.web, provider: .grok))
         XCTAssertFalse(CodexBarCLI.sourceModeRequiresWebSupport(.api, provider: .kilo))
     }
 

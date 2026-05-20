@@ -648,6 +648,27 @@ struct SettingsStoreTests {
     }
 
     @Test
+    func `global quota warning thresholds resolve independently by window`() throws {
+        let suite = "SettingsStoreTests-quota-warning-window-thresholds"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        let configStore = testConfigStore(suiteName: suite)
+        let store = SettingsStore(
+            userDefaults: defaults,
+            configStore: configStore,
+            zaiTokenStore: NoopZaiTokenStore(),
+            syntheticTokenStore: NoopSyntheticTokenStore())
+
+        store.setQuotaWarningThresholds(.session, thresholds: [25])
+        store.setQuotaWarningThresholds(.weekly, thresholds: [75, 10])
+
+        #expect(store.quotaWarningThresholds(.session) == [25])
+        #expect(store.quotaWarningThresholds(.weekly) == [75, 10])
+        #expect(store.resolvedQuotaWarningThresholds(provider: .codex, window: .session) == [25])
+        #expect(store.resolvedQuotaWarningThresholds(provider: .codex, window: .weekly) == [75, 10])
+    }
+
+    @Test
     func `provider quota warning windows override global enablement independently`() throws {
         let suite = "SettingsStoreTests-quota-warning-provider-window-override"
         let defaults = try #require(UserDefaults(suiteName: suite))
@@ -1027,6 +1048,40 @@ struct SettingsStoreTests {
     }
 
     @Test
+    func `menu observation token updates on per-window quota threshold changes`() async throws {
+        let suite = "SettingsStoreTests-observation-quota-threshold-windows"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        let configStore = testConfigStore(suiteName: suite)
+
+        let store = SettingsStore(
+            userDefaults: defaults,
+            configStore: configStore,
+            zaiTokenStore: NoopZaiTokenStore(),
+            syntheticTokenStore: NoopSyntheticTokenStore())
+
+        func expectObservation(
+            for window: QuotaWarningWindow,
+            thresholds: [Int]) async
+        {
+            let didChange = ObservationFlag()
+            withObservationTracking {
+                _ = store.menuObservationToken
+            } onChange: {
+                didChange.set()
+            }
+
+            store.setQuotaWarningThresholds(window, thresholds: thresholds)
+            try? await Task.sleep(nanoseconds: 50_000_000)
+
+            #expect(didChange.get() == true)
+        }
+
+        await expectObservation(for: .session, thresholds: [70, 30])
+        await expectObservation(for: .weekly, thresholds: [80, 40])
+    }
+
+    @Test
     func `config backed settings trigger observation`() async throws {
         let suite = "SettingsStoreTests-observation-config"
         let defaults = try #require(UserDefaults(suiteName: suite))
@@ -1116,13 +1171,9 @@ struct SettingsStoreTests {
             zaiTokenStore: NoopZaiTokenStore(),
             syntheticTokenStore: NoopSyntheticTokenStore())
 
-        let expectedOrder = [
-            UsageProvider.gemini,
-            .codex,
-        ] + UsageProvider.allCases.filter { provider in
-            provider != .gemini && provider != .codex
-        }
-        #expect(storeA.orderedProviders() == expectedOrder)
+        let legacyOrder: [UsageProvider] = [.gemini, .codex]
+        let appendedProviders = UsageProvider.allCases.filter { !legacyOrder.contains($0) }
+        #expect(storeA.orderedProviders() == legacyOrder + appendedProviders)
 
         // Move one provider; ensure it's persisted across instances.
         let antigravityIndex = try #require(storeA.orderedProviders().firstIndex(of: .antigravity))

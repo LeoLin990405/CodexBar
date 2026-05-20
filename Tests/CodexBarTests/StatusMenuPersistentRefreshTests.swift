@@ -5,9 +5,14 @@ import Testing
 
 private final class RefreshShortcutRecorder: StatusItemMenuPersistentActionDelegate {
     var refreshCount = 0
+    var navigationDirections: [StatusItemMenuProviderNavigationDirection] = []
 
     func performPersistentRefreshAction() {
         self.refreshCount += 1
+    }
+
+    func performProviderNavigation(_ direction: StatusItemMenuProviderNavigationDirection) {
+        self.navigationDirections.append(direction)
     }
 }
 
@@ -53,6 +58,34 @@ struct StatusMenuPersistentRefreshTests {
         #expect(refreshItem.view != nil)
         #expect(refreshItem.keyEquivalent == "r")
         #expect(refreshItem.keyEquivalentModifierMask == [.command])
+    }
+
+    @Test
+    func `refresh menu item view keeps fixed metrics while highlighted`() {
+        let view = PersistentMenuActionItemView(
+            title: "Refresh",
+            systemImageName: "arrow.clockwise",
+            shortcutText: "⌘R",
+            width: 320,
+            onClick: {})
+
+        #expect(view.frame.height == PersistentMenuActionItemView.rowHeight)
+        #expect(view.intrinsicContentSize.height == PersistentMenuActionItemView.rowHeight)
+        #expect(view.fittingSize.height == PersistentMenuActionItemView.rowHeight)
+
+        view.setFrameSize(NSSize(width: 360, height: 44))
+        #expect(view.frame.width == 360)
+        #expect(view.frame.height == PersistentMenuActionItemView.rowHeight)
+
+        view.setHighlighted(true)
+        #expect(view.frame.height == PersistentMenuActionItemView.rowHeight)
+        #expect(view.intrinsicContentSize.height == PersistentMenuActionItemView.rowHeight)
+        #expect(view.fittingSize.height == PersistentMenuActionItemView.rowHeight)
+
+        view.setHighlighted(false)
+        #expect(view.frame.height == PersistentMenuActionItemView.rowHeight)
+        #expect(view.intrinsicContentSize.height == PersistentMenuActionItemView.rowHeight)
+        #expect(view.fittingSize.height == PersistentMenuActionItemView.rowHeight)
     }
 
     @Test

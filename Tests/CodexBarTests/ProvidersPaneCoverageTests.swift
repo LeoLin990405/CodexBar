@@ -15,6 +15,19 @@ struct ProvidersPaneCoverageTests {
     }
 
     @Test
+    func `claude token account descriptor shows organization field`() throws {
+        let settings = Self.makeSettingsStore(suite: "ProvidersPaneCoverageTests-claude-org-field")
+        let store = Self.makeUsageStore(settings: settings)
+        let pane = ProvidersPane(settings: settings, store: store)
+
+        let claudeDescriptor = try #require(pane._test_tokenAccountDescriptor(for: .claude))
+        #expect(claudeDescriptor.showsOrganizationField)
+
+        let copilotDescriptor = try #require(pane._test_tokenAccountDescriptor(for: .copilot))
+        #expect(!copilotDescriptor.showsOrganizationField)
+    }
+
+    @Test
     func `open router menu bar metric picker shows only automatic and primary`() {
         let settings = Self.makeSettingsStore(suite: "ProvidersPaneCoverageTests-openrouter-picker")
         let store = Self.makeUsageStore(settings: settings)
@@ -154,6 +167,29 @@ struct ProvidersPaneCoverageTests {
         #expect(ids.contains(MenuBarMetricPreference.extraUsage.rawValue))
         let option = picker?.options.first { $0.id == MenuBarMetricPreference.extraUsage.rawValue }
         #expect(option?.title == "Extra usage")
+    }
+
+    @Test
+    func `claude menu bar metric picker includes extra usage when spend limit is available`() {
+        let settings = Self.makeSettingsStore(suite: "ProvidersPaneCoverageTests-claude-extra-usage-picker")
+        let store = Self.makeUsageStore(settings: settings)
+        store._setSnapshotForTesting(
+            UsageSnapshot(
+                primary: nil,
+                secondary: nil,
+                providerCost: ProviderCostSnapshot(
+                    used: 67.03,
+                    limit: 1000,
+                    currencyCode: "USD",
+                    period: "Spend limit",
+                    updatedAt: Date()),
+                updatedAt: Date()),
+            provider: .claude)
+        let pane = ProvidersPane(settings: settings, store: store)
+
+        let picker = pane._test_menuBarMetricPicker(for: .claude)
+        let ids = picker?.options.map(\.id) ?? []
+        #expect(ids.contains(MenuBarMetricPreference.extraUsage.rawValue))
     }
 
     @Test

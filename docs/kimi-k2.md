@@ -8,8 +8,13 @@ read_when:
 
 # 月之暗面 Kimi K2 provider
 
-Kimi K2 is API-only. Usage is reported by the credit counter behind `GET https://kimi-k2.ai/api/user/credits`,
-so CodexBar only needs a valid API key to pull your remaining balance and usage.
+> This is a legacy, unofficial provider for the `kimi-k2.ai` credit endpoint.
+> For the official Kimi API account and billing surface, use the Moonshot / Kimi
+> API provider instead.
+
+Kimi K2 is API-only. Usage is reported by the credit counter behind
+`GET https://kimi-k2.ai/api/user/credits`, so CodexBar only needs a valid API
+key for that legacy endpoint to pull your remaining balance and usage.
 
 ## Data sources + fallback order
 

@@ -23,6 +23,13 @@ extension TokenAccountSupportCatalog {
             injection: .environment(key: DeepSeekSettingsReader.apiKeyEnvironmentKey),
             requiresManualCookieSource: false,
             cookieName: nil),
+        .antigravity: TokenAccountSupport(
+            title: "Google accounts",
+            subtitle: "Store multiple Antigravity Google OAuth accounts for quick switching.",
+            placeholder: "Antigravity OAuth credentials JSON",
+            injection: .environment(key: AntigravityOAuthCredentialsStore.environmentCredentialsKey),
+            requiresManualCookieSource: false,
+            cookieName: nil),
         .zai: TokenAccountSupport(
             title: "API token",
             subtitle: "保存在 CodexBar 配置文件中。",
@@ -133,6 +140,27 @@ extension TokenAccountSupportCatalog {
             subtitle: "保存多个 Zenmux API 密钥。",
             placeholder: "粘贴 API key…",
             injection: .environment(key: ZenmuxSettingsReader.apiKeyEnvironmentKeys.first ?? "ZENMUX_API_KEY"),
+            requiresManualCookieSource: false,
+            cookieName: nil),
+        .elevenlabs: TokenAccountSupport(
+            title: "API keys",
+            subtitle: "Store multiple ElevenLabs API keys.",
+            placeholder: "Paste API key…",
+            injection: .environment(key: ElevenLabsSettingsReader.apiKeyEnvironmentKey),
+            requiresManualCookieSource: false,
+            cookieName: nil),
+        .groq: TokenAccountSupport(
+            title: "API keys",
+            subtitle: "Store multiple Groq API keys.",
+            placeholder: "Paste Groq API key…",
+            injection: .environment(key: GroqSettingsReader.apiKeyEnvironmentKey),
+            requiresManualCookieSource: false,
+            cookieName: nil),
+        .llmproxy: TokenAccountSupport(
+            title: "API keys",
+            subtitle: "Store multiple LLM Proxy API keys.",
+            placeholder: "Paste proxy API key…",
+            injection: .environment(key: LLMProxySettingsReader.apiKeyEnvironmentKey),
             requiresManualCookieSource: false,
             cookieName: nil),
         .stepfun: TokenAccountSupport(

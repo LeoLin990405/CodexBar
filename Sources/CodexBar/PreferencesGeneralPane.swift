@@ -5,6 +5,8 @@ import SwiftUI
 enum AppLanguage: String, CaseIterable, Identifiable {
     case system = ""
     case english = "en"
+    case spanish = "es"
+    case catalan = "ca"
     case chineseSimplified = "zh-Hans"
     case portugueseBrazilian = "pt-BR"
 
@@ -16,6 +18,8 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         switch self {
         case .system: L("language_system")
         case .english: L("language_english")
+        case .spanish: L("language_spanish")
+        case .catalan: L("language_catalan")
         case .chineseSimplified: L("language_chinese_simplified")
         case .portugueseBrazilian: L("language_portuguese_brazilian")
         }
@@ -86,6 +90,17 @@ struct GeneralPane: View {
                                 .fixedSize(horizontal: false, vertical: true)
 
                             if self.settings.costUsageEnabled {
+                                Stepper(
+                                    value: self.$settings.costUsageHistoryDays,
+                                    in: 1...365,
+                                    step: 1)
+                                {
+                                    Text(String(
+                                        format: L("cost_history_days_title"),
+                                        self.settings.costUsageHistoryDays))
+                                        .font(.footnote)
+                                }
+
                                 Text(L("cost_auto_refresh_info"))
                                     .font(.footnote)
                                     .foregroundStyle(.tertiary)
@@ -188,7 +203,8 @@ struct GeneralPane: View {
         if let snapshot = self.store.tokenSnapshot(for: provider) {
             let updated = UsageFormatter.updatedString(from: snapshot.updatedAt)
             let cost = snapshot.last30DaysCostUSD.map { UsageFormatter.usdString($0) } ?? "—"
-            return Text(String(format: L("cost_status_snapshot"), name, updated, cost))
+            let window = snapshot.historyDays == 1 ? "today" : "\(snapshot.historyDays)d"
+            return Text(String(format: L("cost_status_snapshot"), name, updated, window, cost))
                 .font(.footnote)
                 .foregroundStyle(.tertiary)
         }
