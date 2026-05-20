@@ -260,7 +260,7 @@ public struct StepFunUsageFetcher: Sendable {
     /// Full login flow: username + password → token, then fetch usage.
     public static func fetchUsage(username: String, password: String) async throws -> StepFunUsageSnapshot {
         let token = try await self.fullLogin(username: username, password: password)
-        return try await self.queryUsage(token: token)
+        return try await self.queryUsage(authCookie: "Oasis-Token=\(token); Oasis-Webid=\(self.webID)")
     }
 
     // MARK: - Login
