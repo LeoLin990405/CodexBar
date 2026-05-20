@@ -86,7 +86,6 @@ public struct MiniMaxUsageSnapshot: Sendable {
             apiKey: self.apiKey,
             billingSummary: billingSummary)
     }
-    }
 }
 
 extension MiniMaxUsageSnapshot {
