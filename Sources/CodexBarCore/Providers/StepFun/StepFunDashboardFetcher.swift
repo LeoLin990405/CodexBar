@@ -132,11 +132,25 @@ public struct StepFunDashboardFetcher {
             }
 
             const pct = (match) => match ? parseFloat(match[1]) : null;
+            const textAfter = (label) => {
+                const index = body.indexOf(label);
+                return index >= 0 ? body.slice(index + label.length).trim() : null;
+            };
+            const textBeforeAny = (value, delimiters) => {
+                if (!value) { return null; }
+                let end = value.length;
+                for (const delimiter of delimiters) {
+                    const index = value.indexOf(delimiter);
+                    if (index >= 0) { end = Math.min(end, index); }
+                }
+                const extracted = value.slice(0, end).replace(/\\s+/g, ' ').trim();
+                return extracted.length > 0 ? extracted : null;
+            };
 
             // Extract plan name: "你当前订阅的版本为Plus Plan，有..."
-            const planMatch = body.match(/订阅的版本为\\s*([^，,。；;]*?\\s*Plan)/i) ||
-                body.match(/当前订阅的版本为\\s*([^，,。；;]+)/);
-            const plan = planMatch ? planMatch[1].replace(/\\s+/g, ' ').trim() : null;
+            const plan = textBeforeAny(
+                textAfter('订阅的版本为'),
+                ['，', ',', '。', '；', ';', '有效期截止', '有效期']);
 
             // Extract expiry date: "有效期截止至2026年04月22日"
             const expiryMatch = body.match(/有效期截止至\\s*(\\d{4}年\\d{1,2}月\\d{1,2}日)/);
