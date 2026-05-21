@@ -241,7 +241,20 @@ public enum ProviderTokenResolver {
     public static func kimiAuthResolution(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
-        self.resolveEnv(KimiSettingsReader.authToken(environment: environment))
+        if let resolution = self.resolveEnv(KimiSettingsReader.authToken(environment: environment)) {
+            return resolution
+        }
+        #if os(macOS)
+        do {
+            let session = try KimiCookieImporter.importSession()
+            if let token = session.authToken {
+                return ProviderTokenResolution(token: token, source: .environment)
+            }
+        } catch {
+            // No browser cookies found, continue to fallback
+        }
+        #endif
+        return nil
     }
 
     public static func kimiK2Resolution(
@@ -333,7 +346,20 @@ public enum ProviderTokenResolver {
     public static func perplexityResolution(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
-        self.resolveEnv(PerplexitySettingsReader.sessionToken(environment: environment))
+        if let resolution = self.resolveEnv(PerplexitySettingsReader.sessionToken(environment: environment)) {
+            return resolution
+        }
+        #if os(macOS)
+        do {
+            let session = try PerplexityCookieImporter.importSession()
+            if let token = session.sessionToken {
+                return ProviderTokenResolution(token: token, source: .environment)
+            }
+        } catch {
+            // No browser cookies found, continue to fallback
+        }
+        #endif
+        return nil
     }
 
     private static func cleaned(_ raw: String?) -> String? {
@@ -358,28 +384,10 @@ public enum ProviderTokenResolver {
         self.qwenResolution(environment: environment)?.token
     }
 
-    public static func doubaoToken(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
-    {
-        self.doubaoResolution(environment: environment)?.token
-    }
-
-    public static func stepfunToken(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
-    {
-        self.stepfunResolution(environment: environment)?.token
-    }
-
     public static func traeToken(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
     {
         self.traeResolution(environment: environment)?.token
-    }
-
-    public static func mimoToken(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
-    {
-        self.mimoResolution(environment: environment)?.token
     }
 
     public static func zenmuxToken(
@@ -400,28 +408,10 @@ public enum ProviderTokenResolver {
         self.resolveEnv(QwenSettingsReader.apiKey(environment: environment))
     }
 
-    public static func doubaoResolution(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
-    {
-        self.resolveEnv(DoubaoSettingsReader.apiKey(environment: environment))
-    }
-
-    public static func stepfunResolution(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
-    {
-        self.resolveEnv(StepFunSettingsReader.apiKey(environment: environment))
-    }
-
     public static func traeResolution(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
     {
         self.resolveEnv(TraeSettingsReader.apiKey(environment: environment))
-    }
-
-    public static func mimoResolution(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> ProviderTokenResolution?
-    {
-        self.resolveEnv(MiMoSettingsReader.apiKey(environment: environment))
     }
 
     public static func zenmuxResolution(

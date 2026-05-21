@@ -1072,12 +1072,16 @@ extension UsageStore {
                 .doubao: "Doubao debug log not yet implemented",
                 .venice: "Venice debug log not yet implemented",
                 .commandcode: "Command Code debug log not yet implemented",
+                .qwen: "Qwen debug log not yet implemented",
                 .stepfun: "StepFun debug log not yet implemented",
+                .trae: "Trae debug log not yet implemented",
                 .bedrock: "Bedrock debug log not yet implemented",
                 .grok: "Grok debug log not yet implemented",
                 .groq: "Groq debug log not yet implemented",
                 .llmproxy: "LLM Proxy debug log not yet implemented",
                 .deepgram: "Deepgram debug log not yet implemented",
+                .zenmux: "Zenmux debug log not yet implemented",
+                .aigocode: "AigoCode debug log not yet implemented",
             ]
             let buildText = {
                 switch provider {
@@ -1154,7 +1158,8 @@ extension UsageStore {
                         hasTokenAccount: deepSeekHasTokenAccount)
                 case .gemini, .antigravity, .opencode, .opencodego, .factory, .copilot, .vertexai, .kilo, .kiro, .kimi,
                      .kimik2, .moonshot, .jetbrains, .perplexity, .mimo, .doubao, .abacus, .mistral, .codebuff, .crof,
-                     .windsurf, .venice, .manus, .commandcode, .stepfun, .bedrock, .grok, .groq, .llmproxy, .deepgram:
+                     .windsurf, .venice, .manus, .commandcode, .qwen, .stepfun, .trae, .bedrock, .grok, .groq,
+                     .llmproxy, .deepgram, .zenmux, .aigocode:
                     return unimplementedDebugLogMessages[provider] ?? "Debug log not yet implemented"
                 }
             }
