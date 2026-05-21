@@ -23,6 +23,15 @@ public struct StepFunUsageSnapshot: Sendable {
     public let updatedAt: Date
     public let apiKeyValid: Bool
 
+    private var planDisplayName: String? {
+        guard let planName = self.planName?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !planName.isEmpty
+        else {
+            return nil
+        }
+        return planName.lowercased().hasSuffix(" plan") ? planName : "\(planName) Plan"
+    }
+
     public init(
         balance: Double,
         cashBalance: Double,
@@ -90,8 +99,8 @@ public struct StepFunUsageSnapshot: Sendable {
 
         // Tertiary: plan info + balance
         var tertiary: RateWindow?
-        if let planName = self.planName {
-            var desc = "\(planName) Plan"
+        if let planDisplayName = self.planDisplayName {
+            var desc = planDisplayName
             if let exp = self.planExpiredAt {
                 let formatter = DateFormatter()
                 formatter.dateFormat = "yyyy-MM-dd"
@@ -106,8 +115,8 @@ public struct StepFunUsageSnapshot: Sendable {
                 resetDescription: desc)
         }
 
-        let org: String? = if let planName = self.planName {
-            "\(planName) Plan"
+        let org: String? = if let planDisplayName = self.planDisplayName {
+            planDisplayName
         } else {
             self.accountType == "prepaid" ? "Prepaid" : "Postpaid"
         }
