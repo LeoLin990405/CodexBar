@@ -204,6 +204,9 @@ public struct StepFunDashboardFetcher {
 
         let hasData = (dict["hasData"] as? Bool) ?? false
         guard hasData else {
+            if let snapshot = Self.snapshotFromBodyText(bodyText) {
+                return ScrapeResult(isLoginPage: false, bodyText: bodyText, snapshot: snapshot)
+            }
             return ScrapeResult(isLoginPage: false, bodyText: bodyText, snapshot: nil)
         }
 
@@ -216,6 +219,69 @@ public struct StepFunDashboardFetcher {
             weeklyResetTime: dict["weeklyReset"] as? String)
 
         return ScrapeResult(isLoginPage: false, bodyText: bodyText, snapshot: snapshot)
+    }
+
+    private static func snapshotFromBodyText(_ bodyText: String) -> DashboardSnapshot? {
+        let body = bodyText
+            .replacingOccurrences(of: "\u{00a0}", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\t", with: " ")
+
+        let plan = Self.textAfter("订阅的版本为", in: body)
+            .flatMap { Self.textBeforeAny(in: $0, delimiters: ["，", ",", "。", "；", ";", "有效期截止", "有效期"]) }
+        let expiry = Self.firstMatch(
+            in: body,
+            pattern: #"有效期截止至\s*(\d{4}年\d{1,2}月\d{1,2}日)"#)
+        let fiveHourPercent = Self.percentAfter("5小时用量", in: body) ?? Self.percentAfter("5 小时用量", in: body)
+        let weeklyPercent = Self.percentAfter("每周用量", in: body) ?? Self.percentAfter("每 周用量", in: body)
+
+        guard plan != nil || fiveHourPercent != nil || weeklyPercent != nil else {
+            return nil
+        }
+
+        return DashboardSnapshot(
+            planName: plan,
+            planExpiry: expiry,
+            fiveHourLeftPercent: fiveHourPercent,
+            fiveHourResetTime: nil,
+            weeklyLeftPercent: weeklyPercent,
+            weeklyResetTime: nil)
+    }
+
+    private static func textAfter(_ label: String, in body: String) -> String? {
+        guard let range = body.range(of: label) else { return nil }
+        return String(body[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func textBeforeAny(in value: String, delimiters: [String]) -> String? {
+        var end = value.endIndex
+        for delimiter in delimiters {
+            if let range = value.range(of: delimiter), range.lowerBound < end {
+                end = range.lowerBound
+            }
+        }
+        let result = String(value[..<end])
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return result.isEmpty ? nil : result
+    }
+
+    private static func percentAfter(_ label: String, in body: String) -> Double? {
+        guard let tail = Self.textAfter(label, in: body) else { return nil }
+        return Self.firstMatch(in: tail, pattern: #"剩余\s*(\d+(?:\.\d+)?)\s*%"#).flatMap(Double.init)
+    }
+
+    private static func firstMatch(in text: String, pattern: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        guard let match = regex.firstMatch(in: text, range: range),
+              match.numberOfRanges > 1,
+              let valueRange = Range(match.range(at: 1), in: text)
+        else {
+            return nil
+        }
+        return String(text[valueRange])
     }
 
     /// Bridge for calling from non-MainActor contexts (e.g. ProviderFetchStrategy).
