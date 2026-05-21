@@ -297,12 +297,16 @@ private struct ProviderSwitchChip: View {
         case .crof: "Crof"
         case .venice: "Venice"
         case .commandcode: "Command Code"
+        case .qwen: "Qwen"
         case .stepfun: "StepFun"
+        case .trae: "Trae"
         case .bedrock: "Bedrock"
         case .grok: "Grok"
         case .groq: "Groq"
         case .llmproxy: "LLM Proxy"
         case .deepgram: "Deepgram"
+        case .zenmux: "Zenmux"
+        case .aigocode: "AigoCode"
         }
     }
 }
@@ -692,8 +696,12 @@ enum WidgetColors {
             Color(red: 51 / 255, green: 153 / 255, blue: 1.0)
         case .commandcode:
             Color(red: 0, green: 0, blue: 0)
+        case .qwen:
+            Color(red: 106 / 255, green: 58 / 255, blue: 255 / 255)
         case .stepfun:
             Color(red: 255 / 255, green: 140 / 255, blue: 0 / 255) // StepFun orange
+        case .trae:
+            Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255)
         case .bedrock:
             Color(red: 255 / 255, green: 153 / 255, blue: 0 / 255) // AWS orange
         case .grok:
@@ -704,6 +712,10 @@ enum WidgetColors {
             Color(red: 36 / 255, green: 180 / 255, blue: 126 / 255)
         case .deepgram:
             Color(red: 10 / 255, green: 18 / 255, blue: 27 / 255)
+        case .zenmux:
+            Color(red: 255 / 255, green: 140 / 255, blue: 0 / 255)
+        case .aigocode:
+            Color(red: 34 / 255, green: 197 / 255, blue: 94 / 255)
         }
     }
 }

@@ -168,7 +168,6 @@ public enum KeychainCacheStore {
         #else
         return false
         #endif
-        return false
     }
 
     public static func keys(category: String) -> [Key] {
