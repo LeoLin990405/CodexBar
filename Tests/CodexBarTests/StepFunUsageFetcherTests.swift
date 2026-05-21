@@ -22,6 +22,12 @@ struct StepFunSettingsReaderTests {
     }
 
     @Test
+    func `reads STEPFUN_WEBID`() {
+        let env = ["STEPFUN_WEBID": "browser-webid"]
+        #expect(StepFunSettingsReader.webID(environment: env) == "browser-webid")
+    }
+
+    @Test
     func `trims whitespace from token`() {
         let env = ["STEPFUN_TOKEN": "  some-token  "]
         #expect(StepFunSettingsReader.token(environment: env) == "some-token")
@@ -44,6 +50,7 @@ struct StepFunSettingsReaderTests {
         #expect(StepFunSettingsReader.token(environment: [:]) == nil)
         #expect(StepFunSettingsReader.username(environment: [:]) == nil)
         #expect(StepFunSettingsReader.password(environment: [:]) == nil)
+        #expect(StepFunSettingsReader.webID(environment: [:]) == nil)
     }
 
     @Test
@@ -213,6 +220,26 @@ struct StepFunTokenNormalizerTests {
     func `extracts Oasis-Token from cookie header`() {
         let input = "Oasis-Token=abc123...def456; Oasis-Webid=someid"
         #expect(StepFunTokenNormalizer.normalize(input) == "abc123...def456")
+    }
+
+    @Test
+    func `extracts Oasis-Webid from cookie header`() {
+        let input = "Oasis-Token=abc123...def456; Oasis-Webid=someid"
+        #expect(StepFunTokenNormalizer.webID(from: input) == "someid")
+    }
+
+    @Test
+    func `builds auth context from cookie header`() {
+        let input = "Oasis-Token=abc123...def456; Oasis-Webid=someid"
+        let context = StepFunTokenNormalizer.authContext(from: input)
+        #expect(context.token == "abc123...def456")
+        #expect(context.webID == "someid")
+    }
+
+    @Test
+    func `formats token and webid cookie header`() {
+        let header = StepFunTokenNormalizer.cookieHeader(token: "abc123...def456", webID: "someid")
+        #expect(header == "Oasis-Token=abc123...def456; Oasis-Webid=someid")
     }
 
     @Test

@@ -112,6 +112,16 @@ struct StepFunTokenPair: Decodable {
     let raw: String
 }
 
+public struct StepFunAuthContext: Sendable {
+    public let token: String
+    public let webID: String?
+
+    public init(token: String, webID: String? = nil) {
+        self.token = token
+        self.webID = webID
+    }
+}
+
 // MARK: - Domain snapshot
 
 public struct StepFunUsageSnapshot: Sendable {
@@ -221,14 +231,14 @@ public struct StepFunUsageFetcher: Sendable {
         URL(string: "https://platform.stepfun.com/passport/proto.api.passport.v1.PassportService/SignInByPassword")!
     private static let timeoutSeconds: TimeInterval = 15
 
-    private static let webID = "c8a1002d2c457e758785a9979832217c7c0b884c"
+    public static let defaultWebID = "c8a1002d2c457e758785a9979832217c7c0b884c"
     private static let appID = "10300"
 
     private static let baseHeaders: [String: String] = [
         "content-type": "application/json",
         "oasis-appid": appID,
         "oasis-platform": "web",
-        "oasis-webid": webID,
+        "oasis-webid": defaultWebID,
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
     ]
@@ -243,16 +253,21 @@ public struct StepFunUsageFetcher: Sendable {
 
     /// Fetch usage data using an existing Oasis-Token (from env var or cached).
     public static func fetchUsage(token: String) async throws -> StepFunUsageSnapshot {
-        guard !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        try await self.fetchUsage(auth: StepFunTokenNormalizer.authContext(from: token))
+    }
+
+    /// Fetch usage data using an existing Oasis-Token plus its browser-bound Oasis-Webid when available.
+    public static func fetchUsage(auth: StepFunAuthContext) async throws -> StepFunUsageSnapshot {
+        guard !auth.token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw StepFunUsageError.missingToken
         }
-        return try await self.queryUsage(token: token)
+        return try await self.queryUsage(auth: auth)
     }
 
     /// Full login flow: username + password → token, then fetch usage.
     public static func fetchUsage(username: String, password: String) async throws -> StepFunUsageSnapshot {
         let token = try await self.fullLogin(username: username, password: password)
-        return try await self.queryUsage(token: token)
+        return try await self.queryUsage(auth: StepFunAuthContext(token: token, webID: self.defaultWebID))
     }
 
     // MARK: - Login
@@ -361,7 +376,7 @@ public struct StepFunUsageFetcher: Sendable {
             request.setValue(value, forHTTPHeaderField: key)
         }
         request.setValue(
-            "Oasis-Token=\(anonToken); Oasis-Webid=\(self.webID); INGRESSCOOKIE=\(ingressCookie)",
+            "Oasis-Token=\(anonToken); Oasis-Webid=\(self.defaultWebID); INGRESSCOOKIE=\(ingressCookie)",
             forHTTPHeaderField: "Cookie")
         request.timeoutInterval = self.timeoutSeconds
 
@@ -390,14 +405,15 @@ public struct StepFunUsageFetcher: Sendable {
 
     // MARK: - Query usage
 
-    private static func queryUsage(token: String) async throws -> StepFunUsageSnapshot {
+    private static func queryUsage(auth: StepFunAuthContext) async throws -> StepFunUsageSnapshot {
         var request = URLRequest(url: self.apiURL)
         request.httpMethod = "POST"
         request.httpBody = Data("{}".utf8)
         for (key, value) in self.baseHeaders {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        request.setValue("Oasis-Token=\(token); Oasis-Webid=\(self.webID)", forHTTPHeaderField: "Cookie")
+        let webID = self.resolvedWebID(auth.webID)
+        request.setValue("Oasis-Token=\(auth.token); Oasis-Webid=\(webID)", forHTTPHeaderField: "Cookie")
         request.timeoutInterval = self.timeoutSeconds
 
         let response = try await ProviderHTTPClient.shared.response(for: request)
@@ -416,7 +432,7 @@ public struct StepFunUsageFetcher: Sendable {
 
         // Fetch plan name in parallel is not needed — just do it sequentially.
         // If plan status fails, we still return usage data without plan name.
-        if let planName = try? await self.queryPlanStatus(token: token) {
+        if let planName = try? await self.queryPlanStatus(auth: auth) {
             snapshot = StepFunUsageSnapshot(
                 fiveHourUsageLeftRate: snapshot.fiveHourUsageLeftRate,
                 weeklyUsageLeftRate: snapshot.weeklyUsageLeftRate,
@@ -431,14 +447,15 @@ public struct StepFunUsageFetcher: Sendable {
 
     // MARK: - Plan Status
 
-    private static func queryPlanStatus(token: String) async throws -> String? {
+    private static func queryPlanStatus(auth: StepFunAuthContext) async throws -> String? {
         var request = URLRequest(url: self.planStatusURL)
         request.httpMethod = "POST"
         request.httpBody = Data("{}".utf8)
         for (key, value) in self.baseHeaders {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        request.setValue("Oasis-Token=\(token); Oasis-Webid=\(self.webID)", forHTTPHeaderField: "Cookie")
+        let webID = self.resolvedWebID(auth.webID)
+        request.setValue("Oasis-Token=\(auth.token); Oasis-Webid=\(webID)", forHTTPHeaderField: "Cookie")
         request.timeoutInterval = self.timeoutSeconds
 
         let response = try await ProviderHTTPClient.shared.response(for: request)
@@ -456,6 +473,11 @@ public struct StepFunUsageFetcher: Sendable {
         }
 
         return decoded.planName
+    }
+
+    private static func resolvedWebID(_ candidate: String?) -> String {
+        let trimmed = candidate?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? self.defaultWebID : trimmed
     }
 
     public static func _parseSnapshotForTesting(_ data: Data) throws -> StepFunUsageSnapshot {

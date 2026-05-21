@@ -120,7 +120,8 @@ public enum CodexBarConfigValidator {
 
         if let cookieSource = entry.cookieSource,
            cookieSource == .manual,
-           entry.cookieHeader?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
+           entry.cookieHeader?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true,
+           !self.providerHasManualTokenInRegion(entry)
         {
             issues.append(CodexBarConfigIssue(
                 severity: .warning,
@@ -169,6 +170,11 @@ public enum CodexBarConfigValidator {
                 code: "token_accounts_unused",
                 message: "已设置 tokenAccounts，但 \(provider.rawValue) 不支持 token 账号。"))
         }
+    }
+
+    private static func providerHasManualTokenInRegion(_ entry: ProviderConfig) -> Bool {
+        guard entry.id == .stepfun else { return false }
+        return !(entry.region?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
     }
 
     private static func validateSecretKey(_ entry: ProviderConfig, issues: inout [CodexBarConfigIssue]) {
@@ -242,7 +248,7 @@ public enum CodexBarConfigValidator {
                 isValid: MoonshotRegion(rawValue: region) != nil,
                 displayName: "Moonshot",
                 issues: &issues)
-        case .bedrock:
+        case .bedrock, .stepfun:
             break
         default:
             issues.append(CodexBarConfigIssue(

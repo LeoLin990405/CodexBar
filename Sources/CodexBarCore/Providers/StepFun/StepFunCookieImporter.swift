@@ -28,6 +28,16 @@ public enum StepFunCookieImporter {
         public var oasisWebid: String? {
             self.cookies.first(where: { $0.name == "Oasis-Webid" })?.value
         }
+
+        public var authContext: StepFunAuthContext? {
+            guard let token = self.oasisToken else { return nil }
+            return StepFunAuthContext(token: token, webID: self.oasisWebid)
+        }
+
+        public var cookieHeader: String? {
+            guard let token = self.oasisToken else { return nil }
+            return StepFunTokenNormalizer.cookieHeader(token: token, webID: self.oasisWebid)
+        }
     }
 
     public static func importSessions(

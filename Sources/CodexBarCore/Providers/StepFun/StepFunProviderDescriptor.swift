@@ -70,16 +70,16 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
         let cookieSource = context.settings?.stepfun?.cookieSource ?? .auto
 
         do {
-            let token = try await Self.resolveToken(context: context, allowCached: true)
-            let usage = try await StepFunUsageFetcher.fetchUsage(token: token)
+            let auth = try await Self.resolveAuthContext(context: context, allowCached: true)
+            let usage = try await StepFunUsageFetcher.fetchUsage(auth: auth)
             return self.makeResult(
                 usage: usage.toUsageSnapshot(),
                 sourceLabel: "web")
         } catch StepFunUsageError.apiError where cookieSource != .manual {
             // Token may be stale — clear cache and retry with fresh login
             CookieHeaderCache.clear(provider: .stepfun)
-            let token = try await Self.resolveToken(context: context, allowCached: false)
-            let usage = try await StepFunUsageFetcher.fetchUsage(token: token)
+            let auth = try await Self.resolveAuthContext(context: context, allowCached: false)
+            let usage = try await StepFunUsageFetcher.fetchUsage(auth: auth)
             return self.makeResult(
                 usage: usage.toUsageSnapshot(),
                 sourceLabel: "web")
@@ -92,30 +92,31 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
 
     // MARK: - Token Resolution
 
-    private static func resolveToken(
+    private static func resolveAuthContext(
         context: ProviderFetchContext,
-        allowCached: Bool) async throws -> String
+        allowCached: Bool) async throws -> StepFunAuthContext
     {
         let settings = context.settings?.stepfun
 
         // 1. Manual mode: use the token directly from settings
         if settings?.cookieSource == .manual {
             let manualToken = settings?.manualToken ?? ""
-            guard !manualToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            let auth = StepFunTokenNormalizer.authContext(from: manualToken)
+            guard !auth.token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw StepFunUsageError.missingToken
             }
-            return StepFunTokenNormalizer.normalize(manualToken)
+            return auth
         }
 
         // 2. Cached token from previous login
         if allowCached, let cached = CookieHeaderCache.load(provider: .stepfun) {
-            return StepFunTokenNormalizer.normalize(cached.cookieHeader)
+            return StepFunTokenNormalizer.authContext(from: cached.cookieHeader)
         }
 
         // 3. Browser cookie import: reuse an existing platform.stepfun.com login.
         #if os(macOS)
-        if let token = Self.resolveBrowserToken(context: context) {
-            return token
+        if let auth = Self.resolveBrowserAuthContext(context: context) {
+            return auth
         }
         #endif
 
@@ -125,13 +126,20 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
             let token = try await StepFunUsageFetcher.login(
                 username: settings.username,
                 password: settings.password)
-            CookieHeaderCache.store(provider: .stepfun, cookieHeader: token, sourceLabel: "login")
-            return token
+            let auth = StepFunAuthContext(token: token, webID: StepFunUsageFetcher.defaultWebID)
+            CookieHeaderCache.store(
+                provider: .stepfun,
+                cookieHeader: StepFunTokenNormalizer.cookieHeader(token: auth.token, webID: auth.webID),
+                sourceLabel: "login")
+            return auth
         }
 
         // 5. Direct token from env var
         if let token = StepFunSettingsReader.token(environment: context.env) {
-            return token
+            return StepFunAuthContext(
+                token: StepFunTokenNormalizer.normalize(token),
+                webID: StepFunSettingsReader.webID(environment: context.env)
+                    ?? StepFunTokenNormalizer.webID(from: token))
         }
 
         // 6. Username + password from env vars → perform full login flow
@@ -139,24 +147,29 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
            let password = StepFunSettingsReader.password(environment: context.env)
         {
             let token = try await StepFunUsageFetcher.login(username: username, password: password)
-            CookieHeaderCache.store(provider: .stepfun, cookieHeader: token, sourceLabel: "login")
-            return token
+            let auth = StepFunAuthContext(token: token, webID: StepFunUsageFetcher.defaultWebID)
+            CookieHeaderCache.store(
+                provider: .stepfun,
+                cookieHeader: StepFunTokenNormalizer.cookieHeader(token: auth.token, webID: auth.webID),
+                sourceLabel: "login")
+            return auth
         }
 
         throw StepFunUsageError.missingCredentials
     }
 
     #if os(macOS)
-    private static func resolveBrowserToken(context: ProviderFetchContext) -> String? {
+    private static func resolveBrowserAuthContext(context: ProviderFetchContext) -> StepFunAuthContext? {
         do {
             let session = try StepFunCookieImporter.importSession(browserDetection: context.browserDetection)
-            guard let token = session.oasisToken.map(StepFunTokenNormalizer.normalize),
-                  !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            guard let auth = session.authContext,
+                  !auth.token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  let cookieHeader = session.cookieHeader
             else {
                 return nil
             }
-            CookieHeaderCache.store(provider: .stepfun, cookieHeader: token, sourceLabel: session.sourceLabel)
-            return token
+            CookieHeaderCache.store(provider: .stepfun, cookieHeader: cookieHeader, sourceLabel: session.sourceLabel)
+            return auth
         } catch {
             return nil
         }
@@ -170,19 +183,52 @@ public enum StepFunTokenNormalizer {
     /// Normalize a StepFun token value — extracts the Oasis-Token from a cookie header
     /// or returns the raw token value if it's not a cookie header.
     public static func normalize(_ raw: String) -> String {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "" }
+        self.authContext(from: raw).token
+    }
 
-        // If it looks like a cookie header, extract Oasis-Token
-        if trimmed.contains("Oasis-Token=") {
-            let parts = trimmed.components(separatedBy: "Oasis-Token=")
-            if parts.count > 1 {
-                let afterToken = parts[1]
-                return afterToken.components(separatedBy: ";").first?
-                    .trimmingCharacters(in: .whitespaces) ?? afterToken
-            }
+    public static func webID(from raw: String) -> String? {
+        self.cookieValue(named: "Oasis-Webid", in: raw)
+    }
+
+    public static func authContext(from raw: String, fallbackWebID: String? = nil) -> StepFunAuthContext {
+        let trimmed = self.normalizedCookieInput(raw)
+        guard !trimmed.isEmpty else {
+            return StepFunAuthContext(token: "", webID: fallbackWebID)
         }
 
-        return trimmed
+        let token = self.cookieValue(named: "Oasis-Token", in: trimmed) ?? trimmed
+        return StepFunAuthContext(
+            token: token.trimmingCharacters(in: .whitespacesAndNewlines),
+            webID: self.webID(from: trimmed) ?? fallbackWebID)
+    }
+
+    public static func cookieHeader(token: String, webID: String?) -> String {
+        let normalizedToken = self.normalize(token)
+        let normalizedWebID = webID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !normalizedWebID.isEmpty else {
+            return normalizedToken
+        }
+        return "Oasis-Token=\(normalizedToken); Oasis-Webid=\(normalizedWebID)"
+    }
+
+    private static func cookieValue(named name: String, in raw: String) -> String? {
+        let trimmed = self.normalizedCookieInput(raw)
+        guard !trimmed.isEmpty else { return nil }
+
+        for part in trimmed.components(separatedBy: ";") {
+            let pair = part.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard pair.hasPrefix("\(name)=") else { continue }
+            let value = pair.dropFirst(name.count + 1)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return value.isEmpty ? nil : value
+        }
+        return nil
+    }
+
+    private static func normalizedCookieInput(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.lowercased().hasPrefix("cookie:") else { return trimmed }
+        return trimmed.dropFirst("cookie:".count)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

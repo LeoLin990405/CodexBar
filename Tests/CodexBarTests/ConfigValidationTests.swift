@@ -36,6 +36,19 @@ struct ConfigValidationTests {
     }
 
     @Test
+    func `allows StepFun manual token stored in region field`() {
+        var config = CodexBarConfig.makeDefault()
+        config.setProviderConfig(ProviderConfig(
+            id: .stepfun,
+            source: .auto,
+            cookieSource: .manual,
+            region: "Oasis-Token=token; Oasis-Webid=webid"))
+        let issues = CodexBarConfigValidator.validate(config)
+        #expect(!issues.contains(where: { $0.provider == .stepfun && $0.code == "region_unused" }))
+        #expect(!issues.contains(where: { $0.provider == .stepfun && $0.code == "cookie_header_missing" }))
+    }
+
+    @Test
     func `warns on unsupported token accounts`() {
         let accounts = ProviderTokenAccountData(
             version: 1,

@@ -231,12 +231,17 @@ struct TokenAccountCLIContext {
                     cookieSource: cookieSource,
                     manualCookieHeader: cookieHeader))
         case .stepfun:
+            let stepfunCookieSource = self.stepFunCookieSource(account: account, config: config)
             return self.makeSnapshot(
                 stepfun: ProviderSettingsSnapshot.StepFunProviderSettings(
-                    cookieSource: cookieSource,
-                    manualToken: cookieHeader ?? "",
+                    cookieSource: stepfunCookieSource,
+                    manualToken: self.stepFunManualToken(
+                        account: account,
+                        config: config,
+                        cookieHeader: cookieHeader,
+                        cookieSource: stepfunCookieSource),
                     username: config?.sanitizedAPIKey ?? "",
-                    password: ""))
+                    password: stepfunCookieSource == .manual ? "" : config?.sanitizedCookieHeader ?? ""))
         default:
             return nil
         }
@@ -484,6 +489,31 @@ struct TokenAccountCLIContext {
             return .manual
         }
         return .auto
+    }
+
+    private func stepFunCookieSource(
+        account: ProviderTokenAccount?,
+        config: ProviderConfig?) -> ProviderCookieSource
+    {
+        if account != nil, TokenAccountSupportCatalog.support(for: .stepfun)?.requiresManualCookieSource == true {
+            return .manual
+        }
+        return config?.cookieSource ?? .auto
+    }
+
+    private func stepFunManualToken(
+        account: ProviderTokenAccount?,
+        config: ProviderConfig?,
+        cookieHeader: String?,
+        cookieSource: ProviderCookieSource) -> String
+    {
+        if account != nil {
+            return cookieHeader ?? ""
+        }
+        guard cookieSource == .manual else { return "" }
+        let token = config?.region?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !token.isEmpty { return token }
+        return cookieHeader ?? ""
     }
 
     private func resolveZaiRegion(_ config: ProviderConfig?) -> ZaiAPIRegion {
