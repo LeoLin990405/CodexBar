@@ -47,7 +47,22 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
     let kind: ProviderFetchKind = .web
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {
-        context.settings?.stepfun?.cookieSource != .off
+        guard context.settings?.stepfun?.cookieSource != .off else { return false }
+
+        if context.settings?.stepfun?.cookieSource == .manual {
+            return !(context.settings?.stepfun?.manualToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+        }
+        if CookieHeaderCache.load(provider: .stepfun) != nil { return true }
+        if StepFunSettingsReader.token(environment: context.env) != nil { return true }
+        if StepFunSettingsReader.username(environment: context.env) != nil,
+           StepFunSettingsReader.password(environment: context.env) != nil
+        {
+            return true
+        }
+        #if os(macOS)
+        if StepFunCookieImporter.hasSession(browserDetection: context.browserDetection) { return true }
+        #endif
+        return false
     }
 
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
@@ -96,7 +111,14 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
             return StepFunTokenNormalizer.normalize(cached.cookieHeader)
         }
 
-        // 3. Username + password from Settings UI → perform full login flow
+        // 3. Browser cookie import: reuse an existing platform.stepfun.com login.
+        #if os(macOS)
+        if let token = Self.resolveBrowserToken(context: context) {
+            return token
+        }
+        #endif
+
+        // 4. Username + password from Settings UI → perform full login flow
         //    (register device → sign in by password → get Oasis-Token)
         if let settings, !settings.username.isEmpty, !settings.password.isEmpty {
             let token = try await StepFunUsageFetcher.login(
@@ -106,12 +128,12 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
             return token
         }
 
-        // 4. Direct token from env var
+        // 5. Direct token from env var
         if let token = StepFunSettingsReader.token(environment: context.env) {
             return token
         }
 
-        // 5. Username + password from env vars → perform full login flow
+        // 6. Username + password from env vars → perform full login flow
         if let username = StepFunSettingsReader.username(environment: context.env),
            let password = StepFunSettingsReader.password(environment: context.env)
         {
@@ -122,6 +144,23 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
 
         throw StepFunUsageError.missingCredentials
     }
+
+    #if os(macOS)
+    private static func resolveBrowserToken(context: ProviderFetchContext) -> String? {
+        do {
+            let session = try StepFunCookieImporter.importSession(browserDetection: context.browserDetection)
+            guard let token = session.oasisToken.map(StepFunTokenNormalizer.normalize),
+                  !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else {
+                return nil
+            }
+            CookieHeaderCache.store(provider: .stepfun, cookieHeader: token, sourceLabel: session.sourceLabel)
+            return token
+        } catch {
+            return nil
+        }
+    }
+    #endif
 }
 
 // MARK: - Token Normalizer
