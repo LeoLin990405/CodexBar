@@ -28,6 +28,14 @@ struct ConfigValidationTests {
     }
 
     @Test
+    func `allows StepFun username stored in apiKey field`() {
+        var config = CodexBarConfig.makeDefault()
+        config.setProviderConfig(ProviderConfig(id: .stepfun, source: .auto, apiKey: "user@example.com"))
+        let issues = CodexBarConfigValidator.validate(config)
+        #expect(!issues.contains(where: { $0.provider == .stepfun && $0.code == "api_key_unused" }))
+    }
+
+    @Test
     func `warns on unsupported token accounts`() {
         let accounts = ProviderTokenAccountData(
             version: 1,

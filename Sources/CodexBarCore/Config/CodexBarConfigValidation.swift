@@ -53,6 +53,7 @@ public enum CodexBarConfigValidator {
         let supportedSources = descriptor.fetchPlan.sourceModes
         let supportsWeb = supportedSources.contains(.auto) || supportedSources.contains(.web)
         let supportsAPI = supportedSources.contains(.api)
+        let apiKeyIsProviderSetting = provider == .stepfun
 
         if let source = entry.source, !supportedSources.contains(source) {
             issues.append(CodexBarConfigIssue(
@@ -63,7 +64,11 @@ public enum CodexBarConfigValidator {
                 message: "\(provider.rawValue) 不支持来源 \(source.rawValue)。"))
         }
 
-        if let apiKey = entry.apiKey, !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !supportsAPI {
+        if let apiKey = entry.apiKey,
+           !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           !supportsAPI,
+           !apiKeyIsProviderSetting
+        {
             issues.append(CodexBarConfigIssue(
                 severity: .warning,
                 provider: provider,
