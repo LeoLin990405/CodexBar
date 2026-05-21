@@ -197,7 +197,7 @@ public enum CookieHeaderCache {
         switch KeychainCacheStore.load(key: key, as: Entry.self) {
         case .found, .invalid:
             return true
-        case .missing, .temporarilyUnavailable:
+        case .missing, .temporarilyUnavailable, .unsupported:
             return false
         }
     }

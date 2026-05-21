@@ -100,7 +100,7 @@ public enum KeychainCacheStore {
             self.log.debug("Skipping keychain cache store after unsupported query (\(key.account))")
             return false
         }
-        guard self.canUseRealKeychain else { return }
+        guard self.canUseRealKeychain else { return false }
         #if os(macOS)
         let encoder = Self.makeEncoder()
         guard let data = try? encoder.encode(entry) else {
