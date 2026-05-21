@@ -93,12 +93,16 @@ public enum ProviderDescriptorRegistry {
         .crof: CrofProviderDescriptor.descriptor,
         .venice: VeniceProviderDescriptor.descriptor,
         .commandcode: CommandCodeProviderDescriptor.descriptor,
+        .qwen: QwenProviderDescriptor.descriptor,
         .stepfun: StepFunProviderDescriptor.descriptor,
+        .trae: TraeProviderDescriptor.descriptor,
         .bedrock: BedrockProviderDescriptor.descriptor,
         .grok: GrokProviderDescriptor.descriptor,
         .groq: GroqProviderDescriptor.descriptor,
         .llmproxy: LLMProxyProviderDescriptor.descriptor,
         .deepgram: DeepgramProviderDescriptor.descriptor,
+        .zenmux: ZenmuxProviderDescriptor.descriptor,
+        .aigocode: AigoCodeProviderDescriptor.descriptor,
     ]
     private static let bootstrap: Void = {
         for provider in UsageProvider.allCases {

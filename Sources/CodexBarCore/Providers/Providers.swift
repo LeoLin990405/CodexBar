@@ -43,12 +43,16 @@ public enum UsageProvider: String, CaseIterable, Sendable, Codable {
     case crof
     case venice
     case commandcode
+    case qwen
     case stepfun
+    case trae
     case bedrock
     case grok
     case groq
     case llmproxy
     case deepgram
+    case zenmux
+    case aigocode
 }
 
 // swiftformat:enable sortDeclarations
@@ -93,12 +97,16 @@ public enum IconStyle: Sendable, CaseIterable {
     case crof
     case venice
     case commandcode
+    case qwen
     case stepfun
+    case trae
     case bedrock
     case grok
     case groq
     case llmproxy
     case deepgram
+    case zenmux
+    case aigocode
     case combined
 }
 

@@ -53,12 +53,16 @@ enum ProviderImplementationRegistry {
         case .crof: CrofProviderImplementation()
         case .venice: VeniceProviderImplementation()
         case .commandcode: CommandCodeProviderImplementation()
+        case .qwen: QwenProviderImplementation()
         case .stepfun: StepFunProviderImplementation()
+        case .trae: TraeProviderImplementation()
         case .bedrock: BedrockProviderImplementation()
         case .grok: GrokProviderImplementation()
         case .groq: GroqProviderImplementation()
         case .llmproxy: LLMProxyProviderImplementation()
         case .deepgram: DeepgramProviderImplementation()
+        case .zenmux: ZenmuxProviderImplementation()
+        case .aigocode: AigoCodeProviderImplementation()
         }
     }
 

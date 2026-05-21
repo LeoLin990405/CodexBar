@@ -54,6 +54,22 @@ public enum ProviderConfigEnvironment {
             if let key = DoubaoSettingsReader.apiKeyEnvironmentKeys.first {
                 env[key] = apiKey
             }
+        case .qwen:
+            if let key = QwenSettingsReader.apiKeyEnvironmentKeys.first {
+                env[key] = apiKey
+            }
+        case .trae:
+            if let key = TraeSettingsReader.apiKeyEnvironmentKeys.first {
+                env[key] = apiKey
+            }
+        case .zenmux:
+            if let key = ZenmuxSettingsReader.apiKeyEnvironmentKeys.first {
+                env[key] = apiKey
+            }
+        case .aigocode:
+            if let key = AigoCodeSettingsReader.apiKeyEnvironmentKeys.first {
+                env[key] = apiKey
+            }
         default:
             break
         }
@@ -63,7 +79,7 @@ public enum ProviderConfigEnvironment {
     public static func supportsAPIKeyOverride(for provider: UsageProvider) -> Bool {
         if self.directAPIKeyEnvironmentKey(for: provider) != nil { return true }
         switch provider {
-        case .copilot, .kimik2, .warp, .codebuff, .crof, .doubao:
+        case .copilot, .kimik2, .warp, .codebuff, .crof, .doubao, .qwen, .trae, .zenmux, .aigocode:
             return true
         case .azureopenai:
             return true
