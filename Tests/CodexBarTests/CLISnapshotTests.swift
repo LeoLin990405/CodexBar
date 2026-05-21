@@ -144,7 +144,7 @@ struct CLISnapshotTests {
                 useColor: false,
                 resetStyle: .absolute))
 
-        #expect(output.contains("限制: 不可用"))
+        #expect(output.contains("Limits: not available"))
         #expect(output.contains("账号: user@example.com"))
         #expect(output.contains("方案: Pro 20x"))
         #expect(!output.contains("会话:"))
