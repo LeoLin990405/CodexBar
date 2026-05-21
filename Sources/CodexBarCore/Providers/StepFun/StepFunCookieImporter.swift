@@ -6,7 +6,7 @@ import SweetCookieKit
 public enum StepFunCookieImporter {
     private static let log = CodexBarLog.logger(LogCategories.stepfunUsage)
     private static let cookieClient = BrowserCookieClient()
-    private static let cookieDomains = ["platform.stepfun.com"]
+    private static let cookieDomains = ["platform.stepfun.com", "www.stepfun.com"]
     private static let cookieImportOrder: BrowserCookieImportOrder =
         ProviderDefaults.metadata[.stepfun]?.browserCookieOrder ?? Browser.defaultImportOrder
 

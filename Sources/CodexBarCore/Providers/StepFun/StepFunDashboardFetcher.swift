@@ -48,6 +48,8 @@ public struct StepFunDashboardFetcher {
 
         let config = WKWebViewConfiguration()
         config.websiteDataStore = websiteDataStore
+        await self.primeCookies(in: websiteDataStore)
+
         let webView = WKWebView(frame: CGRect(x: -9999, y: -9999, width: 1200, height: 900), configuration: config)
         webView.customUserAgent =
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
@@ -94,11 +96,32 @@ public struct StepFunDashboardFetcher {
         let snapshot: DashboardSnapshot?
     }
 
+    private func primeCookies(in websiteDataStore: WKWebsiteDataStore) async {
+        do {
+            let session = try StepFunCookieImporter.importSession()
+            for cookie in session.cookies {
+                await withCheckedContinuation { continuation in
+                    websiteDataStore.httpCookieStore.setCookie(cookie) {
+                        continuation.resume()
+                    }
+                }
+            }
+            Self.log.debug("Imported StepFun cookies from \(session.sourceLabel)")
+        } catch {
+            Self.log.debug("StepFun browser cookie import skipped: \(error.localizedDescription)")
+        }
+    }
+
     private func scrape(webView: WKWebView) async throws -> ScrapeResult {
         let js = """
         (() => {
             const href = window.location.href;
-            const body = document.body ? document.body.innerText : '';
+            const rawBody = document.body ? document.body.innerText : '';
+            const body = rawBody
+                .replace(/\\u00a0/g, ' ')
+                .replace(/[\\u200b\\u200c\\u200d\\ufeff]/g, '')
+                .replace(/[ \\t\\r\\n]+/g, ' ')
+                .trim();
 
             // Detect login/redirect page
             const isLogin = href.includes('need_login_in=1') ||
@@ -108,29 +131,30 @@ public struct StepFunDashboardFetcher {
                 return JSON.stringify({ isLogin: true, body: body.substring(0, 500) });
             }
 
-            // Extract plan name: "Plus Plan" or similar
-            const planMatch = body.match(/订阅的版本为(\\S+\\s*Plan)/);
-            const plan = planMatch ? planMatch[1] : null;
+            const pct = (match) => match ? parseFloat(match[1]) : null;
+
+            // Extract plan name: "你当前订阅的版本为Plus Plan，有..."
+            const planMatch = body.match(/订阅的版本为\\s*([^，,。；;]*?\\s*Plan)/i) ||
+                body.match(/当前订阅的版本为\\s*([^，,。；;]+)/);
+            const plan = planMatch ? planMatch[1].replace(/\\s+/g, ' ').trim() : null;
 
             // Extract expiry date: "有效期截止至2026年04月22日"
-            const expiryMatch = body.match(/有效期截止至(\\d{4}年\\d{2}月\\d{2}日)/);
+            const expiryMatch = body.match(/有效期截止至\\s*(\\d{4}年\\d{1,2}月\\d{1,2}日)/);
             const expiry = expiryMatch ? expiryMatch[1] : null;
 
             // Extract 5-hour usage: "剩余 100%" or "剩余 85%"
             // Page structure: "5小时用量" followed by "剩余 XX%"
-            const fiveHourMatch = body.match(/5小时用量[\\s\\S]*?剩余\\s*(\\d+)%/);
-            const fiveHourPct = fiveHourMatch ? parseInt(fiveHourMatch[1]) : null;
+            const fiveHourPct = pct(body.match(/5\\s*小时用量[\\s\\S]*?剩余\\s*(\\d+(?:\\.\\d+)?)\\s*%/));
 
             // Extract 5-hour reset time
-            const fiveHourResetMatch = body.match(/5小时用量[\\s\\S]*?重置时间:\\s*([\\d-]+\\s+[\\d:]+)/);
+            const fiveHourResetMatch = body.match(/5\\s*小时用量[\\s\\S]*?重置时间[:：]?\\s*([\\d-]+\\s+[\\d:]+)/);
             const fiveHourReset = fiveHourResetMatch ? fiveHourResetMatch[1] : null;
 
             // Extract weekly usage: "每周用量" followed by "剩余 XX%"
-            const weeklyMatch = body.match(/每周用量[\\s\\S]*?剩余\\s*(\\d+)%/);
-            const weeklyPct = weeklyMatch ? parseInt(weeklyMatch[1]) : null;
+            const weeklyPct = pct(body.match(/每\\s*周用量[\\s\\S]*?剩余\\s*(\\d+(?:\\.\\d+)?)\\s*%/));
 
             // Extract weekly reset time
-            const weeklyResetMatch = body.match(/每周用量[\\s\\S]*?重置时间:\\s*([\\d-]+\\s+[\\d:]+)/);
+            const weeklyResetMatch = body.match(/每\\s*周用量[\\s\\S]*?重置时间[:：]?\\s*([\\d-]+\\s+[\\d:]+)/);
             const weeklyReset = weeklyResetMatch ? weeklyResetMatch[1] : null;
 
             const hasData = plan || fiveHourPct !== null || weeklyPct !== null;
