@@ -1,5 +1,3 @@
-// swiftlint:disable type_body_length
-
 import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
@@ -133,6 +131,7 @@ public enum GeminiUserTierId: String, Sendable {
     case standard = "standard-tier"
 }
 
+// swiftlint:disable:next type_body_length
 public struct GeminiStatusProbe: Sendable {
     public var timeout: TimeInterval = 10.0
     public var homeDirectory: String
