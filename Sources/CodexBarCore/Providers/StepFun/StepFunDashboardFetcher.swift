@@ -268,7 +268,7 @@ public struct StepFunDashboardFetcher {
     }
 
     private static func percentAfter(_ label: String, in body: String) -> Double? {
-        guard let tail = Self.textAfter(label, in: body) else { return nil }
+        guard let tail = textAfter(label, in: body) else { return nil }
         return Self.firstMatch(in: tail, pattern: #"剩余\s*(\d+(?:\.\d+)?)\s*%"#).flatMap(Double.init)
     }
 

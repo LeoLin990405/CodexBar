@@ -50,7 +50,8 @@ struct StepFunWebFetchStrategy: ProviderFetchStrategy {
         guard context.settings?.stepfun?.cookieSource != .off else { return false }
 
         if context.settings?.stepfun?.cookieSource == .manual {
-            return !(context.settings?.stepfun?.manualToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            return !(context.settings?.stepfun?.manualToken.trimmingCharacters(in: .whitespacesAndNewlines)
+                .isEmpty ?? true)
         }
         if CookieHeaderCache.load(provider: .stepfun) != nil { return true }
         if StepFunSettingsReader.token(environment: context.env) != nil { return true }
