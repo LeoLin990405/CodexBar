@@ -146,9 +146,7 @@ public struct GeminiStatusProbe: Sendable {
     public init(
         timeout: TimeInterval = 10.0,
         homeDirectory: String = NSHomeDirectory(),
-        dataLoader: @escaping @Sendable (URLRequest) async throws -> (Data, URLResponse) = { request in
-            try await URLSession.shared.data(for: request)
-        })
+        dataLoader: @escaping @Sendable (URLRequest) async throws -> (Data, URLResponse) = Self.defaultDataLoader)
     {
         self.timeout = timeout
         self.homeDirectory = homeDirectory
@@ -212,31 +210,36 @@ public struct GeminiStatusProbe: Sendable {
             "now": "\(Date())",
         ])
 
-        guard let storedAccessToken = creds.accessToken, !storedAccessToken.isEmpty else {
-            Self.log.error("No access token found")
-            throw GeminiStatusProbeError.notLoggedIn
-        }
+        var accessToken = creds.accessToken?.isEmpty == false ? creds.accessToken : nil
+        var idToken = creds.idToken
+        let needsRefresh = accessToken == nil || creds.expiryDate.map { $0 < Date() } == true
+        if needsRefresh {
+            if accessToken == nil {
+                Self.log.info("No access token found; attempting refresh from stored Gemini credentials")
+            } else if let expiry = creds.expiryDate {
+                Self.log.info("Token expired; attempting refresh", metadata: [
+                    "expiry": "\(expiry)",
+                ])
+            }
 
-        var accessToken = storedAccessToken
-        if let expiry = creds.expiryDate, expiry < Date() {
-            Self.log.info("Token expired; attempting refresh", metadata: [
-                "expiry": "\(expiry)",
-            ])
-
-            guard let refreshToken = creds.refreshToken else {
+            guard let refreshToken = creds.refreshToken, !refreshToken.isEmpty else {
                 Self.log.error("No refresh token available")
                 throw GeminiStatusProbeError.notLoggedIn
             }
-
             accessToken = try await Self.refreshAccessToken(
                 refreshToken: refreshToken,
                 timeout: timeout,
                 homeDirectory: homeDirectory,
                 dataLoader: dataLoader)
+            idToken = (try? Self.loadCredentials(homeDirectory: homeDirectory).idToken) ?? idToken
+        }
+        guard let accessToken else {
+            Self.log.error("No access token found")
+            throw GeminiStatusProbeError.notLoggedIn
         }
 
         // Extract account info from JWT
-        let claims = Self.extractClaimsFromToken(creds.idToken)
+        let claims = Self.extractClaimsFromToken(idToken)
 
         // Load Code Assist status to get project ID and tier (aligned with CLI setupUser logic)
         let caStatus = await Self.loadCodeAssistStatus(
@@ -658,6 +661,22 @@ public struct GeminiStatusProbe: Sendable {
                 return globalPackageJSONURL.deletingLastPathComponent().path
             }
 
+            // Homebrew layout:
+            // <cellar-version>/libexec/lib/node_modules/@google/gemini-cli/package.json
+            let homebrewPackageJSONURL = currentURL
+                .appendingPathComponent("libexec")
+                .appendingPathComponent("lib")
+                .appendingPathComponent("node_modules")
+                .appendingPathComponent("@google")
+                .appendingPathComponent("gemini-cli")
+                .appendingPathComponent("package.json")
+            if let data = try? Data(contentsOf: homebrewPackageJSONURL),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               json["name"] as? String == "@google/gemini-cli"
+            {
+                return homebrewPackageJSONURL.deletingLastPathComponent().path
+            }
+
             let parentURL = currentURL.deletingLastPathComponent()
             if parentURL.path == currentURL.path {
                 return nil
@@ -717,6 +736,21 @@ public struct GeminiStatusProbe: Sendable {
                     .standardizedFileURL
                 guard nextURL.path.hasPrefix(bundleRoot.path) else { continue }
                 pendingURLs.append(nextURL)
+            }
+        }
+
+        guard let bundleFiles = try? FileManager.default.contentsOfDirectory(
+            at: bundleRoot,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles])
+        else {
+            return nil
+        }
+
+        for url in bundleFiles where url.pathExtension == "js" && !visitedPaths.contains(url.standardizedFileURL.path) {
+            guard let content = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            if let credentials = Self.parseOAuthCredentials(from: content) {
+                return credentials
             }
         }
 
@@ -798,9 +832,9 @@ public struct GeminiStatusProbe: Sendable {
     }
 
     private static func parseOAuthCredentials(from content: String) -> OAuthClientCredentials? {
-        // Match: const OAUTH_CLIENT_ID = '...';
-        let clientIdPattern = #"OAUTH_CLIENT_ID\s*=\s*['"]([\w\-\.]+)['"]\s*;"#
-        let secretPattern = #"OAUTH_CLIENT_SECRET\s*=\s*['"]([\w\-]+)['"]\s*;"#
+        // Match: const/let/var OAUTH_CLIENT_ID = '...';
+        let clientIdPattern = #"(?:const|let|var)?\s*OAUTH_CLIENT_ID\s*=\s*['"]([\w\-\.]+)['"]\s*;"#
+        let secretPattern = #"(?:const|let|var)?\s*OAUTH_CLIENT_SECRET\s*=\s*['"]([\w\-]+)['"]\s*;"#
 
         guard let clientIdRegex = try? NSRegularExpression(pattern: clientIdPattern),
               let secretRegex = try? NSRegularExpression(pattern: secretPattern)

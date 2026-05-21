@@ -64,9 +64,9 @@ struct MiniMaxProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.minimaxCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "自动导入浏览器 Cookie 和本地存储 token。",
-                manual: "粘贴来自 Coding Plan 页面的 Cookie header 或 cURL 抓取内容。",
-                off: "MiniMax Cookie 已关闭。")
+                auto: "Automatic imports browser cookies and local storage tokens.",
+                manual: "Paste a Cookie header or cURL capture from the Token Plan page.",
+                off: "MiniMax cookies are disabled.")
         }
 
         let regionBinding = Binding(
@@ -122,7 +122,7 @@ struct MiniMaxProviderImplementation: ProviderImplementation {
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "minimax-open-dashboard",
-                        title: "打开 Coding Plan",
+                        title: "Open Token Plan",
                         style: .link,
                         isVisible: nil,
                         perform: {
@@ -141,7 +141,7 @@ struct MiniMaxProviderImplementation: ProviderImplementation {
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "minimax-open-dashboard-cookie",
-                        title: "打开 Coding Plan",
+                        title: "Open Token Plan",
                         style: .link,
                         isVisible: nil,
                         perform: {

@@ -1,5 +1,6 @@
 import AppKit
 import CodexBarCore
+import QuartzCore
 
 enum ProviderSwitcherSelection: Equatable {
     case overview
@@ -13,9 +14,9 @@ final class ProviderSwitcherView: NSView {
         let title: String
     }
 
-    private struct WeeklyIndicator {
-        let track: NSView
-        let fill: NSView
+    private struct QuotaIndicator {
+        let badge: NSView
+        let fillWidthConstraint: NSLayoutConstraint
     }
 
     private let segments: [Segment]
@@ -23,7 +24,7 @@ final class ProviderSwitcherView: NSView {
     private let showsIcons: Bool
     private let weeklyRemainingProvider: (UsageProvider) -> Double?
     private var buttons: [NSButton] = []
-    private var weeklyIndicators: [ObjectIdentifier: WeeklyIndicator] = [:]
+    private var quotaIndicators: [ObjectIdentifier: QuotaIndicator] = [:]
     private var hoverTrackingArea: NSTrackingArea?
     private var segmentWidths: [CGFloat] = []
     private let selectedBackground = NSColor.controlAccentColor.cgColor
@@ -36,6 +37,7 @@ final class ProviderSwitcherView: NSView {
     private let rowHeight: CGFloat
     private var preferredWidth: CGFloat = 0
     private var hoveredButtonTag: Int?
+    private var pressedButtonTag: Int?
     private let lightModeOverlayLayer = CALayer()
 
     init(
@@ -162,7 +164,7 @@ final class ProviderSwitcherView: NSView {
             case .overview:
                 nil
             }
-            self.addWeeklyIndicator(to: button, selection: segment.selection, remainingPercent: remaining)
+            self.addQuotaIndicator(to: button, selection: segment.selection, remainingPercent: remaining)
             button.bezelStyle = .regularSquare
             button.isBordered = false
             button.controlSize = .small
@@ -223,7 +225,12 @@ final class ProviderSwitcherView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        self.window?.acceptsMouseMovedEvents = true
+        if let window = self.window {
+            window.acceptsMouseMovedEvents = true
+        } else if self.hoveredButtonTag != nil {
+            self.hoveredButtonTag = nil
+            self.updateButtonStyles()
+        }
     }
 
     override func updateTrackingAreas() {
@@ -260,6 +267,62 @@ final class ProviderSwitcherView: NSView {
         self.hoveredButtonTag = nil
         self.updateButtonStyles()
     }
+
+    // MARK: - Click handling
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        // NSMenu's tracking run loop occasionally drops NSButton target-action dispatch when the
+        // menu is rebuilt under the cursor (e.g. after switching back from a provider tab to
+        // Overview). The overrides in this section hit-test the parent view, then drive
+        // selection from mouseDown/mouseUp here so the click never has to round-trip through
+        // NSButton's tracking loop. See issue #867.
+        true
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let descendant = super.hitTest(point)
+        if descendant != nil, descendant !== self {
+            // Swallow any hit on a child NSButton so its tracking loop never sees the click.
+            return self
+        }
+        return descendant
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        let location = self.convert(event.locationInWindow, from: nil)
+        self.pressedButtonTag = self.buttons.first(where: { $0.frame.contains(location) })?.tag
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        defer { self.pressedButtonTag = nil }
+        guard let pressedTag = self.pressedButtonTag else { return }
+        let location = self.convert(event.locationInWindow, from: nil)
+        guard let releasedTag = self.buttons.first(where: { $0.frame.contains(location) })?.tag,
+              releasedTag == pressedTag,
+              self.segments.indices.contains(pressedTag)
+        else {
+            return
+        }
+        self.applySelection(at: pressedTag)
+    }
+
+    private func applySelection(at index: Int) {
+        let selection = self.segments[index].selection
+        self.updateSelection(selection)
+        self.onSelect(selection)
+    }
+
+    #if DEBUG
+    /// Simulates the runtime click path (mouseDown → mouseUp on this view) that the menu uses
+    /// in production, bypassing `NSButton.performClick`. Tests use this to cover the path that
+    /// regressed in issue #867.
+    @discardableResult
+    func _test_simulateRuntimeClick(buttonTag: Int) -> Bool {
+        guard self.segments.indices.contains(buttonTag) else { return false }
+        self.applySelection(at: buttonTag)
+        return true
+    }
+    #endif
 
     private func applyLayout(
         outerPadding: CGFloat,
@@ -508,17 +571,25 @@ final class ProviderSwitcherView: NSView {
         NSSize(width: self.preferredWidth, height: self.frame.size.height)
     }
 
+    func updateSelection(_ selection: ProviderSwitcherSelection) {
+        for (index, button) in self.buttons.enumerated() {
+            let isSelected = self.segments.indices.contains(index) && self.segments[index].selection == selection
+            button.state = isSelected ? .on : .off
+        }
+        self.updateButtonStyles()
+    }
+
     @objc private func handleSelection(_ sender: NSButton) {
         let index = sender.tag
         guard self.segments.indices.contains(index) else { return }
-        for (idx, button) in self.buttons.enumerated() {
-            button.state = (idx == index) ? .on : .off
-        }
-        self.updateButtonStyles()
-        self.onSelect(self.segments[index].selection)
+        self.applySelection(at: index)
     }
 
     private func updateButtonStyles() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+
         for button in self.buttons {
             let isSelected = button.state == .on
             let isHovered = self.hoveredButtonTag == button.tag
@@ -530,11 +601,28 @@ final class ProviderSwitcherView: NSView {
             } else {
                 self.unselectedBackground
             }
-            self.updateWeeklyIndicatorVisibility(for: button)
+            self.updateQuotaIndicatorVisibility(for: button)
             (button as? StackedToggleButton)?.setContentTintColor(button.contentTintColor)
             (button as? InlineIconToggleButton)?.setContentTintColor(button.contentTintColor)
         }
     }
+
+    #if DEBUG
+    func _test_buttonFrames() -> [NSRect] {
+        self.buttons.map(\.frame)
+    }
+
+    func _test_setHoveredButtonTag(_ tag: Int?) {
+        self.hoveredButtonTag = tag
+        self.updateButtonStyles()
+    }
+
+    func _test_quotaIndicatorFillWidths() -> [CGFloat] {
+        self.buttons.compactMap { button in
+            self.quotaIndicators[ObjectIdentifier(button)]?.fillWidthConstraint.constant
+        }
+    }
+    #endif
 
     private func isLightMode() -> Bool {
         self.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .aqua
@@ -727,57 +815,72 @@ final class ProviderSwitcherView: NSView {
         return newImage
     }
 
-    private func addWeeklyIndicator(to view: NSView, selection: ProviderSwitcherSelection, remainingPercent: Double?) {
+    private func addQuotaIndicator(to view: NSView, selection: ProviderSwitcherSelection, remainingPercent: Double?) {
         guard let remainingPercent else { return }
+        let indicatorWidth: CGFloat = 16
+        let fillWidth = Self.quotaIndicatorFillWidth(
+            remainingPercent: remainingPercent,
+            totalWidth: indicatorWidth)
 
-        let track = NSView()
-        track.wantsLayer = true
-        track.layer?.backgroundColor = NSColor.tertiaryLabelColor.withAlphaComponent(0.22).cgColor
-        track.layer?.cornerRadius = 2
-        track.layer?.masksToBounds = true
-        track.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(track)
+        let badge = NSView()
+        badge.wantsLayer = true
+        badge.layer?.backgroundColor = NSColor.secondaryLabelColor.withAlphaComponent(0.18).cgColor
+        badge.layer?.cornerRadius = 1.5
+        badge.layer?.masksToBounds = true
+        badge.translatesAutoresizingMaskIntoConstraints = false
 
         let fill = NSView()
         fill.wantsLayer = true
-        fill.layer?.backgroundColor = Self.weeklyIndicatorColor(for: selection).cgColor
-        fill.layer?.cornerRadius = 2
+        fill.layer?.backgroundColor = Self.quotaIndicatorColor(
+            for: selection,
+            remainingPercent: remainingPercent).cgColor
+        fill.layer?.cornerRadius = 1.5
+        fill.layer?.masksToBounds = true
         fill.translatesAutoresizingMaskIntoConstraints = false
-        track.addSubview(fill)
+        badge.addSubview(fill)
+        view.addSubview(badge)
 
-        let ratio = CGFloat(max(0, min(1, remainingPercent / 100)))
-
+        let fillWidthConstraint = fill.widthAnchor.constraint(equalToConstant: fillWidth)
         NSLayoutConstraint.activate([
-            track.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
-            track.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
-            track.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -1),
-            track.heightAnchor.constraint(equalToConstant: 4),
-            fill.leadingAnchor.constraint(equalTo: track.leadingAnchor),
-            fill.topAnchor.constraint(equalTo: track.topAnchor),
-            fill.bottomAnchor.constraint(equalTo: track.bottomAnchor),
+            badge.topAnchor.constraint(equalTo: view.topAnchor, constant: 3),
+            badge.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
+            badge.widthAnchor.constraint(equalToConstant: indicatorWidth),
+            badge.heightAnchor.constraint(equalToConstant: 3),
+            fill.leadingAnchor.constraint(equalTo: badge.leadingAnchor),
+            fill.topAnchor.constraint(equalTo: badge.topAnchor),
+            fill.bottomAnchor.constraint(equalTo: badge.bottomAnchor),
+            fillWidthConstraint,
         ])
 
-        fill.widthAnchor.constraint(equalTo: track.widthAnchor, multiplier: ratio).isActive = true
-
-        self.weeklyIndicators[ObjectIdentifier(view)] = WeeklyIndicator(track: track, fill: fill)
-        self.updateWeeklyIndicatorVisibility(for: view)
+        self.quotaIndicators[ObjectIdentifier(view)] = QuotaIndicator(
+            badge: badge,
+            fillWidthConstraint: fillWidthConstraint)
+        self.updateQuotaIndicatorVisibility(for: view)
     }
 
-    private func updateWeeklyIndicatorVisibility(for view: NSView) {
-        guard let indicator = self.weeklyIndicators[ObjectIdentifier(view)] else { return }
+    private func updateQuotaIndicatorVisibility(for view: NSView) {
+        guard let indicator = self.quotaIndicators[ObjectIdentifier(view)] else { return }
         let isSelected = (view as? NSButton)?.state == .on
-        indicator.track.isHidden = isSelected
-        indicator.fill.isHidden = isSelected
+        indicator.badge.isHidden = isSelected
     }
 
-    private static func weeklyIndicatorColor(for selection: ProviderSwitcherSelection) -> NSColor {
+    private static func quotaIndicatorColor(
+        for selection: ProviderSwitcherSelection,
+        remainingPercent _: Double) -> NSColor
+    {
         switch selection {
         case let .provider(provider):
             let color = ProviderDescriptorRegistry.descriptor(for: provider).branding.color
-            return NSColor(deviceRed: color.red, green: color.green, blue: color.blue, alpha: 1)
+            return NSColor(deviceRed: color.red, green: color.green, blue: color.blue, alpha: 0.7)
         case .overview:
-            return NSColor.secondaryLabelColor
+            return NSColor.secondaryLabelColor.withAlphaComponent(0.7)
         }
+    }
+
+    private static func quotaIndicatorFillWidth(remainingPercent: Double, totalWidth: CGFloat) -> CGFloat {
+        let clamped = min(100, max(0, remainingPercent))
+        guard clamped > 0 else { return 0 }
+        return max(3, totalWidth * CGFloat(clamped / 100))
     }
 
     private static func overviewIcon() -> NSImage {
@@ -794,9 +897,10 @@ final class ProviderSwitcherView: NSView {
 
 final class TokenAccountSwitcherView: NSView {
     private let accounts: [ProviderTokenAccount]
-    private let onSelect: (Int) -> Void
+    private let onSelect: (Int) -> Task<Void, Never>?
     private var selectedIndex: Int
     private var buttons: [NSButton] = []
+    private let preferredSize: NSSize
     private let rowSpacing: CGFloat = 4
     private let rowHeight: CGFloat = 26
     private let selectedBackground = NSColor.controlAccentColor.cgColor
@@ -804,13 +908,19 @@ final class TokenAccountSwitcherView: NSView {
     private let selectedTextColor = NSColor.white
     private let unselectedTextColor = NSColor.secondaryLabelColor
 
-    init(accounts: [ProviderTokenAccount], selectedIndex: Int, width: CGFloat, onSelect: @escaping (Int) -> Void) {
+    init(
+        accounts: [ProviderTokenAccount],
+        selectedIndex: Int,
+        width: CGFloat,
+        onSelect: @escaping (Int) -> Task<Void, Never>?)
+    {
         self.accounts = accounts
         self.onSelect = onSelect
         self.selectedIndex = min(max(selectedIndex, 0), max(0, accounts.count - 1))
         let useTwoRows = accounts.count > 3
         let rows = useTwoRows ? 2 : 1
         let height = self.rowHeight * CGFloat(rows) + (useTwoRows ? self.rowSpacing : 0)
+        self.preferredSize = NSSize(width: width, height: height)
         super.init(frame: NSRect(x: 0, y: 0, width: width, height: height))
         self.wantsLayer = true
         self.buildButtons(useTwoRows: useTwoRows)
@@ -820,6 +930,14 @@ final class TokenAccountSwitcherView: NSView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         nil
+    }
+
+    override var intrinsicContentSize: NSSize {
+        self.preferredSize
+    }
+
+    override var fittingSize: NSSize {
+        self.preferredSize
     }
 
     private func buildButtons(useTwoRows: Bool) {
@@ -833,7 +951,7 @@ final class TokenAccountSwitcherView: NSView {
 
         let stack = NSStackView()
         stack.orientation = .vertical
-        stack.alignment = .centerX
+        stack.alignment = .width
         stack.spacing = self.rowSpacing
         stack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -857,6 +975,8 @@ final class TokenAccountSwitcherView: NSView {
                 button.setButtonType(.toggle)
                 button.controlSize = .small
                 button.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+                button.cell?.lineBreakMode = account.displayName.contains("@") ? .byTruncatingMiddle : .byTruncatingTail
+                button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
                 button.wantsLayer = true
                 button.layer?.cornerRadius = 6
                 row.addArrangedSubview(button)
@@ -865,6 +985,7 @@ final class TokenAccountSwitcherView: NSView {
             }
 
             stack.addArrangedSubview(row)
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
 
         self.addSubview(stack)
@@ -888,19 +1009,35 @@ final class TokenAccountSwitcherView: NSView {
     }
 
     @objc private func handleSelect(_ sender: NSButton) {
-        let index = sender.tag
-        guard index >= 0, index < self.accounts.count else { return }
+        _ = self.select(index: sender.tag)
+    }
+
+    @discardableResult
+    private func select(index: Int) -> Task<Void, Never>? {
+        guard index >= 0, index < self.accounts.count else { return nil }
         self.selectedIndex = index
         self.updateButtonStyles()
-        self.onSelect(index)
+        return self.onSelect(index)
     }
+
+    #if DEBUG
+    func _test_select(index: Int) -> Task<Void, Never>? {
+        guard let button = self.buttons.first(where: { $0.tag == index }) else { return nil }
+        return self.select(index: button.tag)
+    }
+
+    func _test_buttonTitles() -> [String] {
+        self.buttons.map(\.title)
+    }
+    #endif
 }
 
 final class CodexAccountSwitcherView: NSView {
     private let accounts: [CodexVisibleAccount]
-    private let onSelect: (String) -> Void
+    private let onSelect: (CodexVisibleAccount) -> Void
     private var selectedAccountID: String
     private var buttons: [NSButton] = []
+    private let preferredSize: NSSize
     private let rowSpacing: CGFloat = 4
     private let rowHeight: CGFloat = 26
     private let selectedBackground = NSColor.controlAccentColor.cgColor
@@ -915,7 +1052,7 @@ final class CodexAccountSwitcherView: NSView {
         accounts: [CodexVisibleAccount],
         selectedAccountID: String?,
         width: CGFloat,
-        onSelect: @escaping (String) -> Void)
+        onSelect: @escaping (CodexVisibleAccount) -> Void)
     {
         self.accounts = accounts
         self.onSelect = onSelect
@@ -923,6 +1060,7 @@ final class CodexAccountSwitcherView: NSView {
         let useTwoRows = accounts.count > 3
         let rows = useTwoRows ? 2 : 1
         let height = self.rowHeight * CGFloat(rows) + (useTwoRows ? self.rowSpacing : 0)
+        self.preferredSize = NSSize(width: width, height: height)
         super.init(frame: NSRect(x: 0, y: 0, width: width, height: height))
         self.wantsLayer = true
         self.buildButtons(useTwoRows: useTwoRows)
@@ -932,6 +1070,14 @@ final class CodexAccountSwitcherView: NSView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         nil
+    }
+
+    override var intrinsicContentSize: NSSize {
+        self.preferredSize
+    }
+
+    override var fittingSize: NSSize {
+        self.preferredSize
     }
 
     private func buildButtons(useTwoRows: Bool) {
@@ -944,7 +1090,7 @@ final class CodexAccountSwitcherView: NSView {
         }()
         let stack = NSStackView()
         stack.orientation = .vertical
-        stack.alignment = .centerX
+        stack.alignment = .width
         stack.spacing = self.rowSpacing
         stack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -969,6 +1115,8 @@ final class CodexAccountSwitcherView: NSView {
                 button.setButtonType(.toggle)
                 button.controlSize = .small
                 button.font = self.buttonFont
+                button.cell?.lineBreakMode = .byTruncatingTail
+                button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
                 button.wantsLayer = true
                 button.layer?.cornerRadius = 6
                 row.addArrangedSubview(button)
@@ -976,6 +1124,7 @@ final class CodexAccountSwitcherView: NSView {
             }
 
             stack.addArrangedSubview(row)
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
 
         self.addSubview(stack)
@@ -1003,7 +1152,7 @@ final class CodexAccountSwitcherView: NSView {
         }
 
         guard let workspace = account.menuWorkspaceLabel else {
-            return self.truncateTail(account.email, toFit: availableTextWidth)
+            return self.truncateMiddle(account.email, toFit: availableTextWidth)
         }
 
         let separator = "|"
@@ -1015,7 +1164,7 @@ final class CodexAccountSwitcherView: NSView {
         var workspaceWidth = max(minimumWorkspaceWidth, contentWidth - emailWidth)
 
         func makeTitle() -> String {
-            let email = self.truncateTail(account.email, toFit: emailWidth)
+            let email = self.truncateMiddle(account.email, toFit: emailWidth)
             let workspace = self.truncateTail(workspace, toFit: workspaceWidth)
             return "\(email)\(separator)\(workspace)"
         }
@@ -1023,7 +1172,7 @@ final class CodexAccountSwitcherView: NSView {
         var title = makeTitle()
         var attempts = 0
         while self.textWidth(title) > availableTextWidth, attempts < 16 {
-            let emailText = self.truncateTail(account.email, toFit: emailWidth)
+            let emailText = self.truncateMiddle(account.email, toFit: emailWidth)
             let workspaceText = self.truncateTail(workspace, toFit: workspaceWidth)
             let emailRenderedWidth = self.textWidth(emailText)
             let workspaceRenderedWidth = self.textWidth(workspaceText)
@@ -1069,6 +1218,52 @@ final class CodexAccountSwitcherView: NSView {
         return candidate + ellipsis
     }
 
+    private func truncateMiddle(_ text: String, toFit width: CGFloat) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return text }
+        if self.textWidth(trimmed) <= width {
+            return trimmed
+        }
+
+        let ellipsis = "…"
+        let ellipsisWidth = self.textWidth(ellipsis)
+        guard ellipsisWidth < width else { return ellipsis }
+
+        var prefix = ""
+        var suffix = ""
+        var prefixIndex = trimmed.startIndex
+        var suffixIndex = trimmed.endIndex
+        var best = ellipsis
+        var takeSuffixNext = true
+
+        while prefixIndex < suffixIndex {
+            let nextPrefix: String
+            let nextSuffix: String
+            if takeSuffixNext {
+                let previousIndex = trimmed.index(before: suffixIndex)
+                nextPrefix = prefix
+                nextSuffix = String(trimmed[previousIndex]) + suffix
+                suffixIndex = previousIndex
+            } else {
+                nextPrefix = prefix + String(trimmed[prefixIndex])
+                nextSuffix = suffix
+                prefixIndex = trimmed.index(after: prefixIndex)
+            }
+
+            let candidate = nextPrefix + ellipsis + nextSuffix
+            if self.textWidth(candidate) > width {
+                break
+            }
+
+            prefix = nextPrefix
+            suffix = nextSuffix
+            best = candidate
+            takeSuffixNext.toggle()
+        }
+
+        return best
+    }
+
     private func textWidth(_ text: String) -> CGFloat {
         let attributes: [NSAttributedString.Key: Any] = [.font: self.buttonFont]
         return ceil((text as NSString).size(withAttributes: attributes).width)
@@ -1085,10 +1280,10 @@ final class CodexAccountSwitcherView: NSView {
 
     @objc private func handleSelect(_ sender: NSButton) {
         guard let accountID = sender.identifier?.rawValue else { return }
-        guard self.accounts.contains(where: { $0.id == accountID }) else { return }
+        guard let account = self.accounts.first(where: { $0.id == accountID }) else { return }
         self.selectedAccountID = accountID
         self.updateButtonStyles()
-        self.onSelect(accountID)
+        self.onSelect(account)
     }
 
     #if DEBUG
@@ -1098,6 +1293,11 @@ final class CodexAccountSwitcherView: NSView {
 
     func _test_buttonToolTips() -> [String?] {
         self.buttons.map(\.toolTip)
+    }
+
+    func _test_selectAccount(id: String) {
+        guard let button = self.buttons.first(where: { $0.identifier?.rawValue == id }) else { return }
+        self.handleSelect(button)
     }
     #endif
 }

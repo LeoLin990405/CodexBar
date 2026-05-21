@@ -22,6 +22,47 @@ private final class AntigravityAttemptRecorder: @unchecked Sendable {
 
 struct AntigravityStatusProbeTests {
     @Test
+    func `process detection accepts antigravity 2 unsuffixed language server`() {
+        let command = """
+        /Applications/Antigravity.app/Contents/Resources/bin/language_server --standalone \
+        --override_ide_name antigravity --override_ide_version 2.0.0 \
+        --csrf_token token --app_data_dir antigravity
+        """
+
+        #expect(AntigravityStatusProbe.isAntigravityLanguageServerCommandLine(command))
+    }
+
+    @Test
+    func `process detection accepts antigravity language server paths with spaces`() {
+        let command = """
+        /Applications/Google Antigravity.app/Contents/Resources/bin/language_server --standalone \
+        --override_ide_name antigravity --csrf_token token --app_data_dir antigravity
+        """
+
+        #expect(AntigravityStatusProbe.isAntigravityLanguageServerCommandLine(command))
+    }
+
+    @Test
+    func `process detection keeps ignoring non language server antigravity helpers`() {
+        let helper = """
+        /Applications/Antigravity.app/Contents/Frameworks/Antigravity Helper.app/Contents/MacOS/Antigravity Helper \
+        --type=renderer --user-data-dir=/Users/test/Library/Application Support/Antigravity
+        """
+
+        #expect(!AntigravityStatusProbe.isAntigravityLanguageServerCommandLine(helper))
+    }
+
+    @Test
+    func `process detection still accepts legacy antigravity language server`() {
+        let command = """
+        /Applications/Antigravity.app/Contents/Resources/bin/language_server_macos \
+        --csrf_token token --app_data_dir antigravity
+        """
+
+        #expect(AntigravityStatusProbe.isAntigravityLanguageServerCommandLine(command))
+    }
+
+    @Test
     func `localhost trust policy only accepts local server trust challenges`() {
         #expect(
             LocalhostTrustPolicy.shouldAcceptServerTrust(
@@ -630,6 +671,30 @@ struct AntigravityStatusProbeTests {
     }
 
     @Test
+    func `gemini pro prefers model with remaining data over low priority placeholder`() throws {
+        let snapshot = AntigravityStatusSnapshot(
+            modelQuotas: [
+                AntigravityModelQuota(
+                    label: "Gemini 3 Pro (Low)",
+                    modelId: "MODEL_PLACEHOLDER_M36",
+                    remainingFraction: nil,
+                    resetTime: Date(timeIntervalSince1970: 1_735_000_000),
+                    resetDescription: nil),
+                AntigravityModelQuota(
+                    label: "Gemini 3 Pro (High)",
+                    modelId: "MODEL_PLACEHOLDER_M37",
+                    remainingFraction: 1,
+                    resetTime: Date(timeIntervalSince1970: 1_735_100_000),
+                    resetDescription: nil),
+            ],
+            accountEmail: nil,
+            accountPlan: nil)
+
+        let usage = try snapshot.toUsageSnapshot()
+        #expect(usage.secondary?.remainingPercent.rounded() == 100)
+    }
+
+    @Test
     func `gemini flash does not fallback to lite variant`() throws {
         let snapshot = AntigravityStatusSnapshot(
             modelQuotas: [
@@ -684,6 +749,58 @@ struct AntigravityStatusProbeTests {
         #expect(usage.primary?.remainingPercent.rounded() == 30)
         #expect(usage.secondary?.remainingPercent.rounded() == 40)
         #expect(usage.tertiary?.remainingPercent.rounded() == 100)
+    }
+
+    @Test
+    func `matches remote antigravity model names with parentheses`() throws {
+        let resetTime = Date(timeIntervalSince1970: 1_775_000_000)
+        let snapshot = AntigravityStatusSnapshot(
+            modelQuotas: [
+                AntigravityModelQuota(
+                    label: "Claude Opus 4.6 (Thinking)",
+                    modelId: "MODEL_PLACEHOLDER_M50",
+                    remainingFraction: 1,
+                    resetTime: resetTime,
+                    resetDescription: nil),
+                AntigravityModelQuota(
+                    label: "Claude Sonnet 4.6 (Thinking)",
+                    modelId: "MODEL_PLACEHOLDER_M51",
+                    remainingFraction: 1,
+                    resetTime: resetTime,
+                    resetDescription: nil),
+                AntigravityModelQuota(
+                    label: "Gemini 3 Pro (High)",
+                    modelId: "MODEL_PLACEHOLDER_M52",
+                    remainingFraction: 1,
+                    resetTime: resetTime,
+                    resetDescription: nil),
+                AntigravityModelQuota(
+                    label: "Gemini 3 Pro (Low)",
+                    modelId: "MODEL_PLACEHOLDER_M53",
+                    remainingFraction: 1,
+                    resetTime: resetTime,
+                    resetDescription: nil),
+                AntigravityModelQuota(
+                    label: "Gemini 3 Flash",
+                    modelId: "MODEL_PLACEHOLDER_M54",
+                    remainingFraction: 1,
+                    resetTime: resetTime,
+                    resetDescription: nil),
+                AntigravityModelQuota(
+                    label: "GPT-OSS 120B (Medium)",
+                    modelId: "MODEL_PLACEHOLDER_M55",
+                    remainingFraction: 1,
+                    resetTime: resetTime,
+                    resetDescription: nil),
+            ],
+            accountEmail: "user@example.com",
+            accountPlan: "Pro")
+
+        let usage = try snapshot.toUsageSnapshot()
+        #expect(usage.primary?.remainingPercent.rounded() == 100)
+        #expect(usage.secondary?.remainingPercent.rounded() == 100)
+        #expect(usage.tertiary?.remainingPercent.rounded() == 100)
+        #expect(usage.identity?.accountEmail == "user@example.com")
     }
 
     @Test

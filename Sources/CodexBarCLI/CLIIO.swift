@@ -27,8 +27,12 @@ extension CodexBarCLI {
             print(Self.usageHelp(version: version))
         case "cost":
             print(Self.costHelp(version: version))
+        case "serve":
+            print(Self.serveHelp(version: version))
         case "config", "validate", "dump":
             print(Self.configHelp(version: version))
+        case "cache", "clear":
+            print(Self.cacheHelp(version: version))
         default:
             print(Self.rootHelp(version: version))
         }
@@ -39,13 +43,25 @@ extension CodexBarCLI {
         bundle: Bundle = .main,
         executablePath: String? = CommandLine.arguments.first) -> String?
     {
-        if let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String {
+        if let version = self.currentVersion(bundleVersion: nil, executablePath: executablePath) {
             return version
         }
-        guard let executablePath, !executablePath.isEmpty else { return nil }
+        return self.currentVersion(
+            bundleVersion: bundle.infoDictionary?["CFBundleShortVersionString"] as? String,
+            executablePath: nil)
+    }
 
-        let executableURL = URL(fileURLWithPath: executablePath).resolvingSymlinksInPath()
-        return Self.containingAppVersion(for: executableURL)
+    static func currentVersion(bundleVersion: String?, executablePath: String?) -> String? {
+        if let executablePath, !executablePath.isEmpty {
+            let executableURL = URL(fileURLWithPath: executablePath).resolvingSymlinksInPath()
+            if let version = Self.adjacentVersionFileVersion(for: executableURL) {
+                return version
+            }
+            if let version = Self.containingAppVersion(for: executableURL) {
+                return version
+            }
+        }
+        return Self.normalizedBundleVersion(bundleVersion)
     }
 
     static func containingAppVersion(for executableURL: URL) -> String? {
@@ -66,6 +82,29 @@ extension CodexBarCLI {
         }
 
         return nil
+    }
+
+    static func adjacentVersionFileVersion(for executableURL: URL) -> String? {
+        let versionURL = executableURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("VERSION")
+        guard let raw = try? String(contentsOf: versionURL, encoding: .utf8) else {
+            return nil
+        }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if trimmed.hasPrefix("v"), trimmed.dropFirst().first?.isNumber == true {
+            return String(trimmed.dropFirst())
+        }
+        return trimmed
+    }
+
+    static func normalizedBundleVersion(_ raw: String?) -> String? {
+        guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty,
+              trimmed != "CodexBar"
+        else { return nil }
+        return trimmed
     }
 
     static func platformExit(_ code: Int32) -> Never {

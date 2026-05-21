@@ -40,15 +40,11 @@ extension MiMoUsageSnapshot {
         let balanceText = UsageFormatter.currencyString(self.balance, currencyCode: trimmedCurrency)
 
         let primary: RateWindow? = {
-            guard self.tokenLimit > 0 else {
-                return RateWindow(
-                    usedPercent: 0,
-                    windowMinutes: nil,
-                    resetsAt: nil,
-                    resetDescription: nil)
-            }
+            guard self.tokenLimit > 0 else { return nil }
             let usedPercent = max(0, min(100, self.tokenPercent * 100))
-            let resetDesc = "\(self.tokenUsed.formatted()) / \(self.tokenLimit.formatted()) Credits"
+            let usedText = Self.fullCountString(self.tokenUsed)
+            let limitText = Self.fullCountString(self.tokenLimit)
+            let resetDesc = "\(usedText) / \(limitText) Credits"
             return RateWindow(
                 usedPercent: usedPercent,
                 windowMinutes: nil,
@@ -65,7 +61,7 @@ extension MiMoUsageSnapshot {
             providerID: .mimo,
             accountEmail: nil,
             accountOrganization: nil,
-            loginMethod: planLabel ?? "余额：\(balanceText)")
+            loginMethod: planLabel ?? "Balance: \(balanceText)")
 
         return UsageSnapshot(
             primary: primary,
@@ -74,5 +70,13 @@ extension MiMoUsageSnapshot {
             providerCost: nil,
             updatedAt: self.updatedAt,
             identity: identity)
+    }
+
+    private static func fullCountString(_ value: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = true
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 }

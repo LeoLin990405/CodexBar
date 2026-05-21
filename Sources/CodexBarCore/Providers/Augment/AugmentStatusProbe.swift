@@ -131,6 +131,10 @@ public struct AugmentCreditsResponse: Codable, Sendable {
     }
 
     public var creditsLimit: Double? {
+        if let available = self.usageUnitsAvailable, available > 0 {
+            return available
+        }
+
         guard let remaining = self.usageUnitsRemaining,
               let consumed = self.usageUnitsConsumedThisBillingCycle
         else {
@@ -222,6 +226,7 @@ public struct AugmentStatusSnapshot: Sendable {
 
     private static func formatResetDate(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
+        formatter.locale = Locale(identifier: "en_US")
         formatter.unitsStyle = .full
         return formatter.localizedString(for: date, relativeTo: Date())
     }
@@ -492,7 +497,7 @@ public struct AugmentStatusProbe: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await ProviderHTTPClient.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AugmentStatusProbeError.networkError("Invalid response")
@@ -530,7 +535,7 @@ public struct AugmentStatusProbe: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await ProviderHTTPClient.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AugmentStatusProbeError.networkError("Invalid response")

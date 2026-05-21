@@ -1,9 +1,30 @@
+import AppKit
 import CodexBarCore
 import Foundation
 import Testing
 @testable import CodexBar
 
 struct StatusItemControllerMenuTests {
+    @MainActor
+    private final class RecordingUpdater: UpdaterProviding {
+        var automaticallyChecksForUpdates = false
+        var automaticallyDownloadsUpdates = false
+        let isAvailable = true
+        let unavailableReason: String? = nil
+        let updateStatus = UpdateStatus(isUpdateReady: true)
+        var checkForUpdatesCount = 0
+        var installUpdateCount = 0
+
+        func checkForUpdates(_ sender: Any?) {
+            _ = sender
+            self.checkForUpdatesCount += 1
+        }
+
+        func installUpdate() {
+            self.installUpdateCount += 1
+        }
+    }
+
     private func makeSnapshot(
         primary: RateWindow?,
         secondary: RateWindow?,
@@ -96,97 +117,48 @@ struct StatusItemControllerMenuTests {
     }
 
     @Test
-    func `mimo balance snapshot still provides switcher indicator`() {
-        let snapshot = MiMoUsageSnapshot(
-            balance: 25.51,
-            currency: "USD",
-            updatedAt: Date())
-            .toUsageSnapshot()
+    @MainActor
+    func `menu card width stays at base width when menu accessories are present`() {
+        let shortcutMenu = NSMenu()
+        let refreshItem = NSMenuItem(title: "Refresh", action: nil, keyEquivalent: "r")
+        shortcutMenu.addItem(refreshItem)
+        #expect(ceil(shortcutMenu.size.width) < 310)
 
-        let percent = StatusItemController.switcherWeeklyMetricPercent(
-            for: .mimo,
-            snapshot: snapshot,
-            showUsed: false)
-
-        #expect(percent == 100)
+        let submenuMenu = NSMenu()
+        let parentItem = NSMenuItem(title: "Session", action: nil, keyEquivalent: "")
+        parentItem.submenu = NSMenu(title: "Session")
+        submenuMenu.addItem(parentItem)
+        #expect(ceil(submenuMenu.size.width) < 310)
     }
 
     @Test
-    func `kimi weekly snapshot provides switcher indicator`() {
-        let snapshot = KimiUsageSnapshot(
-            weekly: KimiUsageDetail(
-                limit: "100",
-                used: "0",
-                remaining: "100",
-                resetTime: "2026-05-12T04:23:14Z"),
-            rateLimit: KimiUsageDetail(
-                limit: "100",
-                used: "0",
-                remaining: "100",
-                resetTime: "2026-05-05T17:23:14Z"),
-            updatedAt: Date())
-            .toUsageSnapshot()
+    @MainActor
+    func `update menu action installs prepared update instead of checking again`() throws {
+        let suite = "StatusItemControllerMenuTests-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        let settings = SettingsStore(
+            userDefaults: defaults,
+            configStore: testConfigStore(suiteName: suite),
+            zaiTokenStore: NoopZaiTokenStore(),
+            syntheticTokenStore: NoopSyntheticTokenStore())
+        settings.statusChecksEnabled = false
+        settings.refreshFrequency = .manual
 
-        let percent = StatusItemController.switcherWeeklyMetricPercent(
-            for: .kimi,
-            snapshot: snapshot,
-            showUsed: false)
+        let fetcher = UsageFetcher()
+        let store = UsageStore(fetcher: fetcher, browserDetection: BrowserDetection(cacheTTL: 0), settings: settings)
+        let updater = RecordingUpdater()
+        let controller = StatusItemController(
+            store: store,
+            settings: settings,
+            account: fetcher.loadAccountInfo(),
+            updater: updater,
+            preferencesSelection: PreferencesSelection(),
+            statusBar: .system)
 
-        #expect(percent == 100)
-    }
+        controller.installUpdate()
 
-    @Test
-    func `open router brand fallback enabled when no key limit configured`() {
-        let snapshot = OpenRouterUsageSnapshot(
-            totalCredits: 50,
-            totalUsage: 45,
-            balance: 5,
-            usedPercent: 90,
-            keyDataFetched: true,
-            keyLimit: nil,
-            keyUsage: nil,
-            rateLimit: nil,
-            updatedAt: Date()).toUsageSnapshot()
-
-        #expect(StatusItemController.shouldUseOpenRouterBrandFallback(
-            provider: .openrouter,
-            snapshot: snapshot))
-        #expect(MenuBarDisplayText.percentText(window: snapshot.primary, showUsed: false) == nil)
-    }
-
-    @Test
-    func `open router brand fallback disabled when key quota fetch unavailable`() {
-        let snapshot = OpenRouterUsageSnapshot(
-            totalCredits: 50,
-            totalUsage: 45,
-            balance: 5,
-            usedPercent: 90,
-            keyDataFetched: false,
-            keyLimit: nil,
-            keyUsage: nil,
-            rateLimit: nil,
-            updatedAt: Date()).toUsageSnapshot()
-
-        #expect(!StatusItemController.shouldUseOpenRouterBrandFallback(
-            provider: .openrouter,
-            snapshot: snapshot))
-    }
-
-    @Test
-    func `open router brand fallback disabled when key quota available`() {
-        let snapshot = OpenRouterUsageSnapshot(
-            totalCredits: 50,
-            totalUsage: 45,
-            balance: 5,
-            usedPercent: 90,
-            keyLimit: 20,
-            keyUsage: 2,
-            rateLimit: nil,
-            updatedAt: Date()).toUsageSnapshot()
-
-        #expect(!StatusItemController.shouldUseOpenRouterBrandFallback(
-            provider: .openrouter,
-            snapshot: snapshot))
-        #expect(snapshot.primary?.usedPercent == 10)
+        #expect(updater.installUpdateCount == 1)
+        #expect(updater.checkForUpdatesCount == 0)
     }
 }

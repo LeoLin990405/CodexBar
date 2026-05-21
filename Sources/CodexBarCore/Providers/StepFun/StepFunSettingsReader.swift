@@ -1,36 +1,39 @@
 import Foundation
 
 public struct StepFunSettingsReader: Sendable {
-    public static let apiKeyEnvironmentKeys = [
-        "STEPFUN_API_KEY",
-        "STEP_API_KEY",
-    ]
+    public static let usernameEnvironmentKey = "STEPFUN_USERNAME"
+    public static let passwordEnvironmentKey = "STEPFUN_PASSWORD"
+    public static let tokenEnvironmentKey = "STEPFUN_TOKEN"
 
-    public static func apiKey(
+    public static func username(
         environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
     {
-        for key in self.apiKeyEnvironmentKeys {
-            guard let raw = environment[key]?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !raw.isEmpty
-            else {
-                continue
-            }
-            let cleaned = Self.cleaned(raw)
-            if !cleaned.isEmpty {
-                return cleaned
-            }
-        }
-        return nil
+        self.cleaned(environment[self.usernameEnvironmentKey])
     }
 
-    private static func cleaned(_ raw: String) -> String {
-        var value = raw
+    public static func password(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.cleaned(environment[self.passwordEnvironmentKey])
+    }
+
+    public static func token(
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> String?
+    {
+        self.cleaned(environment[self.tokenEnvironmentKey])
+    }
+
+    private static func cleaned(_ raw: String?) -> String? {
+        guard var value = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return nil
+        }
         if (value.hasPrefix("\"") && value.hasSuffix("\"")) ||
             (value.hasPrefix("'") && value.hasSuffix("'"))
         {
             value.removeFirst()
             value.removeLast()
         }
-        return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        value = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
 }

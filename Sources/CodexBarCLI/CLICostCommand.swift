@@ -31,6 +31,7 @@ extension CodexBarCLI {
         let format = output.format
         let forceRefresh = values.flags.contains("refresh")
         let useColor = Self.shouldUseColor(noColor: values.flags.contains("noColor"), format: format)
+        let historyDays = Self.decodeCostHistoryDays(from: values)
 
         let fetcher = CostUsageFetcher()
         var sections: [String] = []
@@ -42,7 +43,9 @@ extension CodexBarCLI {
                 // Cost usage is local-only; it does not require web/CLI provider fetches.
                 let snapshot = try await fetcher.loadTokenSnapshot(
                     provider: provider,
-                    forceRefresh: forceRefresh)
+                    forceRefresh: forceRefresh,
+                    historyDays: historyDays,
+                    refreshPricingInBackground: false)
                 switch format {
                 case .text:
                     sections.append(Self.renderCostText(provider: provider, snapshot: snapshot, useColor: useColor))
@@ -79,7 +82,7 @@ extension CodexBarCLI {
         useColor: Bool) -> String
     {
         let name = ProviderDescriptorRegistry.descriptor(for: provider).metadata.displayName
-        let header = Self.costHeaderLine("\(name) Cost (local)", useColor: useColor)
+        let header = Self.costHeaderLine("\(name) Cost (API-rate estimate)", useColor: useColor)
 
         let todayCost = snapshot.sessionCostUSD.map { UsageFormatter.usdString($0) } ?? "—"
         let todayTokens = snapshot.sessionTokens.map { UsageFormatter.tokenCountString($0) }
@@ -87,9 +90,13 @@ extension CodexBarCLI {
 
         let monthCost = snapshot.last30DaysCostUSD.map { UsageFormatter.usdString($0) } ?? "—"
         let monthTokens = snapshot.last30DaysTokens.map { UsageFormatter.tokenCountString($0) }
-        let monthLine = monthTokens.map { "Last 30 days: \(monthCost) · \($0) tokens" } ?? "Last 30 days: \(monthCost)"
+        let historyLabel = snapshot.historyDays == 1 ? "Today" : "Last \(snapshot.historyDays) days"
+        let monthLine = monthTokens.map {
+            "\(historyLabel): \(monthCost) · \($0) tokens"
+        } ?? "\(historyLabel): \(monthCost)"
 
-        return [header, todayLine, monthLine].joined(separator: "\n")
+        let hintLine = UsageFormatter.costEstimateHint(provider: provider)
+        return [header, todayLine, monthLine, hintLine].joined(separator: "\n")
     }
 
     private static func costHeaderLine(_ header: String, useColor: Bool) -> String {
@@ -97,11 +104,11 @@ extension CodexBarCLI {
         return "\u{001B}[1;36m\(header)\u{001B}[0m"
     }
 
-    private static func costProviders(from selection: ProviderSelection) -> [UsageProvider] {
+    static func costProviders(from selection: ProviderSelection) -> [UsageProvider] {
         selection.asList.filter { Self.costSupportedProviders.contains($0) }
     }
 
-    private static func makeCostPayload(
+    static func makeCostPayload(
         provider: UsageProvider,
         snapshot: CostUsageTokenSnapshot?,
         error: Error?) -> CostPayload
@@ -130,6 +137,7 @@ extension CodexBarCLI {
             updatedAt: snapshot?.updatedAt ?? (error == nil ? nil : Date()),
             sessionTokens: snapshot?.sessionTokens,
             sessionCostUSD: snapshot?.sessionCostUSD,
+            historyDays: snapshot?.historyDays,
             last30DaysTokens: snapshot?.last30DaysTokens,
             last30DaysCostUSD: snapshot?.last30DaysCostUSD,
             daily: daily,
@@ -199,6 +207,13 @@ extension CodexBarCLI {
             totalTokens: sawTokens ? totalTokens : snapshot.last30DaysTokens,
             totalCostUSD: sawCost ? totalCost : snapshot.last30DaysCostUSD)
     }
+
+    private static func decodeCostHistoryDays(from values: ParsedValues) -> Int {
+        guard let raw = values.options["days"]?.last,
+              let parsed = Int(raw)
+        else { return 30 }
+        return max(1, min(365, parsed))
+    }
 }
 
 struct CostOptions: CommanderParsable {
@@ -233,6 +248,9 @@ struct CostOptions: CommanderParsable {
 
     @Flag(name: .long("refresh"), help: "Force refresh by ignoring cached scans")
     var refresh: Bool = false
+
+    @Option(name: .long("days"), help: "Cost history window in days (1...365)")
+    var days: Int?
 }
 
 struct CostPayload: Encodable {
@@ -241,6 +259,7 @@ struct CostPayload: Encodable {
     let updatedAt: Date?
     let sessionTokens: Int?
     let sessionCostUSD: Double?
+    let historyDays: Int?
     let last30DaysTokens: Int?
     let last30DaysCostUSD: Double?
     let daily: [CostDailyEntryPayload]

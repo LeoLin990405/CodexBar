@@ -18,18 +18,18 @@ struct KimiK2ProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "kimi-k2-api-token",
                 title: "API key",
-                subtitle: "保存在 ~/.codexbar/config.json。可在 kimi-k2.ai 生成。",
+                subtitle: "Stored in ~/.codexbar/config.json. For the official Kimi API, use Moonshot / Kimi API.",
                 kind: .secure,
                 placeholder: "粘贴 API key…",
                 binding: context.stringBinding(\.kimiK2APIToken),
                 actions: [
                     ProviderSettingsActionDescriptor(
                         id: "kimi-k2-open-api-keys",
-                        title: "打开 API Keys",
+                        title: "Open legacy provider docs",
                         style: .link,
                         isVisible: nil,
                         perform: {
-                            if let url = URL(string: "https://kimi-k2.ai/user-center/api-keys") {
+                            if let url = URL(string: "https://github.com/steipete/CodexBar/blob/main/docs/kimi-k2.md") {
                                 NSWorkspace.shared.open(url)
                             }
                         }),

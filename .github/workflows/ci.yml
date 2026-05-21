@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["*"]
+    branches: ["**"]
   pull_request:
   workflow_dispatch:
 
@@ -10,9 +10,14 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-build-test:
-    runs-on: macos-latest
+    runs-on: macos-15-intel
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v6
 
@@ -45,9 +50,12 @@ jobs:
         run: swift test --filter "ProviderRefreshCoordinatorTests|ProviderFetchBackgroundPolicyTests"
 
       - name: Swift Test
-        run: swift test --no-parallel
+        timeout-minutes: 60
+        run: |
+          python3 Scripts/ci_swift_test_by_suite.py --group-size 1 --timeout 120
 
   build-linux-cli:
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:

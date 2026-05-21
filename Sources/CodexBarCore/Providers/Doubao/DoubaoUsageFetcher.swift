@@ -10,17 +10,13 @@ public struct DoubaoUsageSnapshot: Sendable {
     public let updatedAt: Date
     public let apiKeyValid: Bool
     public let totalTokens: Int?
-    /// Coding Plan quota levels from console.volcengine.com GetCodingPlanUsage,
-    /// keyed by level ("session", "weekly", "monthly"). Percent is 0.0..1.0+.
-    public let codingPlanQuotas: [DoubaoConsoleFetcher.QuotaLevel]
     public init(
         remainingRequests: Int,
         limitRequests: Int,
         resetTime: Date?,
         updatedAt: Date,
         apiKeyValid: Bool = false,
-        totalTokens: Int? = nil,
-        codingPlanQuotas: [DoubaoConsoleFetcher.QuotaLevel] = [])
+        totalTokens: Int? = nil)
     {
         self.remainingRequests = remainingRequests
         self.limitRequests = limitRequests
@@ -28,49 +24,22 @@ public struct DoubaoUsageSnapshot: Sendable {
         self.updatedAt = updatedAt
         self.apiKeyValid = apiKeyValid
         self.totalTokens = totalTokens
-        self.codingPlanQuotas = codingPlanQuotas
     }
 
-    public func toUsageSnapshot(
-        accumulated: LocalUsageTracker.AccumulatedUsage? = nil) -> UsageSnapshot
-    {
-        // Prefer Coding Plan console quotas when available — they carry real
-        // session / weekly / monthly percentages.
-        if let session = self.quota(level: "session") {
-            let primary = Self.makeWindow(from: session, fallbackMinutes: nil)
-            let secondary = self.quota(level: "weekly").map {
-                Self.makeWindow(from: $0, fallbackMinutes: 7 * 24 * 60)
-            }
-            let tertiary = self.quota(level: "monthly").map {
-                Self.makeWindow(from: $0, fallbackMinutes: 30 * 24 * 60)
-            }
-            let identity = ProviderIdentitySnapshot(
-                providerID: .doubao,
-                accountEmail: nil,
-                accountOrganization: nil,
-                loginMethod: nil)
-            return UsageSnapshot(
-                primary: primary,
-                secondary: secondary,
-                tertiary: tertiary,
-                providerCost: nil,
-                updatedAt: self.updatedAt,
-                identity: identity)
-        }
-
+    public func toUsageSnapshot() -> UsageSnapshot {
         let usedPercent: Double
         let resetDescription: String
 
         if self.limitRequests > 0 {
             let used = max(0, self.limitRequests - self.remainingRequests)
             usedPercent = min(100, max(0, Double(used) / Double(self.limitRequests) * 100))
-            resetDescription = "\(used)/\(self.limitRequests) 次请求"
+            resetDescription = "\(used)/\(self.limitRequests) requests"
         } else if self.apiKeyValid {
             usedPercent = 0
-            resetDescription = "已激活 - 请到仪表盘查看详情"
+            resetDescription = "Active - check dashboard for details"
         } else {
             usedPercent = 0
-            resetDescription = "暂无用量数据"
+            resetDescription = "No usage data"
         }
 
         let primary = RateWindow(
@@ -78,16 +47,6 @@ public struct DoubaoUsageSnapshot: Sendable {
             windowMinutes: nil,
             resetsAt: self.resetTime,
             resetDescription: resetDescription)
-
-        var secondary: RateWindow?
-        if let acc = accumulated, acc.weeklyLimit > 0 {
-            let weekPercent = min(100, max(0, Double(acc.weeklyRequests) / Double(acc.weeklyLimit) * 100))
-            secondary = RateWindow(
-                usedPercent: weekPercent,
-                windowMinutes: 7 * 24 * 60,
-                resetsAt: nil,
-                resetDescription: "\(acc.weeklyRequests)/\(acc.weeklyLimit) 每周")
-        }
 
         let identity = ProviderIdentitySnapshot(
             providerID: .doubao,
@@ -97,38 +56,11 @@ public struct DoubaoUsageSnapshot: Sendable {
 
         return UsageSnapshot(
             primary: primary,
-            secondary: secondary,
+            secondary: nil,
             tertiary: nil,
             providerCost: nil,
             updatedAt: self.updatedAt,
             identity: identity)
-    }
-
-    public func quota(level: String) -> DoubaoConsoleFetcher.QuotaLevel? {
-        self.codingPlanQuotas.first { $0.level == level }
-    }
-
-    private static func makeWindow(
-        from quota: DoubaoConsoleFetcher.QuotaLevel,
-        fallbackMinutes: Int?) -> RateWindow
-    {
-        let pct = min(100, max(0, quota.percent * 100))
-        let label = Self.levelLabel(quota.level)
-        let description = String(format: "%@: %.1f%% used", label, pct)
-        return RateWindow(
-            usedPercent: pct,
-            windowMinutes: fallbackMinutes,
-            resetsAt: quota.resetAt,
-            resetDescription: description)
-    }
-
-    private static func levelLabel(_ level: String) -> String {
-        switch level {
-        case "session": "5h"
-        case "weekly": "本周"
-        case "monthly": "本月"
-        default: level.capitalized
-        }
     }
 }
 
@@ -141,13 +73,13 @@ public enum DoubaoUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "缺少豆包 API key（ARK_API_KEY）。"
+            "Missing Doubao API key (ARK_API_KEY)."
         case let .networkError(message):
-            "豆包网络错误：\(message)"
+            "Doubao network error: \(message)"
         case let .apiError(code, message):
-            "豆包 API 错误（\(code)）：\(message)"
+            "Doubao API error (\(code)): \(message)"
         case let .parseFailed(message):
-            "解析豆包响应失败：\(message)"
+            "Failed to parse Doubao response: \(message)"
         }
     }
 }
@@ -188,7 +120,7 @@ public struct DoubaoUsageFetcher: Sendable {
     private static func probe(apiKey: String, model: String) async throws -> DoubaoUsageSnapshot {
         var request = URLRequest(url: self.apiURL)
         request.httpMethod = "POST"
-        request.timeoutInterval = 30
+        request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -203,20 +135,17 @@ public struct DoubaoUsageFetcher: Sendable {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw DoubaoUsageError.networkError("Invalid response")
-        }
+        let response = try await ProviderHTTPClient.shared.response(for: request)
+        let data = response.data
 
         // Accept both 200 (success) and 429 (rate limited) – both carry rate limit headers.
-        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 429 else {
-            let summary = Self.apiErrorSummary(statusCode: httpResponse.statusCode, data: data)
-            Self.log.error("Doubao API returned \(httpResponse.statusCode): \(summary)")
-            throw DoubaoUsageError.apiError(httpResponse.statusCode, summary)
+        guard response.statusCode == 200 || response.statusCode == 429 else {
+            let summary = Self.apiErrorSummary(statusCode: response.statusCode, data: data)
+            Self.log.error("Doubao API returned \(response.statusCode): \(summary)")
+            throw DoubaoUsageError.apiError(response.statusCode, summary)
         }
 
-        let headers = httpResponse.allHeaderFields
+        let headers = response.response.allHeaderFields
         let remaining = Self.intHeader(headers, "x-ratelimit-remaining-requests")
         let limit = Self.intHeader(headers, "x-ratelimit-limit-requests")
         let resetString = Self.stringHeader(headers, "x-ratelimit-reset-requests")
@@ -233,7 +162,7 @@ public struct DoubaoUsageFetcher: Sendable {
 
         // 429 means the key is valid but rate-limited; treat it as valid so the UI
         // shows "Active" instead of "No usage data" when headers are absent.
-        let keyValid = httpResponse.statusCode == 200 || httpResponse.statusCode == 429
+        let keyValid = response.statusCode == 200 || response.statusCode == 429
 
         let snapshot = DoubaoUsageSnapshot(
             remainingRequests: remaining ?? 0,
@@ -244,7 +173,10 @@ public struct DoubaoUsageFetcher: Sendable {
             totalTokens: totalTokens)
 
         Self.log.debug(
-            "Doubao usage parsed remaining=\(snapshot.remainingRequests) limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)") // swiftlint:disable:this line_length
+            """
+            Doubao usage parsed remaining=\(snapshot.remainingRequests) \
+            limit=\(snapshot.limitRequests) valid=\(snapshot.apiKeyValid)
+            """)
 
         return snapshot
     }

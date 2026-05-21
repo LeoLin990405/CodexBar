@@ -7,6 +7,7 @@ public enum MiniMaxAPIRegion: String, CaseIterable, Sendable {
     private static let codingPlanPath = "user-center/payment/coding-plan"
     private static let codingPlanQuery = "cycle_type=3"
     private static let remainsPath = "v1/api/openplatform/coding_plan/remains"
+    private static let billingHistoryPath = "account/amount"
 
     public var displayName: String {
         switch self {
@@ -54,5 +55,23 @@ public enum MiniMaxAPIRegion: String, CaseIterable, Sendable {
 
     public var apiRemainsURL: URL {
         URL(string: self.apiBaseURLString)!.appendingPathComponent(Self.remainsPath)
+    }
+
+    public var dashboardURL: URL {
+        var components = URLComponents(string: self.baseURLString)!
+        components.path = "/" + Self.codingPlanPath
+        components.query = Self.codingPlanQuery
+        return components.url!
+    }
+
+    public func billingHistoryURL(page: Int, limit: Int) -> URL {
+        var components = URLComponents(string: self.baseURLString)!
+        components.path = "/" + Self.billingHistoryPath
+        components.queryItems = [
+            URLQueryItem(name: "page", value: "\(page)"),
+            URLQueryItem(name: "limit", value: "\(limit)"),
+            URLQueryItem(name: "aggregate", value: "false"),
+        ]
+        return components.url!
     }
 }

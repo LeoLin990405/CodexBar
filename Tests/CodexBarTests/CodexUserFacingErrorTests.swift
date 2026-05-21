@@ -6,6 +6,15 @@ import Testing
 @MainActor
 struct CodexUserFacingErrorTests {
     @Test
+    func `missing codex CLI guidance is not collapsed to not running`() {
+        let store = self.makeUsageStore(suite: "CodexUserFacingErrorTests-missing-cli")
+        store.errors[.codex] = "Codex not running. Try running a Codex command first. "
+            + "(Codex CLI not found. Install with `npm i -g @openai/codex`.)"
+
+        #expect(store.userFacingError(for: .codex) == CodexStatusProbeError.codexNotInstalled.localizedDescription)
+    }
+
+    @Test
     func `expired codex auth is sanitized`() {
         let store = self.makeUsageStore(suite: "CodexUserFacingErrorTests-expired-auth")
         store.errors[.codex] = """
@@ -52,6 +61,18 @@ struct CodexUserFacingErrorTests {
     }
 
     @Test
+    func `cached missing codex CLI failure preserves cached suffix`() {
+        let store = self.makeUsageStore(suite: "CodexUserFacingErrorTests-cached-missing-cli")
+        store.lastCreditsError =
+            "Last Codex credits refresh failed: Codex CLI not found. "
+                + "Install with `npm i -g @openai/codex`. Cached values from 2m ago."
+
+        #expect(
+            store.userFacingLastCreditsError ==
+                CodexStatusProbeError.codexNotInstalled.localizedDescription + " Cached values from 2m ago.")
+    }
+
+    @Test
     func `browser mismatch remains unchanged`() {
         let store = self.makeUsageStore(suite: "CodexUserFacingErrorTests-browser-mismatch")
         store.lastOpenAIDashboardError =
@@ -72,6 +93,28 @@ struct CodexUserFacingErrorTests {
         #expect(
             store.userFacingLastOpenAIDashboardError ==
                 "OpenAI web refresh was interrupted. Refresh OpenAI cookies and try again.")
+    }
+
+    @Test
+    func `open A I web timeout becomes retry guidance`() {
+        let store = self.makeUsageStore(suite: "CodexUserFacingErrorTests-openai-web-timeout")
+        store.lastOpenAIDashboardError = "The operation couldn’t be completed. (NSURLErrorDomain error -1001.)"
+
+        #expect(
+            store.userFacingLastOpenAIDashboardError ==
+                "OpenAI web refresh timed out. Refresh OpenAI cookies and try again.")
+    }
+
+    @Test
+    func `open A I web network error becomes connection guidance`() {
+        let store = self.makeUsageStore(suite: "CodexUserFacingErrorTests-openai-web-network")
+        store.lastOpenAIDashboardError = "The operation couldn’t be completed. (NSURLErrorDomain error -1004.)"
+        let expected = [
+            "OpenAI web refresh hit a network error.",
+            "Check your connection, then refresh OpenAI cookies and try again.",
+        ].joined(separator: " ")
+
+        #expect(store.userFacingLastOpenAIDashboardError == expected)
     }
 
     @Test

@@ -9,14 +9,14 @@ public enum DoubaoProviderDescriptor {
             id: .doubao,
             metadata: ProviderMetadata(
                 id: .doubao,
-                displayName: "豆包",
-                sessionLabel: "5h",
-                weeklyLabel: "本周",
-                opusLabel: "本月",
-                supportsOpus: true,
+                displayName: "Doubao",
+                sessionLabel: "Requests",
+                weeklyLabel: "Rate limit",
+                opusLabel: nil,
+                supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "显示豆包用量",
+                toggleTitle: "Show Doubao usage",
                 cliName: "doubao",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
@@ -30,69 +30,14 @@ public enum DoubaoProviderDescriptor {
                 color: ProviderColor(red: 51 / 255, green: 112 / 255, blue: 255 / 255)),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "豆包费用摘要暂不可用。" }),
+                noDataMessage: { "Doubao cost summary is not available." }),
             fetchPlan: ProviderFetchPlan(
-                sourceModes: [.auto, .web, .api],
-                pipeline: ProviderFetchPipeline(resolveStrategies: { context in
-                    switch context.sourceMode {
-                    case .web:
-                        #if os(macOS)
-                        return [DoubaoConsoleFetchStrategy()]
-                        #else
-                        return []
-                        #endif
-                    case .api:
-                        return [DoubaoAPIFetchStrategy()]
-                    case .auto:
-                        #if os(macOS)
-                        return [DoubaoConsoleFetchStrategy(), DoubaoAPIFetchStrategy()]
-                        #else
-                        return [DoubaoAPIFetchStrategy()]
-                        #endif
-                    case .cli, .oauth:
-                        return []
-                    }
-                })),
+                sourceModes: [.auto, .api],
+                pipeline: ProviderFetchPipeline(resolveStrategies: { _ in [DoubaoAPIFetchStrategy()] })),
             cli: ProviderCLIConfig(
                 name: "doubao",
                 aliases: ["volcengine", "ark", "bytedance"],
                 versionDetector: nil))
-    }
-}
-
-struct DoubaoConsoleFetchStrategy: ProviderFetchStrategy {
-    let id: String = "doubao.console"
-    let kind: ProviderFetchKind = .webDashboard
-    let backgroundPolicy: ProviderFetchBackgroundPolicy = .userInitiatedOnly
-    private static let log = CodexBarLog.logger(LogCategories.doubaoUsage)
-
-    func isAvailable(_ context: ProviderFetchContext) async -> Bool {
-        context.sourceMode == .auto || context.sourceMode.usesWeb
-    }
-
-    func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        #if os(macOS)
-        let consoleResult = try await DoubaoConsoleFetcher.fetch(
-            browserDetection: context.browserDetection)
-        let snapshot = DoubaoUsageSnapshot(
-            remainingRequests: 0,
-            limitRequests: 0,
-            resetTime: consoleResult.quotas.first?.resetAt,
-            updatedAt: consoleResult.updatedAt,
-            apiKeyValid: true,
-            codingPlanQuotas: consoleResult.quotas)
-        return self.makeResult(
-            usage: snapshot.toUsageSnapshot(),
-            sourceLabel: "console")
-        #else
-        throw DoubaoUsageError.missingCredentials
-        #endif
-    }
-
-    func shouldFallback(on error: Error, context: ProviderFetchContext) -> Bool {
-        guard context.sourceMode == .auto else { return false }
-        Self.log.debug("Doubao console fetch failed, falling back: \(error)")
-        return true
     }
 }
 
@@ -108,14 +53,9 @@ struct DoubaoAPIFetchStrategy: ProviderFetchStrategy {
         guard let apiKey = Self.resolveToken(environment: context.env) else {
             throw DoubaoUsageError.missingCredentials
         }
-
         let usage = try await DoubaoUsageFetcher.fetchUsage(apiKey: apiKey)
-        let accumulated = await LocalUsageTracker.shared.record(
-            provider: .doubao,
-            remaining: usage.remainingRequests,
-            limit: usage.limitRequests)
         return self.makeResult(
-            usage: usage.toUsageSnapshot(accumulated: accumulated),
+            usage: usage.toUsageSnapshot(),
             sourceLabel: "api")
     }
 

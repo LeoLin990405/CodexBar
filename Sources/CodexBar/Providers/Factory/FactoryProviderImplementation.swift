@@ -48,9 +48,9 @@ struct FactoryProviderImplementation: ProviderImplementation {
             ProviderCookieSourceUI.subtitle(
                 source: context.settings.factoryCookieSource,
                 keychainDisabled: context.settings.debugDisableKeychainAccess,
-                auto: "自动导入浏览器 Cookie 和 WorkOS token。",
-                manual: "粘贴来自 app.factory.ai 的 Cookie header。",
-                off: "Factory Cookie 已禁用。")
+                auto: "Automatic imports browser cookies and WorkOS tokens.",
+                manual: "Paste a Cookie or Authorization header from app.factory.ai.",
+                off: "Factory cookies are disabled.")
         }
 
         return [
@@ -81,5 +81,23 @@ struct FactoryProviderImplementation: ProviderImplementation {
     func runLoginFlow(context: ProviderLoginContext) async -> Bool {
         await context.controller.runFactoryLoginFlow()
         return true
+    }
+
+    @MainActor
+    func loginMenuAction(context _: ProviderMenuLoginContext)
+        -> (label: String, action: MenuDescriptor.MenuAction)?
+    {
+        ("Open Droid in Browser...", .loginToProvider(url: "https://app.factory.ai"))
+    }
+
+    @MainActor
+    func appendUsageMenuEntries(context: ProviderMenuUsageContext, entries: inout [ProviderMenuEntry]) {
+        guard context.settings.showOptionalCreditsAndExtraUsage,
+              let cost = context.snapshot?.providerCost,
+              cost.period == "Extra usage balance"
+        else { return }
+
+        let balance = UsageFormatter.currencyString(cost.used, currencyCode: cost.currencyCode)
+        entries.append(.text("Extra usage balance: \(balance)", .primary))
     }
 }
