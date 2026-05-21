@@ -23,7 +23,7 @@ struct KeychainCacheStoreTests {
         switch KeychainCacheStore.load(key: key, as: TestEntry.self) {
         case let .found(loaded):
             #expect(loaded == entry)
-        case .missing, .temporarilyUnavailable, .invalid:
+        case .missing, .temporarilyUnavailable, .unsupported, .invalid:
             #expect(Bool(false), "Expected implicit test cache entry")
         }
     }
