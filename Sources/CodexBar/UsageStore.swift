@@ -1,3 +1,5 @@
+// swiftlint:disable file_length function_body_length
+
 import AppKit
 import CodexBarCore
 import Foundation

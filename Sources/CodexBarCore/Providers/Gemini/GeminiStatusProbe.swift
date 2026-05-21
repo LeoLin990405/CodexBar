@@ -1,3 +1,5 @@
+// swiftlint:disable type_body_length
+
 import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
