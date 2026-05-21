@@ -89,6 +89,7 @@ public enum UsageFormatter {
             }
             let wholeHours = max(1, seconds / 3600)
             return "\(wholeHours) 小时前更新"
+            #endif
         } else {
             return "\(date.formatted(date: .omitted, time: .shortened)) 更新"
         }
