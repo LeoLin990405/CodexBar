@@ -120,7 +120,7 @@ struct KeychainCacheStoreTests {
             KeychainCacheStore.store(key: oauthA, entry: entry)
         }
         KeychainCacheStore.withServiceOverrideForTesting(serviceB) {
-            KeychainCacheStore.store(key: cookieB, entry: entry)
+            _ = KeychainCacheStore.store(key: cookieB, entry: entry)
         }
 
         let keys = KeychainCacheStore.withServiceOverrideForTesting(serviceA) {

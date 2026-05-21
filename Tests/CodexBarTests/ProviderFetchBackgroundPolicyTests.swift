@@ -58,21 +58,19 @@ struct ProviderFetchBackgroundPolicyTests {
     }
 
     @Test
-    func `doubao and stepfun split web dashboard from api strategy`() async throws {
+    func `doubao and stepfun expose provider-specific fetch strategies`() async throws {
         let doubaoStrategies = await ProviderDescriptorRegistry
             .descriptor(for: .doubao)
             .fetchPlan
             .pipeline
             .resolveStrategies(Self.makeContext(sourceMode: .auto))
 
-        #expect(doubaoStrategies.map(\.id) == ["doubao.console", "doubao.api"])
-        #expect(doubaoStrategies[0].kind == .webDashboard)
-        #expect(doubaoStrategies[0].backgroundPolicy == .userInitiatedOnly)
-        #expect(doubaoStrategies[0].requiresBrowserSession)
-        #expect(doubaoStrategies[0].requiresKeychainAccess)
-        #expect(doubaoStrategies[1].kind == .apiToken)
-        #expect(doubaoStrategies[1].requiresBrowserSession == false)
-        #expect(doubaoStrategies[1].requiresKeychainAccess == false)
+        #expect(doubaoStrategies.map(\.id) == ["doubao.api"])
+        let doubaoAPI = try #require(doubaoStrategies.first)
+        #expect(doubaoAPI.kind == .apiToken)
+        #expect(doubaoAPI.backgroundPolicy == .allowed)
+        #expect(doubaoAPI.requiresBrowserSession == false)
+        #expect(doubaoAPI.requiresKeychainAccess == false)
 
         let stepFunStrategies = await ProviderDescriptorRegistry
             .descriptor(for: .stepfun)
@@ -80,14 +78,12 @@ struct ProviderFetchBackgroundPolicyTests {
             .pipeline
             .resolveStrategies(Self.makeContext(sourceMode: .auto))
 
-        #expect(stepFunStrategies.map(\.id) == ["stepfun.webDashboard", "stepfun.api"])
-        #expect(stepFunStrategies[0].kind == .webDashboard)
-        #expect(stepFunStrategies[0].backgroundPolicy == .userInitiatedOnly)
-        #expect(stepFunStrategies[0].requiresBrowserSession)
-        #expect(stepFunStrategies[0].requiresKeychainAccess)
-        #expect(stepFunStrategies[1].kind == .apiToken)
-        #expect(stepFunStrategies[1].requiresBrowserSession == false)
-        #expect(stepFunStrategies[1].requiresKeychainAccess == false)
+        #expect(stepFunStrategies.map(\.id) == ["stepfun.web"])
+        let stepFunWeb = try #require(stepFunStrategies.first)
+        #expect(stepFunWeb.kind == .web)
+        #expect(stepFunWeb.backgroundPolicy == .allowed)
+        #expect(stepFunWeb.requiresBrowserSession)
+        #expect(stepFunWeb.requiresKeychainAccess)
 
         let kimiStrategies = await ProviderDescriptorRegistry
             .descriptor(for: .kimi)
