@@ -5,10 +5,9 @@ import FoundationNetworking
 
 /// A resolved CommandCode session cookie ready to be sent on `Cookie:` headers.
 ///
-/// CommandCode's API (api.commandcode.ai) authenticates with the better-auth session
-/// cookie set by commandcode.ai. better-auth emits either `better-auth.session_token`
-/// or `__Secure-better-auth.session_token` depending on whether `useSecureCookies` is
-/// enabled (the `__Secure-` variant is required by browsers for HTTPS production).
+/// Command Code's API (api.commandcode.ai) authenticates with the session cookie set
+/// by commandcode.ai. Older deployments used better-auth's default cookie names; newer
+/// production deployments namespace the cookie under `commandcode_prod_`.
 public struct CommandCodeCookieOverride: Sendable, Equatable {
     public let name: String
     public let token: String
@@ -25,9 +24,12 @@ public struct CommandCodeCookieOverride: Sendable, Equatable {
 }
 
 public enum CommandCodeCookieHeader {
-    /// Cookie names used by better-auth in production (HTTPS) and dev (HTTP).
-    /// The `__Secure-` variant is the standard production deployment.
+    /// Cookie names observed across older better-auth defaults and newer
+    /// Command Code production deployments.
     public static let supportedSessionCookieNames = [
+        "__Host-commandcode_prod_.session_token",
+        "__Secure-commandcode_prod_.session_token",
+        "commandcode_prod_.session_token",
         "__Host-better-auth.session_token",
         "__Secure-better-auth.session_token",
         "better-auth.session_token",
@@ -45,10 +47,10 @@ public enum CommandCodeCookieHeader {
             return nil
         }
 
-        // Bare token — assume the production cookie name.
+        // Bare token — assume the current production cookie name.
         if !raw.contains("="), !raw.contains(";") {
             return CommandCodeCookieOverride(
-                name: "__Secure-better-auth.session_token",
+                name: "__Secure-commandcode_prod_.session_token",
                 token: raw)
         }
 

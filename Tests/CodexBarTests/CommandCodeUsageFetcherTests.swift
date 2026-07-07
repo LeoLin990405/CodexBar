@@ -90,6 +90,15 @@ struct CommandCodeUsageFetcherTests {
     }
 
     @Test
+    func `cookie header extracts command code production session cookie`() throws {
+        let raw = "_ga=GA1.2.123; __Secure-commandcode_prod_.session_token=prod123; foo=bar"
+        let override = try #require(CommandCodeCookieHeader.override(from: raw))
+        #expect(override.name == "__Secure-commandcode_prod_.session_token")
+        #expect(override.token == "prod123")
+        #expect(override.headerValue == "__Secure-commandcode_prod_.session_token=prod123")
+    }
+
+    @Test
     func `cookie header accepts non-secure variant`() throws {
         let raw = "better-auth.session_token=plain-token"
         let override = try #require(CommandCodeCookieHeader.override(from: raw))
@@ -100,7 +109,7 @@ struct CommandCodeUsageFetcherTests {
     @Test
     func `cookie header accepts bare token and uses secure name`() throws {
         let override = try #require(CommandCodeCookieHeader.override(from: "bare-value"))
-        #expect(override.name == "__Secure-better-auth.session_token")
+        #expect(override.name == "__Secure-commandcode_prod_.session_token")
         #expect(override.token == "bare-value")
     }
 

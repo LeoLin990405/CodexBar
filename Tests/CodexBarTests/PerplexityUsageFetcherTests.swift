@@ -162,6 +162,30 @@ struct PerplexityUsageFetcherTests {
     }
 
     @Test
+    func `to usage snapshot surfaces renewal separately from primary reset timing`() throws {
+        let json = """
+        {
+          "balance_cents": 0,
+          "renewal_date_ts": \(Self.renewalTs),
+          "current_period_purchased_cents": 0,
+          "credit_grants": [
+            { "type": "recurring", "amount_cents": 10000, "expires_at_ts": \(Self.futureTs) }
+          ],
+          "total_usage_cents": 2500
+        }
+        """
+        let usage = try PerplexityUsageFetcher._parseResponseForTesting(Data(json.utf8), now: Self.now)
+            .toUsageSnapshot()
+
+        #expect(usage.primary?.resetsAt == nil)
+        #expect(usage.primary?.resetDescription == "2500/10000 credits")
+        #expect(usage.extraRateWindows?.count == 1)
+        #expect(usage.extraRateWindows?.first?.id == "renewal")
+        #expect(usage.extraRateWindows?.first?.title == "Renews")
+        #expect(usage.extraRateWindows?.first?.window.resetsAt == Date(timeIntervalSince1970: Self.renewalTs))
+    }
+
+    @Test
     func `to usage snapshot zero recurring bar is fully depleted`() throws {
         let json = """
         {

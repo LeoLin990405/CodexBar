@@ -15,6 +15,7 @@ struct WidgetSnapshotTests {
                 WidgetSnapshot.WidgetUsageRowSnapshot(id: "session", title: "Session", percentLeft: 90),
                 WidgetSnapshot.WidgetUsageRowSnapshot(id: "weekly", title: "Weekly", percentLeft: 80),
             ],
+            usageBarsShowUsed: true,
             creditsRemaining: 123.4,
             codeReviewRemainingPercent: 80,
             tokenUsage: WidgetSnapshot.TokenUsageSummary(
@@ -49,6 +50,7 @@ struct WidgetSnapshotTests {
         #expect(decoded.entries.first?.tokenUsage?.sessionLabel == "Latest billing day")
         #expect(decoded.entries.first?.tokenUsage?.last30DaysLabel == "This month")
         #expect(decoded.entries.first?.usageRows?.map(\.id) == ["session", "weekly"])
+        #expect(decoded.entries.first?.usageBarsShowUsed == true)
         #expect(decoded.enabledProviders == [.codex, .claude])
     }
 
@@ -165,6 +167,7 @@ struct WidgetSnapshotTests {
 
         #expect(decoded.entries.count == 1)
         #expect(decoded.entries.first?.usageRows == nil)
+        #expect(decoded.entries.first?.usageBarsShowUsed == nil)
         #expect(decoded.entries.first?.secondary?.usedPercent == 25)
     }
 

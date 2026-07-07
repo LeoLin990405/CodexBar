@@ -881,7 +881,7 @@ extension ClaudeUsageFetcher {
             return "Claude OAuth token is still unavailable after delegated Claude CLI refresh. "
                 + "Run `claude login`, then retry."
         case let .attemptedFailed(message):
-            return "Claude OAuth token expired and delegated Claude CLI refresh failed: \(message). "
+            return "Claude OAuth sign-in needs attention: delegated Claude CLI refresh failed (\(message)). "
                 + "Run `claude login`, then retry."
         }
     }

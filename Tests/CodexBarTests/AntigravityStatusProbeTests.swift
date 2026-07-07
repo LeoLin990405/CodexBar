@@ -20,6 +20,24 @@ private final class AntigravityAttemptRecorder: @unchecked Sendable {
     }
 }
 
+private final class LockedStringRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [String] = []
+
+    func append(_ value: String) {
+        self.lock.lock()
+        self.values.append(value)
+        self.lock.unlock()
+    }
+
+    var snapshot: [String] {
+        self.lock.lock()
+        let snapshot = self.values
+        self.lock.unlock()
+        return snapshot
+    }
+}
+
 struct AntigravityStatusProbeTests {
     @Test
     func `process detection accepts antigravity 2 unsuffixed language server`() {
@@ -367,6 +385,116 @@ struct AntigravityStatusProbeTests {
 
         #expect(snapshot.accountEmail == "test@example.com")
         #expect(attempted.snapshot() == endpoints)
+    }
+
+    @Test
+    func `primary antigravity fetch falls back to command model config when user status has no quotas`() async throws {
+        let endpoints = [
+            AntigravityStatusProbe.AntigravityConnectionEndpoint(
+                scheme: "https",
+                port: 64440,
+                csrfToken: "token",
+                source: .languageServer),
+        ]
+        let requestedPaths = LockedStringRecorder()
+
+        let snapshot = try await AntigravityStatusProbe.fetchPrimarySnapshot(
+            context: AntigravityStatusProbe.RequestContext(
+                endpoints: endpoints,
+                timeout: 1),
+            send: { payload, _, _ in
+                requestedPaths.append(payload.path)
+                if payload.path == "/exa.language_server_pb.LanguageServerService/GetUserStatus" {
+                    return Data(
+                        #"""
+                        {
+                          "code": 0,
+                          "userStatus": {
+                            "email": "test@example.com",
+                            "userTier": {
+                              "name": "Google AI Ultra"
+                            },
+                            "cascadeModelConfigData": {
+                              "clientModelConfigs": []
+                            }
+                          }
+                        }
+                        """#.utf8)
+                }
+                return Data(
+                    #"""
+                    {
+                      "code": 0,
+                      "clientModelConfigs": [
+                        {
+                          "label": "Claude Sonnet 4.6",
+                          "modelOrAlias": { "model": "claude-sonnet-4-6" },
+                          "quotaInfo": {
+                            "remainingFraction": 0.25,
+                            "resetTime": "2026-06-11T00:00:00Z"
+                          }
+                        }
+                      ]
+                    }
+                    """#.utf8)
+            })
+
+        let usage = try snapshot.toUsageSnapshot()
+        #expect(snapshot.accountEmail == "test@example.com")
+        #expect(snapshot.accountPlan == "Google AI Ultra")
+        #expect(usage.primary?.remainingPercent.rounded() == 25)
+        #expect(requestedPaths.snapshot == [
+            "/exa.language_server_pb.LanguageServerService/GetUserStatus",
+            "/exa.language_server_pb.LanguageServerService/GetCurrentCommandModelConfig",
+        ])
+    }
+
+    @Test
+    func `primary antigravity fetch keeps user status metadata when command model fallback also has no quotas`() async throws {
+        let endpoints = [
+            AntigravityStatusProbe.AntigravityConnectionEndpoint(
+                scheme: "https",
+                port: 64440,
+                csrfToken: "token",
+                source: .languageServer),
+        ]
+
+        let snapshot = try await AntigravityStatusProbe.fetchPrimarySnapshot(
+            context: AntigravityStatusProbe.RequestContext(
+                endpoints: endpoints,
+                timeout: 1),
+            send: { payload, _, _ in
+                if payload.path == "/exa.language_server_pb.LanguageServerService/GetUserStatus" {
+                    return Data(
+                        #"""
+                        {
+                          "code": 0,
+                          "userStatus": {
+                            "email": "empty@example.com",
+                            "planStatus": {
+                              "planInfo": {
+                                "planName": "Pro"
+                              }
+                            },
+                            "cascadeModelConfigData": {
+                              "clientModelConfigs": []
+                            }
+                          }
+                        }
+                        """#.utf8)
+                }
+                return Data(
+                    #"""
+                    {
+                      "code": 0,
+                      "clientModelConfigs": []
+                    }
+                    """#.utf8)
+            })
+
+        #expect(snapshot.accountEmail == "empty@example.com")
+        #expect(snapshot.accountPlan == "Pro")
+        #expect(snapshot.modelQuotas.isEmpty)
     }
 
     @Test

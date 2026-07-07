@@ -70,6 +70,7 @@ extension UsageStore {
             secondary: snapshot.secondary,
             tertiary: snapshot.tertiary,
             usageRows: usageRows,
+            usageBarsShowUsed: self.settings.usageBarsShowUsed,
             creditsRemaining: creditsRemaining,
             codeReviewRemainingPercent: codeReviewRemaining,
             tokenUsage: tokenUsage,

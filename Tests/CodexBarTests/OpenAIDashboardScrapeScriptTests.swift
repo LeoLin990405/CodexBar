@@ -60,7 +60,7 @@ struct OpenAIDashboardScrapeScriptTests {
     }
 
     @Test
-    func `usage breakdown scraper rejects non english chart titles`() async throws {
+    func `usage breakdown scraper accepts localized usage chart titles via data shape`() async throws {
         if Self.shouldSkipOnCI() { return }
 
         let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
@@ -69,11 +69,15 @@ struct OpenAIDashboardScrapeScriptTests {
 
         let any = try await webView.evaluateJavaScript(openAIDashboardScrapeScript)
         let dict = try #require(any as? [String: Any])
+        let debug = dict["usageBreakdownDebug"] as? String
+        let raw = try #require(dict["usageBreakdownJSON"] as? String, "debug: \(debug ?? "nil")")
+        let decoded = try JSONDecoder().decode([OpenAIDashboardDailyBreakdown].self, from: Data(raw.utf8))
 
-        #expect((dict["usageBreakdownJSON"] as? String) == nil)
-        #expect(
-            (dict["usageBreakdownError"] as? String)?
-                .contains("No English usage breakdown chart title found") == true)
+        #expect((dict["usageBreakdownError"] as? String) == nil)
+        #expect(decoded.count == 1)
+        #expect(decoded.first?.day == "2026-05-01")
+        #expect(decoded.first?.totalCreditsUsed == 30)
+        #expect((decoded.first?.services.map(\.service) ?? []) == ["Desktop", "CLI"])
     }
 
     private static func shouldSkipOnCI() -> Bool {

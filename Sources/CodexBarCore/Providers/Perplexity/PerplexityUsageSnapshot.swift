@@ -70,13 +70,21 @@ extension PerplexityUsageSnapshot {
     public func toUsageSnapshot() -> UsageSnapshot {
         // Primary: recurring (monthly) credits
         let hasFallbackCredits = self.promoTotal > 0 || self.purchasedTotal > 0
+        let renewalWindow = NamedRateWindow(
+            id: "renewal",
+            title: "Renews",
+            window: RateWindow(
+                usedPercent: 0,
+                windowMinutes: nil,
+                resetsAt: self.renewalDate,
+                resetDescription: nil))
         let primaryWindow: RateWindow? = {
             if self.recurringTotal > 0 {
                 let primaryPercent = min(100, max(0, self.recurringUsed / self.recurringTotal * 100))
                 return RateWindow(
                     usedPercent: primaryPercent,
                     windowMinutes: nil,
-                    resetsAt: self.renewalDate,
+                    resetsAt: nil,
                     resetDescription: "\(Int(self.recurringUsed.rounded()))/\(Int(self.recurringTotal)) credits")
             }
             if hasFallbackCredits {
@@ -87,7 +95,7 @@ extension PerplexityUsageSnapshot {
             return RateWindow(
                 usedPercent: 100,
                 windowMinutes: nil,
-                resetsAt: self.renewalDate,
+                resetsAt: nil,
                 resetDescription: "0/0 credits")
         }()
 
@@ -127,6 +135,7 @@ extension PerplexityUsageSnapshot {
             primary: primaryWindow,
             secondary: secondary,
             tertiary: tertiary,
+            extraRateWindows: [renewalWindow],
             providerCost: nil,
             updatedAt: self.updatedAt,
             identity: identity)

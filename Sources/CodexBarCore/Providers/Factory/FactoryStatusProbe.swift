@@ -1630,7 +1630,7 @@ public struct FactoryStatusProbe: Sendable {
             planName: authInfo.organization?.subscription?.orbSubscription?.plan?.name,
             tier: authInfo.organization?.subscription?.factoryTier,
             organizationName: authInfo.organization?.name,
-            accountEmail: nil, // Email is in JWT, not in auth response body
+            accountEmail: factoryAccountEmail(from: authInfo),
             userId: userId ?? usageData.userId,
             rawJSON: nil)
     }
@@ -1655,7 +1655,7 @@ public struct FactoryStatusProbe: Sendable {
             planName: authInfo.organization?.subscription?.orbSubscription?.plan?.name,
             tier: authInfo.organization?.subscription?.factoryTier,
             organizationName: authInfo.organization?.name,
-            accountEmail: nil,
+            accountEmail: factoryAccountEmail(from: authInfo),
             userId: userId,
             rawJSON: nil,
             tokenRateLimits: tokenRateLimits,
@@ -1666,6 +1666,10 @@ public struct FactoryStatusProbe: Sendable {
 
 private func factoryUserIdFromAuth(_ auth: FactoryAuthResponse) -> String? {
     factoryNormalizedString(auth.userProfile?.id)
+}
+
+func factoryAccountEmail(from auth: FactoryAuthResponse) -> String? {
+    factoryNormalizedString(auth.userProfile?.email)
 }
 
 private func factoryUserIdFromBearerToken(_ token: String?) -> String? {

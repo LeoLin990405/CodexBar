@@ -87,7 +87,28 @@ struct CostHistoryChartMenuView: View {
                             .foregroundStyle(Color(nsColor: .systemYellow))
                     }
                 }
-                .chartYAxis(.hidden)
+                .chartYAxis {
+                    AxisMarks(position: .trailing, values: model.yAxisTickValues) { value in
+                        AxisGridLine()
+                            .foregroundStyle(Color(nsColor: .separatorColor).opacity(0.35))
+                        AxisTick()
+                            .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+                        if let cost = value.as(Double.self),
+                           let label = Self.yAxisTickLabel(
+                               for: cost,
+                               in: model.yAxisTickValues,
+                               currencyCode: self.currencyCode)
+                        {
+                            AxisValueLabel {
+                                Text(label)
+                                    .font(.caption2)
+                                    .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+                                    .lineLimit(1)
+                                    .monospacedDigit()
+                            }
+                        }
+                    }
+                }
                 .chartXAxis {
                     AxisMarks(values: model.axisDates) { _ in
                         AxisGridLine().foregroundStyle(Color.clear)
@@ -203,6 +224,7 @@ struct CostHistoryChartMenuView: View {
         let barColor: Color
         let peakKey: String?
         let maxCostUSD: Double
+        let yAxisTickValues: [Double]
         let maxRenderedBreakdownRows: Int
         let maxDetailRowsHeight: CGFloat
     }
@@ -301,8 +323,46 @@ struct CostHistoryChartMenuView: View {
             barColor: barColor,
             peakKey: maxCostUSD > 0 ? peak?.key : nil,
             maxCostUSD: maxCostUSD,
+            yAxisTickValues: self.yAxisTickValues(for: points.map(\.costUSD)),
             maxRenderedBreakdownRows: maxRenderedBreakdownRows,
             maxDetailRowsHeight: maxDetailRowsHeight)
+    }
+
+    static func yAxisTickValues(for costs: [Double]) -> [Double] {
+        let finiteCosts = costs.filter { $0.isFinite && $0 >= 0 }
+        guard let minCost = finiteCosts.min(), let maxCost = finiteCosts.max() else { return [] }
+        guard maxCost > 0 else { return [0] }
+
+        if minCost == maxCost {
+            return self.deduplicatedTickValues([0, maxCost])
+        }
+
+        let midCost = minCost + ((maxCost - minCost) / 2)
+        return self.deduplicatedTickValues([minCost, midCost, maxCost])
+    }
+
+    static func yAxisTickLabels(for values: [Double], currencyCode: String) -> [Double: String] {
+        var labels: [Double: String] = [:]
+        var seen: Set<String> = []
+        for value in values.sorted() {
+            let label = UsageFormatter.currencyString(value, currencyCode: currencyCode)
+            guard seen.insert(label).inserted else { continue }
+            labels[value] = label
+        }
+        return labels
+    }
+
+    private static func yAxisTickLabel(for value: Double, in values: [Double], currencyCode: String) -> String? {
+        self.yAxisTickLabels(for: values, currencyCode: currencyCode)[value]
+    }
+
+    private static func deduplicatedTickValues(_ values: [Double]) -> [Double] {
+        var result: [Double] = []
+        for value in values.sorted() {
+            guard !result.contains(where: { abs($0 - value) < 0.000_000_1 }) else { continue }
+            result.append(value)
+        }
+        return result
     }
 
     private static func barColor(for provider: UsageProvider) -> Color {

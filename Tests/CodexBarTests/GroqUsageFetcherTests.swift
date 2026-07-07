@@ -23,6 +23,35 @@ struct GroqUsageFetcherTests {
     }
 
     @Test
+    func `fetch maps not found metrics endpoint to plan availability error`() async throws {
+        let transport = ProviderHTTPTransportStub { request in
+            let url = try #require(request.url)
+            #expect(url.absoluteString.contains("/metrics/prometheus/api/v1/query"))
+            #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer gsk_test")
+
+            let response = try #require(HTTPURLResponse(
+                url: url,
+                statusCode: 404,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]))
+            let body = """
+            {"error":{"message":"Not Found","type":"invalid_request_error","code":"not_found"}}
+            """
+            return (Data(body.utf8), response)
+        }
+
+        await #expect {
+            _ = try await GroqUsageFetcher.fetchUsage(
+                apiKey: "gsk_test",
+                transport: transport)
+        } throws: { error in
+            guard case let GroqUsageError.metricsUnavailable(message) = error else { return false }
+            return message.contains("Not Found")
+                && message.contains("Enterprise-only feature")
+        }
+    }
+
+    @Test
     func `snapshot maps prometheus rates to menu windows`() {
         let snapshot = GroqUsageSnapshot(
             requestRatePerSecond: 2,

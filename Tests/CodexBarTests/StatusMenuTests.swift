@@ -1704,4 +1704,61 @@ extension StatusMenuTests {
         #expect(ids.contains(where: { $0.hasPrefix("overviewRow-") }) == false)
         #expect(self.switcherButtons(in: menu).first(where: { $0.state == .on })?.tag == 2)
     }
+
+    @Test
+    func `zai hosted chart submenu stays enabled after hydration`() {
+        let previousMenuCardRendering = StatusItemController.menuCardRenderingEnabled
+        let previousMenuRefresh = StatusItemController.menuRefreshEnabled
+        StatusItemController.menuCardRenderingEnabled = true
+        StatusItemController.setMenuRefreshEnabledForTesting(false)
+        defer {
+            StatusItemController.menuCardRenderingEnabled = previousMenuCardRendering
+            StatusItemController.setMenuRefreshEnabledForTesting(previousMenuRefresh)
+        }
+
+        let settings = self.makeSettings()
+        settings.statusChecksEnabled = false
+        settings.refreshFrequency = .manual
+        settings.mergeIcons = false
+
+        let registry = ProviderRegistry.shared
+        if let zaiMeta = registry.metadata[.zai] {
+            settings.setProviderEnabled(provider: .zai, metadata: zaiMeta, enabled: true)
+        }
+
+        let now = Date(timeIntervalSince1970: 1_700_179_200)
+        let fetcher = UsageFetcher()
+        let store = UsageStore(fetcher: fetcher, browserDetection: BrowserDetection(cacheTTL: 0), settings: settings)
+        store._setSnapshotForTesting(
+            ZaiUsageSnapshot(
+                tokenLimit: nil,
+                timeLimit: nil,
+                planName: "Pro",
+                modelUsage: ZaiModelUsageData(
+                    xTime: ["2023-11-14 12:00", "2023-11-15 12:00"],
+                    modelDataList: [
+                        ZaiModelDataItem(modelName: "glm-4.5", tokensUsage: [100, 200]),
+                    ]),
+                updatedAt: now).toUsageSnapshot(),
+            provider: .zai)
+        let controller = StatusItemController(
+            store: store,
+            settings: settings,
+            account: fetcher.loadAccountInfo(),
+            updater: DisabledUpdaterController(),
+            preferencesSelection: PreferencesSelection(),
+            statusBar: self.makeStatusBarForTesting())
+
+        let submenu = controller.makeHostedSubviewPlaceholderMenu(
+            chartID: StatusItemController.zaiHourlyUsageChartID,
+            provider: .zai)
+        #expect(submenu.items.first?.isEnabled == true)
+
+        controller.hydrateHostedSubviewMenuIfNeeded(submenu)
+
+        #expect(submenu.items.count == 1)
+        #expect(submenu.items.first?.representedObject as? String == StatusItemController.zaiHourlyUsageChartID)
+        #expect(submenu.items.first?.isEnabled == true)
+        #expect(submenu.items.first?.view != nil)
+    }
 }

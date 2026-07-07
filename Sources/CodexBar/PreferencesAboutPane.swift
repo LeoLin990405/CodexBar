@@ -87,13 +87,12 @@ struct AboutPane: View {
                         HStack(spacing: 12) {
                             Text(L("update_channel"))
                             Spacer()
-                            Picker("", selection: self.updateChannelBinding) {
-                                ForEach(UpdateChannel.allCases) { channel in
-                                    Text(channel.displayName).tag(channel)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .labelsHidden()
+                            SettingsMenuPicker(
+                                L("update_channel"),
+                                selection: self.updateChannelBinding,
+                                options: UpdateChannel.allCases.map {
+                                    SettingsMenuOption(id: $0, title: $0.displayName)
+                                })
                         }
                         .frame(maxWidth: 280)
                         Text(self.updateChannel.description)

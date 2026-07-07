@@ -7,6 +7,7 @@ public enum GroqUsageError: LocalizedError, Sendable {
     case missingCredentials
     case invalidURL
     case accessDenied(String)
+    case metricsUnavailable(String)
     case apiError(String)
     case parseFailed(String)
 
@@ -18,6 +19,8 @@ public enum GroqUsageError: LocalizedError, Sendable {
             "Groq metrics URL is invalid."
         case let .accessDenied(message):
             "Groq metrics access denied: \(message)"
+        case let .metricsUnavailable(message):
+            "Groq metrics are unavailable for this account or plan: \(message)"
         case let .apiError(message):
             "Groq metrics API error: \(message)"
         case let .parseFailed(message):
@@ -205,6 +208,10 @@ public struct GroqUsageFetcher: Sendable {
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw GroqUsageError.accessDenied(summary)
             }
+            if response.statusCode == 404 {
+                throw GroqUsageError.metricsUnavailable(
+                    Self.metricsUnavailableMessage(responseSummary: summary))
+            }
             throw GroqUsageError.apiError("HTTP \(response.statusCode): \(summary)")
         }
         return try self.parseScalar(data: response.data)
@@ -230,5 +237,14 @@ public struct GroqUsageFetcher: Sendable {
         String(bytes: data.prefix(500), encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
             ?? ""
+    }
+
+    private static func metricsUnavailableMessage(responseSummary: String) -> String {
+        let trimmed = responseSummary.trimmingCharacters(in: .whitespacesAndNewlines)
+        let enterpriseNote = "Groq documents Prometheus metrics as an Enterprise-only feature."
+        if trimmed.isEmpty {
+            return "The Prometheus metrics endpoint returned HTTP 404. \(enterpriseNote)"
+        }
+        return "\(trimmed) \(enterpriseNote)"
     }
 }

@@ -613,13 +613,17 @@ let openAIDashboardScrapeScript = """
           const rejectedTitleCandidates = candidates.filter(candidate => candidate.titleScore < 0);
           const titledCandidates = candidates.filter(candidate => candidate.titleScore > 0);
           const unknownTitleCandidates = candidates.filter(candidate => candidate.titleScore === 0);
-          const eligibleCandidates = titledCandidates;
+          const structuralUsageCandidates = unknownTitleCandidates.filter(candidate =>
+            candidate.likelyCodexServiceCount > 0 && candidate.services.length <= 6);
+          const eligibleCandidates = titledCandidates.length > 0
+            ? titledCandidates
+            : structuralUsageCandidates;
           eligibleCandidates.sort((a, b) => b.score - a.score);
           debug.eligibleCandidateCount = eligibleCandidates.length;
           debug.selectedCandidateTitle = eligibleCandidates[0] ? eligibleCandidates[0].title : null;
           if (eligibleCandidates.length === 0 && candidates.length > 0) {
             if (unknownTitleCandidates.length > 0) {
-              debug.error = 'No English usage breakdown chart title found. Candidate titles: ' +
+              debug.error = 'No usage breakdown chart matched by title or Codex service structure. Candidate titles: ' +
                 candidates.map(candidate => candidate.title || 'Untitled chart').join(', ');
             } else if (rejectedTitleCandidates.length > 0) {
               debug.error = 'Only non-usage chart candidates found: ' +

@@ -230,3 +230,25 @@ struct FactoryStatusProbeWorkOSTests {
         #expect(FactoryStatusProbe.isMissingWorkOSRefreshToken(payload))
     }
 }
+
+struct FactoryIdentityTests {
+    @Test
+    func `uses auth profile email for factory identity`() {
+        let auth = FactoryAuthResponse(
+            featureFlags: nil,
+            organization: nil,
+            userProfile: FactoryUserProfile(id: "user-1", email: "person@example.com"))
+
+        #expect(factoryAccountEmail(from: auth) == "person@example.com")
+    }
+
+    @Test
+    func `normalizes blank auth profile email to nil`() {
+        let auth = FactoryAuthResponse(
+            featureFlags: nil,
+            organization: nil,
+            userProfile: FactoryUserProfile(id: "user-1", email: "   "))
+
+        #expect(factoryAccountEmail(from: auth) == nil)
+    }
+}

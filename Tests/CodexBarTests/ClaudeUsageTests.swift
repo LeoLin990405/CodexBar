@@ -148,7 +148,8 @@ struct ClaudeUsageTests {
                 Issue.record("Expected ClaudeUsageError.oauthFailed, got \(error)")
                 return
             }
-            #expect(message.contains("delegated Claude CLI refresh"))
+            #expect(message.contains("Claude OAuth sign-in needs attention"))
+            #expect(message.contains("Run `claude login`, then retry."))
         } catch {
             Issue.record("Expected ClaudeUsageError, got \(error)")
         }

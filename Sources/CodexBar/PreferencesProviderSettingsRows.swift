@@ -105,14 +105,13 @@ struct ProviderSettingsPickerRowView: View {
                     .font(.subheadline.weight(.semibold))
                     .frame(width: ProviderSettingsMetrics.pickerLabelWidth, alignment: .leading)
 
-                Picker("", selection: self.picker.binding) {
-                    ForEach(self.picker.options) { option in
-                        Text(option.title).tag(option.id)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .controlSize(.small)
+                SettingsMenuPicker(
+                    self.picker.title,
+                    selection: self.picker.binding,
+                    options: self.picker.options.map {
+                        SettingsMenuOption(id: $0.id, title: $0.title)
+                    },
+                    controlSize: .small)
 
                 if let trailingText = self.picker.trailingText?(), !trailingText.isEmpty {
                     Text(trailingText)

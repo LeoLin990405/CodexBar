@@ -53,14 +53,12 @@ struct GeneralPane: View {
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             Spacer()
-                            Picker(L("language_title"), selection: self.$settings.appLanguage) {
-                                ForEach(AppLanguage.allCases) { option in
-                                    Text(option.label).tag(option.rawValue)
-                                }
-                            }
-                            .labelsHidden()
-                            .pickerStyle(.menu)
-                            .frame(maxWidth: 200)
+                            SettingsMenuPicker(
+                                L("language_title"),
+                                selection: self.$settings.appLanguage,
+                                options: AppLanguage.allCases.map {
+                                    SettingsMenuOption(id: $0.rawValue, title: $0.label)
+                                })
                         }
                     }
 
@@ -131,14 +129,12 @@ struct GeneralPane: View {
                                     .foregroundStyle(.tertiary)
                             }
                             Spacer()
-                            Picker("Refresh cadence", selection: self.$settings.refreshFrequency) {
-                                ForEach(RefreshFrequency.allCases) { option in
-                                    Text(option.label).tag(option)
-                                }
-                            }
-                            .labelsHidden()
-                            .pickerStyle(.menu)
-                            .frame(maxWidth: 200)
+                            SettingsMenuPicker(
+                                L("refresh_cadence_title"),
+                                selection: self.$settings.refreshFrequency,
+                                options: RefreshFrequency.allCases.map {
+                                    SettingsMenuOption(id: $0, title: $0.label)
+                                })
                         }
                         if self.settings.refreshFrequency == .manual {
                             Text(L("manual_refresh_hint"))

@@ -1204,6 +1204,15 @@ extension UsageMenuCardView.Model {
             primaryDetailText = detail
             if input.provider == .manus { primaryResetText = nil }
         }
+        if input.provider == .perplexity,
+           let detail = primary.resetDescription,
+           !detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+            primaryDetailText = detail
+            if primary.resetsAt == nil {
+                primaryResetText = nil
+            }
+        }
         if [.warp, .kilo, .mimo, .deepseek].contains(input.provider), primary.resetsAt == nil {
             primaryResetText = nil
         }

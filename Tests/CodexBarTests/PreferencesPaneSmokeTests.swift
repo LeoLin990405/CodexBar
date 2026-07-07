@@ -79,6 +79,28 @@ struct PreferencesPaneSmokeTests {
         #expect(L("show_provider_storage_usage_title") == "显示提供商存储用量")
     }
 
+    @Test
+    func `settings menu picker resolves selected titles`() {
+        let options = RefreshFrequency.allCases.map {
+            SettingsMenuOption(id: $0, title: $0.label)
+        }
+
+        #expect(SettingsMenuPicker.selectedTitle(selection: .manual, options: options) == L("refresh_manual"))
+        #expect(SettingsMenuPicker.selectedTitle(selection: .thirtyMinutes, options: options) == L("refresh_30min"))
+    }
+
+    @Test
+    func `settings menu picker supports optional selections`() {
+        let options = [
+            SettingsMenuOption(id: nil as Int?, title: "Off"),
+            SettingsMenuOption(id: 4 as Int?, title: "4 days"),
+            SettingsMenuOption(id: 5 as Int?, title: "5 days"),
+        ]
+
+        #expect(SettingsMenuPicker.selectedTitle(selection: nil as Int?, options: options) == "Off")
+        #expect(SettingsMenuPicker.selectedTitle(selection: 5 as Int?, options: options) == "5 days")
+    }
+
     private static func makeSettingsStore(suite: String) -> SettingsStore {
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)

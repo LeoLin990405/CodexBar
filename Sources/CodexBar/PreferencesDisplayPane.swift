@@ -50,14 +50,12 @@ struct DisplayPane: View {
                                 .foregroundStyle(.tertiary)
                         }
                         Spacer()
-                        Picker("Display mode", selection: self.$settings.menuBarDisplayMode) {
-                            ForEach(MenuBarDisplayMode.allCases) { mode in
-                                Text(mode.label).tag(mode)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .frame(maxWidth: 200)
+                        SettingsMenuPicker(
+                            L("display_mode_title"),
+                            selection: self.$settings.menuBarDisplayMode,
+                            options: MenuBarDisplayMode.allCases.map {
+                                SettingsMenuOption(id: $0, title: $0.label)
+                            })
                     }
                     .disabled(!self.settings.menuBarShowsBrandIconWithPercent)
                     .opacity(self.settings.menuBarShowsBrandIconWithPercent ? 1 : 0.5)
@@ -87,15 +85,16 @@ struct DisplayPane: View {
                                 .foregroundStyle(.tertiary)
                         }
                         Spacer()
-                        Picker(L("weekly_progress_work_days_title"), selection: self.$settings.weeklyProgressWorkDays) {
-                            Text("Off").tag(nil as Int?)
-                            Text("4 days").tag(4 as Int?)
-                            Text("5 days").tag(5 as Int?)
-                            Text("7 days").tag(7 as Int?)
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .frame(maxWidth: 100)
+                        SettingsMenuPicker(
+                            L("weekly_progress_work_days_title"),
+                            selection: self.$settings.weeklyProgressWorkDays,
+                            options: [
+                                SettingsMenuOption(id: nil as Int?, title: "Off"),
+                                SettingsMenuOption(id: 4 as Int?, title: "4 days"),
+                                SettingsMenuOption(id: 5 as Int?, title: "5 days"),
+                                SettingsMenuOption(id: 7 as Int?, title: "7 days"),
+                            ],
+                            maxWidth: 100)
                     }
                     PreferenceToggleRow(
                         title: L("show_reset_time_as_clock_title"),
@@ -118,14 +117,12 @@ struct DisplayPane: View {
                                 .foregroundStyle(.tertiary)
                         }
                         Spacer()
-                        Picker(L("multi_account_layout_title"), selection: self.$settings.multiAccountMenuLayout) {
-                            ForEach(MultiAccountMenuLayout.allCases) { layout in
-                                Text(layout.label).tag(layout)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .frame(maxWidth: 200)
+                        SettingsMenuPicker(
+                            L("multi_account_layout_title"),
+                            selection: self.$settings.multiAccountMenuLayout,
+                            options: MultiAccountMenuLayout.allCases.map {
+                                SettingsMenuOption(id: $0, title: $0.label)
+                            })
                     }
                     self.overviewProviderSelector
                 }

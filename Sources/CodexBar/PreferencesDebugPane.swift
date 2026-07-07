@@ -47,14 +47,13 @@ struct DebugPane: View {
                                 .foregroundStyle(.tertiary)
                         }
                         Spacer()
-                        Picker("Verbosity", selection: self.$settings.debugLogLevel) {
-                            ForEach(CodexBarLog.Level.allCases) { level in
-                                Text(level.displayName).tag(level)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .frame(maxWidth: 160)
+                        SettingsMenuPicker(
+                            L("verbosity_title"),
+                            selection: self.$settings.debugLogLevel,
+                            options: CodexBarLog.Level.allCases.map {
+                                SettingsMenuOption(id: $0, title: $0.displayName)
+                            },
+                            maxWidth: 160)
                     }
 
                     Button {
@@ -169,13 +168,13 @@ struct DebugPane: View {
                     title: L("section_fetch_strategy"),
                     caption: L("fetch_strategy_caption"))
                 {
-                    Picker("Provider", selection: self.$currentFetchProvider) {
-                        ForEach(UsageProvider.allCases, id: \.self) { provider in
-                            Text(provider.rawValue.capitalized).tag(provider)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .frame(width: 240)
+                    SettingsMenuPicker(
+                        "Provider",
+                        selection: self.$currentFetchProvider,
+                        options: UsageProvider.allCases.map {
+                            SettingsMenuOption(id: $0, title: $0.rawValue.capitalized)
+                        },
+                        maxWidth: 240)
 
                     ScrollView {
                         Text(self.fetchAttemptsText(for: self.currentFetchProvider))

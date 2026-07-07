@@ -150,6 +150,12 @@ struct MenuDescriptor {
             let resetStyle = settings.resetTimeDisplayStyle
             let labels = Self.rateWindowLabels(provider: provider, metadata: meta, snapshot: snap)
             if let primary = snap.primary {
+                let primaryResetOverride: String? = {
+                    guard provider == .perplexity else { return nil }
+                    let detail = primary.resetDescription?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard let detail, !detail.isEmpty else { return nil }
+                    return detail
+                }()
                 let primaryWindow = if provider == .warp || provider == .kilo || provider == .mimo || provider ==
                     .abacus ||
                     provider == .deepseek || provider == .azureopenai
@@ -169,7 +175,8 @@ struct MenuDescriptor {
                     title: labels.primary,
                     window: primaryWindow,
                     resetStyle: resetStyle,
-                    showUsed: settings.usageBarsShowUsed)
+                    showUsed: settings.usageBarsShowUsed,
+                    resetOverride: primaryResetOverride)
                 if provider == .warp || provider == .kilo || provider == .mimo || provider == .abacus || provider ==
                     .deepseek || provider == .azureopenai,
                     let detail = primary.resetDescription?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -237,6 +244,13 @@ struct MenuDescriptor {
                     showUsed: settings.usageBarsShowUsed,
                     resetOverride: opusResetOverride)
             }
+            Self.appendExtraRateWindows(
+                entries: &entries,
+                snapshot: snap,
+                provider: provider,
+                settings: settings,
+                resetStyle: resetStyle,
+                showUsed: settings.usageBarsShowUsed)
 
             Self.appendProviderUsageSummaries(entries: &entries, snapshot: snap)
         } else {
@@ -653,6 +667,28 @@ struct MenuDescriptor {
             entries.append(.text(resetOverride, .secondary))
         } else if let reset = UsageFormatter.resetLine(for: window, style: resetStyle) {
             entries.append(.text(reset, .secondary))
+        }
+    }
+
+    private static func appendExtraRateWindows(
+        entries: inout [Entry],
+        snapshot: UsageSnapshot,
+        provider: UsageProvider,
+        settings: SettingsStore,
+        resetStyle: ResetTimeDisplayStyle,
+        showUsed: Bool)
+    {
+        guard let extraRateWindows = snapshot.extraRateWindows else { return }
+        if provider == .codex, !settings.showOptionalCreditsAndExtraUsage {
+            return
+        }
+        for extraWindow in extraRateWindows {
+            Self.appendRateWindow(
+                entries: &entries,
+                title: extraWindow.title,
+                window: extraWindow.window,
+                resetStyle: resetStyle,
+                showUsed: showUsed)
         }
     }
 

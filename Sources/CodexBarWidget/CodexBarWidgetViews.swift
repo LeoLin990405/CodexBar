@@ -324,12 +324,14 @@ private struct SwitcherSmallUsageView: View {
                 UsageBarRow(
                     title: row.title,
                     percentLeft: row.percentLeft,
+                    showsUsed: self.entry.usageBarsShowUsed == true,
                     color: WidgetColors.color(for: self.entry.provider))
             }
             if let codeReview = entry.codeReviewRemainingPercent {
                 UsageBarRow(
                     title: "Code review",
                     percentLeft: codeReview,
+                    showsUsed: self.entry.usageBarsShowUsed == true,
                     color: WidgetColors.color(for: self.entry.provider))
             }
         }
@@ -345,6 +347,7 @@ private struct SwitcherMediumUsageView: View {
                 UsageBarRow(
                     title: row.title,
                     percentLeft: row.percentLeft,
+                    showsUsed: self.entry.usageBarsShowUsed == true,
                     color: WidgetColors.color(for: self.entry.provider))
             }
             if let credits = entry.creditsRemaining {
@@ -371,12 +374,14 @@ private struct SwitcherLargeUsageView: View {
                 UsageBarRow(
                     title: row.title,
                     percentLeft: row.percentLeft,
+                    showsUsed: self.entry.usageBarsShowUsed == true,
                     color: WidgetColors.color(for: self.entry.provider))
             }
             if let codeReview = entry.codeReviewRemainingPercent {
                 UsageBarRow(
                     title: "Code review",
                     percentLeft: codeReview,
+                    showsUsed: self.entry.usageBarsShowUsed == true,
                     color: WidgetColors.color(for: self.entry.provider))
             }
             if let credits = entry.creditsRemaining {
@@ -414,12 +419,14 @@ private struct SmallUsageView: View {
                 UsageBarRow(
                     title: row.title,
                     percentLeft: row.percentLeft,
+                    showsUsed: self.entry.usageBarsShowUsed == true,
                     color: WidgetColors.color(for: self.entry.provider))
             }
             if let codeReview = entry.codeReviewRemainingPercent {
                 UsageBarRow(
                     title: "Code review",
                     percentLeft: codeReview,
+                    showsUsed: self.entry.usageBarsShowUsed == true,
                     color: WidgetColors.color(for: self.entry.provider))
             }
         }
@@ -437,6 +444,7 @@ private struct MediumUsageView: View {
                 UsageBarRow(
                     title: row.title,
                     percentLeft: row.percentLeft,
+                    showsUsed: self.entry.usageBarsShowUsed == true,
                     color: WidgetColors.color(for: self.entry.provider))
             }
             if let credits = entry.creditsRemaining {
@@ -465,12 +473,14 @@ private struct LargeUsageView: View {
                 UsageBarRow(
                     title: row.title,
                     percentLeft: row.percentLeft,
+                    showsUsed: self.entry.usageBarsShowUsed == true,
                     color: WidgetColors.color(for: self.entry.provider))
             }
             if let codeReview = entry.codeReviewRemainingPercent {
                 UsageBarRow(
                     title: "Code review",
                     percentLeft: codeReview,
+                    showsUsed: self.entry.usageBarsShowUsed == true,
                     color: WidgetColors.color(for: self.entry.provider))
             }
             if let credits = entry.creditsRemaining {
@@ -503,6 +513,11 @@ struct WidgetUsageRow: Identifiable, Equatable {
     let id: String
     let title: String
     let percentLeft: Double?
+
+    static func displayedPercent(percentLeft: Double?, showsUsed: Bool) -> Double? {
+        guard let percentLeft else { return nil }
+        return showsUsed ? 100 - percentLeft : percentLeft
+    }
 
     static func rows(for entry: WidgetSnapshot.ProviderEntry) -> [WidgetUsageRow] {
         if let usageRows = entry.usageRows {
@@ -580,20 +595,22 @@ private struct HeaderView: View {
 private struct UsageBarRow: View {
     let title: String
     let percentLeft: Double?
+    let showsUsed: Bool
     let color: Color
 
     var body: some View {
+        let displayPercent = self.displayPercent
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(self.title)
                     .font(.caption)
                 Spacer()
-                Text(WidgetFormat.percent(self.percentLeft))
+                Text(WidgetFormat.percent(displayPercent))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             GeometryReader { proxy in
-                let width = max(0, min(1, (percentLeft ?? 0) / 100)) * proxy.size.width
+                let width = max(0, min(1, (displayPercent ?? 0) / 100)) * proxy.size.width
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.primary.opacity(0.08))
                     Capsule().fill(self.color).frame(width: width)
@@ -601,6 +618,10 @@ private struct UsageBarRow: View {
             }
             .frame(height: 6)
         }
+    }
+
+    private var displayPercent: Double? {
+        WidgetUsageRow.displayedPercent(percentLeft: self.percentLeft, showsUsed: self.showsUsed)
     }
 }
 

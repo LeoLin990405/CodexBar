@@ -130,6 +130,13 @@ struct CodexBarWidgetProviderTests {
     }
 
     @Test
+    func `widget usage rows display used or remaining percent`() {
+        #expect(WidgetUsageRow.displayedPercent(percentLeft: 75, showsUsed: false) == 75)
+        #expect(WidgetUsageRow.displayedPercent(percentLeft: 75, showsUsed: true) == 25)
+        #expect(WidgetUsageRow.displayedPercent(percentLeft: nil, showsUsed: true) == nil)
+    }
+
+    @Test
     func `legacy widget usage rows include tertiary slot when supported`() {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let entry = WidgetSnapshot.ProviderEntry(

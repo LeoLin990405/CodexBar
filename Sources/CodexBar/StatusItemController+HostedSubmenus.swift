@@ -246,7 +246,7 @@ extension StatusItemController {
 
         if !Self.menuCardRenderingEnabled {
             let chartItem = NSMenuItem()
-            chartItem.isEnabled = false
+            chartItem.isEnabled = true
             chartItem.representedObject = Self.zaiHourlyUsageChartID
             chartItem.toolTip = provider.rawValue
             submenu.addItem(chartItem)
@@ -261,7 +261,7 @@ extension StatusItemController {
 
         let chartItem = NSMenuItem()
         chartItem.view = hosting
-        chartItem.isEnabled = false
+        chartItem.isEnabled = true
         chartItem.representedObject = Self.zaiHourlyUsageChartID
         chartItem.toolTip = provider.rawValue
         submenu.addItem(chartItem)

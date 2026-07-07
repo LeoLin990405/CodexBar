@@ -101,8 +101,10 @@ public enum CommandCodeCookieImporter {
         logger: ((String) -> Void)? = nil) throws -> SessionInfo
     {
         let sessions = try self.importSessions(browserDetection: browserDetection, logger: logger)
-        guard let first = sessions.first else { throw CommandCodeCookieImportError.noCookies }
-        return first
+        guard let preferred = self.preferredSession(from: sessions) else {
+            throw CommandCodeCookieImportError.noCookies
+        }
+        return preferred
     }
 
     public static func hasSession(
@@ -119,6 +121,13 @@ public enum CommandCodeCookieImporter {
 
     static func invalidateImportSessionCache() {
         self.importSessionCache.invalidate()
+    }
+
+    static func preferredSession(from sessions: [SessionInfo]) -> SessionInfo? {
+        if let recognized = sessions.first(where: { $0.sessionCookie != nil }) {
+            return recognized
+        }
+        return sessions.first
     }
 
     private static func emit(_ message: String, logger: ((String) -> Void)?) {

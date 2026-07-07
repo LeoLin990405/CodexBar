@@ -311,12 +311,7 @@ public struct AntigravityStatusProbe: Sendable {
             timeout: self.timeout)
 
         do {
-            return try await Self.makeParsedRequest(
-                payload: RequestPayload(
-                    path: Self.getUserStatusPath,
-                    body: Self.defaultRequestBody()),
-                context: context,
-                parse: Self.parseUserStatusResponse)
+            return try await Self.fetchPrimarySnapshot(context: context)
         } catch {
             return try await Self.makeParsedRequest(
                 payload: RequestPayload(
@@ -350,6 +345,45 @@ public struct AntigravityStatusProbe: Sendable {
                     extensionServerCSRFToken: processInfo.extensionServerCSRFToken),
                 timeout: self.timeout),
             parse: Self.parsePlanInfoSummary)
+    }
+
+    static func fetchPrimarySnapshot(
+        context: RequestContext,
+        send: @escaping @Sendable (RequestPayload, AntigravityConnectionEndpoint, TimeInterval) async throws -> Data =
+            sendRequest) async throws -> AntigravityStatusSnapshot
+    {
+        let primary = try await Self.makeParsedRequest(
+            payload: RequestPayload(
+                path: Self.getUserStatusPath,
+                body: Self.defaultRequestBody()),
+            context: context,
+            send: send,
+            parse: Self.parseUserStatusResponse)
+        guard primary.modelQuotas.isEmpty else {
+            return primary
+        }
+
+        do {
+            let commandSnapshot = try await Self.makeParsedRequest(
+                payload: RequestPayload(
+                    path: Self.commandModelConfigPath,
+                    body: Self.defaultRequestBody()),
+                context: context,
+                send: send,
+                parse: Self.parseCommandModelResponse)
+            guard !commandSnapshot.modelQuotas.isEmpty else {
+                return primary
+            }
+            return AntigravityStatusSnapshot(
+                modelQuotas: commandSnapshot.modelQuotas,
+                accountEmail: primary.accountEmail,
+                accountPlan: primary.accountPlan)
+        } catch {
+            Self.log.debug("Antigravity command model fallback after empty user status failed", metadata: [
+                "error": error.localizedDescription,
+            ])
+            return primary
+        }
     }
 
     public static func isRunning(timeout: TimeInterval = 4.0) async -> Bool {
