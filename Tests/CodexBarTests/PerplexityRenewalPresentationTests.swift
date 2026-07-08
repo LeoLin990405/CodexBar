@@ -18,7 +18,7 @@ struct PerplexityRenewalPresentationTests {
             zaiTokenStore: NoopZaiTokenStore(),
             syntheticTokenStore: NoopSyntheticTokenStore())
         settings.statusChecksEnabled = false
-        settings.resetTimeDisplayStyle = .compact
+        settings.resetTimesShowAbsolute = false
 
         let store = UsageStore(
             fetcher: UsageFetcher(environment: [:]),
