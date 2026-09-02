@@ -767,9 +767,14 @@ extension CostUsageScanner {
     {
         guard let cached = input.cached else { return false }
         let needsSessionId = cached.sessionId == nil
+        let parsedBytes = cached.parsedBytes ?? cached.size
+        let targetSize = cached.codexScanTargetSize ?? cached.size
         guard cached.mtimeUnixMs == input.metadata.mtimeUnixMs,
               cached.size == input.metadata.size,
               cached.codexScanComplete != false,
+              cached.codexJSONLResumeState == nil,
+              parsedBytes >= input.metadata.size,
+              parsedBytes >= targetSize,
               !needsSessionId,
               !context.forceFullScan
         else { return false }
@@ -909,21 +914,10 @@ extension CostUsageScanner {
         // Subagent shape depends on the complete lineage prefix. Appended metadata can change an
         // independent counter into a copied-prefix rollout, so a tail-only parse is not sound.
         let startOffset = cached.parsedBytes ?? cached.size
-        let hasMatchingResumeOffset = cached.codexJSONLResumeState?.offset == nil
-            || cached.codexJSONLResumeState?.offset == startOffset
-        let isResumablePartial = cached.codexScanComplete == false
-            && cached.codexScanFileId != nil
-            && cached.codexScanFileId == input.metadata.fileId
-            && startOffset > 0
-            && startOffset <= input.metadata.size
-            && cached.codexTokenIndexAnchor?.indexedBytes == startOffset
-            && cached.codexTokenIndexAnchor.map {
-                CostUsageScanner.codexTokenIndexAnchorMatches(
-                    $0,
-                    fileURL: input.fileURL,
-                    metadata: input.metadata)
-            } == true
-            && hasMatchingResumeOffset
+        let resumableTargetSize = Self.codexResumableScanTargetSize(
+            metadata: input.metadata,
+            cached: cached)
+        let isResumablePartial = resumableTargetSize != nil
         let isBufferedForkRetry = Self.isValidatedSameSizeBufferedCodexForkRetry(
             metadata: input.metadata,
             cached: cached)
@@ -932,7 +926,10 @@ extension CostUsageScanner {
                 metadata: input.metadata,
                 cached: cached)
         let isBufferedForkResume = isBufferedForkRetry || isOrdinaryUnresolvedForkResume
-        if cached.codexScanComplete == false, !isResumablePartial {
+        let isFrozenTargetTail = Self.isValidatedCodexFrozenTargetTail(
+            metadata: input.metadata,
+            cached: cached)
+        if cached.codexScanComplete == false, !isResumablePartial, !isFrozenTargetTail {
             return false
         }
         if !isResumablePartial, !isBufferedForkResume, try Self.codexFileIsSubagentThread(
@@ -961,6 +958,10 @@ extension CostUsageScanner {
             && startOffset <= input.metadata.size
             && (isResumablePartial
                 || isBufferedForkResume
+                || (isFrozenTargetTail
+                    && cached.forkedFromId == nil
+                    && initialCountedTotals != nil
+                    && !hasIncompleteInterleaveState)
                 || (input.metadata.size > cached.size
                     && initialCountedTotals != nil
                     && cached.forkedFromId == nil
@@ -983,6 +984,7 @@ extension CostUsageScanner {
             initialBufferedSubagentLines: cached.codexBufferedSubagentLines,
             initialBufferedUnresolvedForkLines: cached.codexBufferedUnresolvedForkLines,
             initialJSONLResumeState: cached.codexJSONLResumeState,
+            scanTargetSize: resumableTargetSize ?? input.metadata.size,
             maxBytesToRead: maxBytesToRead,
             shouldStopReading: context.scanBudget.map { budget in
                 { bytesRead in budget.shouldYield(additionalBytes: bytesRead) }
@@ -1125,8 +1127,8 @@ extension CostUsageScanner {
                 fileURL: input.fileURL,
                 indexedBytes: delta.parsedBytes),
             codexScanFileId: input.metadata.fileId,
-            codexScanTargetSize: input.metadata.size,
-            codexScanComplete: delta.parsedBytes >= input.metadata.size && delta.jsonlResumeState == nil,
+            codexScanTargetSize: delta.scanTargetSize,
+            codexScanComplete: delta.parsedBytes >= delta.scanTargetSize && delta.jsonlResumeState == nil,
             codexJSONLResumeState: delta.jsonlResumeState,
             codexBufferedSubagentLines: delta.bufferedSubagentLines,
             codexBufferedUnresolvedForkLines: delta.bufferedUnresolvedForkLines)
@@ -1159,6 +1161,7 @@ extension CostUsageScanner {
         let parsed = try Self.parseCodexFileCancellable(
             fileURL: input.fileURL,
             range: context.range,
+            scanTargetSize: input.metadata.size,
             maxBytesToRead: maxBytesToRead,
             shouldStopReading: context.scanBudget.map { budget in
                 { bytesRead in budget.shouldYield(additionalBytes: bytesRead) }
@@ -1265,8 +1268,8 @@ extension CostUsageScanner {
                 fileURL: input.fileURL,
                 indexedBytes: parsed.parsedBytes),
             codexScanFileId: input.metadata.fileId,
-            codexScanTargetSize: input.metadata.size,
-            codexScanComplete: parsed.parsedBytes >= input.metadata.size && parsed.jsonlResumeState == nil,
+            codexScanTargetSize: parsed.scanTargetSize,
+            codexScanComplete: parsed.parsedBytes >= parsed.scanTargetSize && parsed.jsonlResumeState == nil,
             codexJSONLResumeState: parsed.jsonlResumeState,
             codexBufferedSubagentLines: parsed.bufferedSubagentLines,
             codexBufferedUnresolvedForkLines: parsed.bufferedUnresolvedForkLines)
