@@ -6239,6 +6239,14 @@ enum CostUsageScanner {
                 completedFiles += 1
                 continue
             }
+            if let logicalTargetSize = Self.codexResumableScanTargetSize(
+                metadata: metadata,
+                cached: usage)
+            {
+                totalBytes += logicalTargetSize
+                processedBytes += min(logicalTargetSize, max(0, usage.parsedBytes ?? 0))
+                continue
+            }
 
             totalBytes += max(0, metadata.size)
             let identityMatches = usage.codexScanFileId == nil || usage.codexScanFileId == metadata.fileId
