@@ -872,7 +872,7 @@ extension CostUsageScanner {
     }
 
     /// Reuses compact ordinary-fork events for a validated appended suffix.
-    /// Appended subagent buffers still require a full rescan because later lineage can change attribution.
+    /// Subagent buffers use the separate frozen-target path, which requires the complete parsed prefix.
     static func isAppendSafeBufferedCodexForkResume(
         metadata: CodexFileMetadata,
         cached: CostUsageFileUsage) -> Bool
@@ -912,7 +912,8 @@ extension CostUsageScanner {
             return false
         }
         // Subagent shape depends on the complete lineage prefix. Appended metadata can change an
-        // independent counter into a copied-prefix rollout, so a tail-only parse is not sound.
+        // independent counter into a copied-prefix rollout, so a tail-only parse is sound only
+        // when the entire parsed prefix remains buffered.
         let startOffset = cached.parsedBytes ?? cached.size
         let resumableTargetSize = Self.codexResumableScanTargetSize(
             metadata: input.metadata,
