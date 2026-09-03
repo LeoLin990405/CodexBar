@@ -925,10 +925,16 @@ extension CostUsageScanner {
             && Self.isAppendSafeBufferedCodexForkResume(
                 metadata: input.metadata,
                 cached: cached)
-        let isBufferedForkResume = isBufferedForkRetry || isOrdinaryUnresolvedForkResume
         let isFrozenTargetTail = Self.isValidatedCodexFrozenTargetTail(
             metadata: input.metadata,
             cached: cached)
+        // A frozen subagent prefix remains wholly buffered until its observed physical tail is
+        // consumed, so extending that buffer cannot publish rows under incomplete lineage.
+        let isBufferedSubagentTargetResume = isFrozenTargetTail
+            && cached.codexBufferedSubagentLines?.isEmpty == false
+        let isBufferedForkResume = isBufferedForkRetry
+            || isOrdinaryUnresolvedForkResume
+            || isBufferedSubagentTargetResume
         if cached.codexScanComplete == false, !isResumablePartial, !isFrozenTargetTail {
             return false
         }

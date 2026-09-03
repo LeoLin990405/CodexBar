@@ -4967,7 +4967,14 @@ enum CostUsageScanner {
                 effectiveTargetSize = parsedBytes
             }
 
-            if let pendingSubagentLines, parsedBytes >= effectiveTargetSize, jsonlResumeState == nil {
+            // Unlike an ordinary rollout, a subagent prefix is not independently publishable:
+            // later lineage metadata can reclassify already-buffered totals as copied history.
+            let hasUnconsumedPhysicalTail = effectiveTargetSize < currentFileSize
+            if let pendingSubagentLines,
+               parsedBytes >= effectiveTargetSize,
+               jsonlResumeState == nil,
+               !hasUnconsumedPhysicalTail
+            {
                 // Same-leaf metadata can fill lineage fields after the opening record. Collect it
                 // before replay so copied-prefix totals never run once on the wrong baseline, and
                 // so an owned-suffix filter cannot discard the only fork identifier.
@@ -5159,6 +5166,7 @@ enum CostUsageScanner {
             tokenSnapshots: tokenSnapshots,
             jsonlResumeState: jsonlResumeState,
             bufferedSubagentLines: parsedBytes < effectiveTargetSize
+                || effectiveTargetSize < currentFileSize
                 || jsonlResumeState != nil
                 || hasUnresolvedForkBaseline
                 ? pendingSubagentLines
@@ -5290,8 +5298,8 @@ enum CostUsageScanner {
             {
                 return max(0, targetSize - parsedBytes)
             }
-            if cached.forkedFromId == nil,
-               Self.isValidatedCodexFrozenTargetTail(metadata: metadata, cached: cached)
+            if Self.isValidatedCodexFrozenTargetTail(metadata: metadata, cached: cached),
+               cached.forkedFromId == nil || cached.codexBufferedSubagentLines?.isEmpty == false
             {
                 let startOffset = cached.parsedBytes ?? cached.size
                 return max(0, metadata.size - startOffset)
@@ -5299,8 +5307,8 @@ enum CostUsageScanner {
             return max(0, metadata.size)
         }
         let startOffset = cached.parsedBytes ?? cached.size
-        if cached.forkedFromId == nil,
-           Self.isValidatedCodexFrozenTargetTail(metadata: metadata, cached: cached)
+        if Self.isValidatedCodexFrozenTargetTail(metadata: metadata, cached: cached),
+           cached.forkedFromId == nil || cached.codexBufferedSubagentLines?.isEmpty == false
         {
             return max(0, metadata.size - startOffset)
         }
