@@ -1,0 +1,183 @@
+# FORK-ONLY WORKFLOW — real running-app screenshot proof for upstream CodexBar PR #4687.
+#
+# Builds the actual CodexBar.app on a GitHub-hosted macos-26 runner (real Aqua/WindowServer
+# session), injects a successful-but-quota-less Claude usage answer through the existing DEBUG
+# UsageStore hooks, opens the real Settings window on the Claude provider pane, and captures
+# the live window with `screencapture -l`. Also prints the harness runtime evidence to the job
+# log (redacted: no cookies, credentials, or personal account data are touched).
+#
+# Never intended for upstream: this file lives only on proof/* branches of the fork.
+name: proof-claude-app-screens
+
+on:
+  push:
+    branches: ["proof/*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  claude-proof:
+    runs-on: macos-26
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Runner and GUI fact sheet
+        run: |
+          set +e
+          echo "=== git head ==="; git log --oneline -1; git status --short --branch | head -5
+          echo "=== sw_vers ==="; sw_vers
+          echo "=== xcodebuild ==="; xcodebuild -version
+          echo "=== swift ==="; swift --version
+          echo "=== console user ==="; stat -f%Su /dev/console
+          echo "=== launchctl gui ==="; launchctl print "gui/$(id -u)" 2>&1 | grep -E "type = |session = |creator = " | head -5
+          echo "=== WindowServer ==="; pgrep -lx WindowServer
+          echo "=== AppleLanguages ==="; defaults read -g AppleLanguages 2>&1
+          echo "=== probe screencapture ==="; screencapture -x /tmp/desktop-probe.png && file /tmp/desktop-probe.png && sips -g pixelWidth -g pixelHeight /tmp/desktop-probe.png
+          echo "=== disk ==="; df -h / | tail -1
+
+      - name: Restore SwiftPM build cache
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: proof-swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}-v1
+          restore-keys: |
+            proof-swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}-
+            proof-swiftpm-${{ runner.os }}-
+
+      - name: Build and package CodexBar.app (debug, ad-hoc signed)
+        run: |
+          set -eo pipefail
+          echo "Starting build: $(date -u +%FT%TZ)"
+          CODEXBAR_SIGNING=adhoc CODEXBAR_PROOF_SKIP_WIDGET_EXTENSION=1 \
+            ./Scripts/package_app.sh debug 2>&1 | tee "$RUNNER_TEMP/build-package.log"
+          echo "Finished build: $(date -u +%FT%TZ)"
+          echo "=== packaged app ==="
+          ls -la CodexBar.app/Contents/MacOS
+          echo "bundle id: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' CodexBar.app/Contents/Info.plist)"
+          echo "git commit: $(/usr/libexec/PlistBuddy -c 'Print :CodexGitCommit' CodexBar.app/Contents/Info.plist)"
+          echo "build timestamp: $(/usr/libexec/PlistBuddy -c 'Print :CodexBuildTimestamp' CodexBar.app/Contents/Info.plist)"
+          codesign -dv CodexBar.app 2>&1 | head -5
+          du -sh .build
+
+      - name: Capture the Claude quota-less scenario in the real Settings window
+        run: |
+          set +e
+          APP="$PWD/CodexBar.app"
+          OUT="$PWD/proof-out"
+          PROOF_DIR=/tmp/codexbar-proof
+          STEPS=2
+          mkdir -p "$OUT"
+          rm -rf "$PROOF_DIR"
+          mkdir -p "$PROOF_DIR"
+
+          cat > "$RUNNER_TEMP/dump-windows.swift" <<'SWIFT'
+          import CoreGraphics
+          import Foundation
+          let windows = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] ?? []
+          for window in windows {
+              let owner = window[kCGWindowOwnerName as String] as? String ?? "?"
+              if !owner.lowercased().contains("codexbar") { continue }
+              let number = window[kCGWindowNumber as String] as? Int ?? -1
+              let layer = window[kCGWindowLayer as String] as? Int ?? -99
+              let alpha = window[kCGWindowAlpha as String] as? Double ?? -1
+              let onscreen = window[kCGWindowIsOnscreen as String] as? Bool ?? false
+              let bounds = window[kCGWindowBounds as String] ?? "?"
+              print("owner=\(owner) number=\(number) layer=\(layer) alpha=\(alpha) onscreen=\(onscreen) bounds=\(bounds)")
+          }
+          SWIFT
+
+          window_number_from() {
+            local marker="$1"
+            local number
+            number=$(plutil -extract windowNumber raw -o - "$marker" 2>/dev/null)
+            if [ -z "$number" ]; then
+              number=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("windowNumber",""))' "$marker" 2>/dev/null)
+            fi
+            printf '%s' "$number"
+          }
+
+          pkill -x CodexBar 2>/dev/null
+          sleep 1
+          LOG="$OUT/app-claude-quota-less.log"
+          "$APP/Contents/MacOS/CodexBar" >"$LOG" 2>&1 &
+          echo "$(date -u +%H:%M:%S) direct-exec pid=$!"
+
+          failures=0
+          for step in $(seq 0 $((STEPS - 1))); do
+            MARKER="$PROOF_DIR/marker-step$step.json"
+            for i in $(seq 1 600); do
+              [ -f "$MARKER" ] && break
+              sleep 0.5
+            done
+            if [ ! -f "$MARKER" ]; then
+              echo "ERROR: missing marker for step=$step"
+              failures=$((failures + 1))
+              break
+            fi
+            cp "$MARKER" "$OUT/marker-step$step.json"
+            WINDOW_NUMBER=$(window_number_from "$MARKER")
+            echo "$(date -u +%H:%M:%S) step=$step windowNumber=$WINDOW_NUMBER"
+            if [ -z "$WINDOW_NUMBER" ]; then
+              echo "ERROR: no window number for step=$step"
+              cat "$MARKER"
+              failures=$((failures + 1))
+              break
+            fi
+            sleep 1
+            screencapture -x -l "$WINDOW_NUMBER" "$OUT/claude-quoteless-step$step-window.png"
+            if [ "$step" = "0" ]; then
+              screencapture -x "$OUT/claude-quoteless-step0-screen.png"
+            fi
+            if [ ! -s "$OUT/claude-quoteless-step$step-window.png" ]; then
+              echo "ERROR: empty window capture for step=$step"
+              failures=$((failures + 1))
+              break
+            fi
+            touch "$PROOF_DIR/next"
+          done
+
+          echo "=== harness runtime evidence (redacted) ==="
+          grep "\[proof-harness\]" "$LOG" | sed 's/^\[proof-harness\] //' | head -80
+          echo "=== markers ==="
+          for marker in "$OUT"/marker-step*.json; do
+            echo "--- $marker"
+            cat "$marker"
+          done
+          echo "=== CodexBar windows ==="
+          swift "$RUNNER_TEMP/dump-windows.swift" 2>&1 | head -10
+          echo "=== app stdout tail ==="
+          tail -20 "$LOG" 2>/dev/null
+          pkill -x CodexBar 2>/dev/null
+          sleep 2
+          pkill -9 -x CodexBar 2>/dev/null
+
+          ls -la "$OUT"
+          if [ "$failures" -ne 0 ] || [ ! -s "$OUT/claude-quoteless-step0-window.png" ]; then
+            echo "PROOF CAPTURE INCOMPLETE"
+            exit 1
+          fi
+          echo "PROOF CAPTURE OK"
+
+      - name: Collect diagnostics
+        if: always()
+        run: |
+          set +e
+          mkdir -p proof-out
+          cp "$RUNNER_TEMP/build-package.log" proof-out/ 2>/dev/null
+          cp "$RUNNER_TEMP/dump-windows.swift" proof-out/ 2>/dev/null
+          cp -R /tmp/codexbar-proof proof-out/proof-dir 2>/dev/null
+          cp /tmp/desktop-probe.png proof-out/ 2>/dev/null
+          true
+
+      - name: Upload proof artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-proof-4687
+          path: proof-out
+          if-no-files-found: warn
