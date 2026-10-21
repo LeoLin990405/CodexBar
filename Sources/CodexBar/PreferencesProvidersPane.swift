@@ -204,12 +204,24 @@ struct ProvidersPane: View {
             })
     }
 
+    private func limitsAreUnavailable(for provider: UsageProvider) -> Bool {
+        if let known = self.store.knownLimitsAvailability(for: provider) {
+            return known.isUnavailable
+        }
+        // The successful refresh path clears the remembered limits availability, so a successful
+        // answer that still reports no measured quota window (Claude Free returns null
+        // `five_hour`/`seven_day`) would otherwise read as a fresh timestamp. Resolve it from the
+        // presentation snapshot the same way the menu card does.
+        guard let snapshot = self.store.presentationSnapshot(for: provider) else { return false }
+        return UsageLimitsAvailability.resolve(provider: provider, snapshot: snapshot).isUnavailable
+    }
+
     func providerSubtitle(_ provider: UsageProvider) -> String {
         let meta = self.store.metadata(for: provider)
         let usageText: String
         if self.store.isStale(provider: provider) {
             usageText = L("last_fetch_failed")
-        } else if self.store.knownLimitsAvailability(for: provider)?.isUnavailable == true {
+        } else if self.limitsAreUnavailable(for: provider) {
             usageText = L("Limits not available")
         } else if let snapshot = self.store.presentationSnapshot(for: provider) {
             let relative = snapshot.updatedAt.relativeDescription()
@@ -235,7 +247,7 @@ struct ProvidersPane: View {
         let meta = self.store.metadata(for: provider)
         let usageText: String = if self.store.isStale(provider: provider) {
             L("last_fetch_failed")
-        } else if self.store.knownLimitsAvailability(for: provider)?.isUnavailable == true {
+        } else if self.limitsAreUnavailable(for: provider) {
             L("Limits not available")
         } else if let snapshot = self.store.presentationSnapshot(for: provider) {
             snapshot.updatedAt.relativeDescription()
