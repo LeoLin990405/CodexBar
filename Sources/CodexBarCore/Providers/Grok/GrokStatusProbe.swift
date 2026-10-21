@@ -126,6 +126,13 @@ public struct GrokStatusProbe: Sendable {
     var settingsTransport: any ProviderHTTPTransport = ProviderHTTPClient.shared
     var identityOnlyFallback: @Sendable (GrokCredentials?, Bool, Error?) -> Bool =
         GrokStatusProbe.shouldUseIdentityOnlyFallback
+    /// Best-effort grok.com usage lookup for ACP credits that carry an active period and a wallet
+    /// balance but omit the usage percentage (a zero-usage week). Injectable so probe tests stay
+    /// hermetic instead of reaching the network.
+    var enrichUnknownCredits: @Sendable (GrokWebBillingSnapshot, GrokCredentials?) async throws
+        -> GrokWebBillingSnapshot = { snapshot, credentials in
+            try await GrokStatusProbe.enrichingUnknownCredits(snapshot, credentials: credentials)
+        }
 
     public init() {}
 
@@ -174,6 +181,9 @@ public struct GrokStatusProbe: Sendable {
             rpcError = error
         }
 
+        // PROOF VARIANT (#4674): the ACP unknown-usage enrichment wiring is intentionally reverted
+        // here so the regression in `GrokACPUnknownUsageTests` shows its failing-before-fix state.
+        // The seam and helpers below stay in place; only the call from `fetch()` is removed.
         let hasBilling = billing != nil || webBilling != nil
         let isIdentityOnly = !hasBilling && self.identityOnlyFallback(credentials, billingAttempted, rpcError)
         // Terminal CLI failures must reach the provider's web fallback without scanning discarded history.
@@ -204,6 +214,23 @@ public struct GrokStatusProbe: Sendable {
             subscriptionTier: subscriptionTier)
     }
 
+    /// Enrichment is best-effort: cancellation propagates, but any other failure keeps the
+    /// already-valid wallet-only billing instead of discarding it.
+    func enrichingCredits(
+        _ snapshot: GrokWebBillingSnapshot,
+        credentials: GrokCredentials?) async throws -> GrokWebBillingSnapshot
+    {
+        do {
+            return try await self.enrichUnknownCredits(snapshot, credentials)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as URLError where error.code == .cancelled {
+            throw error
+        } catch {
+            return snapshot
+        }
+    }
+
     static func identityOnlySnapshot(
         credentials: GrokCredentials,
         localSummary: GrokLocalSessionSummary?,
@@ -220,6 +247,35 @@ public struct GrokStatusProbe: Sendable {
             updatedAt: updatedAt,
             diagnostic: GrokStatusProbe.teamUsageUnavailableMessage,
             subscriptionTier: subscriptionTier)
+    }
+
+    /// The ACP credits answer can describe an active billing period and a prepaid balance while
+    /// omitting `creditUsagePercent` (a zero-usage week). That is unknown usage, and an unknown
+    /// percent yields no rate window, so ask the grok.com bearer surface with the same auth-file
+    /// token (no browser cookies) before accepting the wallet-only answer. This reuses the CLI-proxy
+    /// retry's bounded budget and strict validation: only a wire-published percentage or a
+    /// parser-validated implicit zero from an active period can replace unknown usage, and the
+    /// ACP period, plan, and wallet metadata stay authoritative.
+    static func enrichingUnknownCredits(
+        _ snapshot: GrokWebBillingSnapshot,
+        credentials: GrokCredentials?,
+        budget: Duration = GrokOAuthFetchStrategy.unknownUsageEnrichmentBudget,
+        grpcBilling: @escaping GrokWebFetchStrategy.ProxyBillingFetch = {
+            try await GrokWebBillingFetcher.fetch(credentials: $0)
+        }) async throws -> GrokWebBillingSnapshot
+    {
+        guard snapshot.usedPercent == nil,
+              let credentials,
+              !credentials.isExpired
+        else {
+            return snapshot
+        }
+        return try await GrokOAuthFetchStrategy.resolvingUnknownUsage(
+            snapshot,
+            credentials: credentials,
+            budget: budget,
+            grpcBilling: grpcBilling)
+            .snapshot
     }
 
     static let settingsJoinGrace = Duration.seconds(2)
