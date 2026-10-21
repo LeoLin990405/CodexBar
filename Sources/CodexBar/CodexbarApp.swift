@@ -471,6 +471,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         self.ensureStatusController()
         self.observeSettingsApplicationMenuLanguage()
+        #if DEBUG
+        // FORK-ONLY PROOF: real-Settings-window screenshots for the Claude quota-less scenario
+        // (ProofClaudeQuotaScreenshotHarness.swift).
+        self.startProofClaudeQuotaScreenshotHarnessIfRequested()
+        #endif
         self.scheduleSettingsApplicationMenuValidation(
             missingItemRetriesRemaining: Self.settingsMenuReadinessRetryCount,
             fallbackVerificationRetriesRemaining: Self.settingsMenuFallbackVerificationRetryCount)
@@ -553,6 +558,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let statusController else { return }
         await statusController.runLoginFlowFromSettings(provider: provider)
     }
+
+    #if DEBUG
+    /// FORK-ONLY PROOF: schedules one run of the Claude quota-less screenshot harness.
+    private func startProofClaudeQuotaScreenshotHarnessIfRequested() {
+        guard ProofClaudeQuotaScreenshotHarness.isRequested else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let store = self.store, let settings = self.settings else { return }
+            ProofClaudeQuotaScreenshotHarness.run(
+                settings: settings,
+                store: store,
+                openSettings: {
+                    self.openSettings(pane: .provider(UsageProvider.claude.instanceID))
+                },
+                settingsWindow: { self.settingsWindowController?.window })
+        }
+    }
+    #endif
 
     func openSettings(pane: SettingsPane?) {
         // Escape NSMenu's synchronous tracking callback before activating and presenting a window.
