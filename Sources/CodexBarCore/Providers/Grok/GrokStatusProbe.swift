@@ -126,13 +126,6 @@ public struct GrokStatusProbe: Sendable {
     var settingsTransport: any ProviderHTTPTransport = ProviderHTTPClient.shared
     var identityOnlyFallback: @Sendable (GrokCredentials?, Bool, Error?) -> Bool =
         GrokStatusProbe.shouldUseIdentityOnlyFallback
-    /// Best-effort grok.com usage lookup for ACP credits that carry an active period and a wallet
-    /// balance but omit the usage percentage (a zero-usage week). Injectable so probe tests stay
-    /// hermetic instead of reaching the network.
-    var enrichUnknownCredits: @Sendable (GrokWebBillingSnapshot, GrokCredentials?) async throws
-        -> GrokWebBillingSnapshot = { snapshot, credentials in
-            try await GrokStatusProbe.enrichingUnknownCredits(snapshot, credentials: credentials)
-        }
 
     public init() {}
 
@@ -181,11 +174,12 @@ public struct GrokStatusProbe: Sendable {
             rpcError = error
         }
 
-        // ACP reports an active period and prepaid balance while omitting `creditUsagePercent`
-        // early in a billing period. Ask the grok.com bearer surface for a validated percentage
-        // before the wallet-only answer ends the pipeline; keep the ACP answer when it has none.
-        if let credits = webBilling, credits.usedPercent == nil {
-            webBilling = try await self.enrichingCredits(credits, credentials: credentials)
+        // ACP wallet-only success needs the same bounded quota enrichment as the proxy.
+        if let credits = webBilling, let credentials, !credentials.isExpired {
+            webBilling = try await GrokOAuthFetchStrategy.resolvingUnknownUsage(
+                credits, credentials: credentials, grpcBilling: {
+                    try await GrokWebBillingFetcher.fetch(credentials: $0, session: self.settingsTransport)
+                }).snapshot
         }
 
         let hasBilling = billing != nil || webBilling != nil
@@ -218,23 +212,6 @@ public struct GrokStatusProbe: Sendable {
             subscriptionTier: subscriptionTier)
     }
 
-    /// Enrichment is best-effort: cancellation propagates, but any other failure keeps the
-    /// already-valid wallet-only billing instead of discarding it.
-    func enrichingCredits(
-        _ snapshot: GrokWebBillingSnapshot,
-        credentials: GrokCredentials?) async throws -> GrokWebBillingSnapshot
-    {
-        do {
-            return try await self.enrichUnknownCredits(snapshot, credentials)
-        } catch is CancellationError {
-            throw CancellationError()
-        } catch let error as URLError where error.code == .cancelled {
-            throw error
-        } catch {
-            return snapshot
-        }
-    }
-
     static func identityOnlySnapshot(
         credentials: GrokCredentials,
         localSummary: GrokLocalSessionSummary?,
@@ -251,35 +228,6 @@ public struct GrokStatusProbe: Sendable {
             updatedAt: updatedAt,
             diagnostic: GrokStatusProbe.teamUsageUnavailableMessage,
             subscriptionTier: subscriptionTier)
-    }
-
-    /// The ACP credits answer can describe an active billing period and a prepaid balance while
-    /// omitting `creditUsagePercent` (a zero-usage week). That is unknown usage, and an unknown
-    /// percent yields no rate window, so ask the grok.com bearer surface with the same auth-file
-    /// token (no browser cookies) before accepting the wallet-only answer. This reuses the CLI-proxy
-    /// retry's bounded budget and strict validation: only a wire-published percentage or a
-    /// parser-validated implicit zero from an active period can replace unknown usage, and the
-    /// ACP period, plan, and wallet metadata stay authoritative.
-    static func enrichingUnknownCredits(
-        _ snapshot: GrokWebBillingSnapshot,
-        credentials: GrokCredentials?,
-        budget: Duration = GrokOAuthFetchStrategy.unknownUsageEnrichmentBudget,
-        grpcBilling: @escaping GrokWebFetchStrategy.ProxyBillingFetch = {
-            try await GrokWebBillingFetcher.fetch(credentials: $0)
-        }) async throws -> GrokWebBillingSnapshot
-    {
-        guard snapshot.usedPercent == nil,
-              let credentials,
-              !credentials.isExpired
-        else {
-            return snapshot
-        }
-        return try await GrokOAuthFetchStrategy.resolvingUnknownUsage(
-            snapshot,
-            credentials: credentials,
-            budget: budget,
-            grpcBilling: grpcBilling)
-            .snapshot
     }
 
     static let settingsJoinGrace = Duration.seconds(2)
@@ -343,10 +291,7 @@ public struct GrokStatusProbe: Sendable {
     {
         // If remote usage succeeded, xAI accepted auth and the local
         // identity is still useful even when the persisted expires_at is stale.
-        if billing != nil || webBilling != nil {
-            return credentials
-        }
-        return credentials.flatMap { $0.isExpired ? nil : $0 }
+        credentials.flatMap { billing != nil || webBilling != nil || !$0.isExpired ? $0 : nil }
     }
 
     static func shouldSurfaceRemoteAuthError(_ error: Error?) -> Bool {

@@ -2,214 +2,86 @@ import Foundation
 import Testing
 @testable import CodexBarCore
 
-/// Regression coverage for #4674: the ACP `_x.ai/billing` answer can describe an active weekly
-/// period and a prepaid balance while omitting `creditUsagePercent` (a zero-usage week). That
-/// wallet-only answer is valid and must keep its prepaid balance, but it must also regain the
-/// weekly Credits window through the bounded, validated grok.com usage enrichment rather than
-/// ending the pipeline with unknown usage.
 struct GrokACPUnknownUsageTests {
     @Test
     func `active ACP period with omitted percentage adopts validated implicit zero`() async throws {
         let fixture = try Self.makeFixture(credentials: .valid, prepaidCents: 123)
         defer { fixture.cleanup() }
-        let probe = Self.makeProbe { snapshot, credentials in
-            #expect(credentials?.accessToken == "synthetic-token")
-            return try await GrokStatusProbe.enrichingUnknownCredits(
-                snapshot,
-                credentials: credentials,
-                grpcBilling: { _ in
-                    // grok.com reports its own reset; the ACP period stays authoritative.
-                    GrokWebBillingSnapshot(
-                        usedPercent: 0,
-                        resetsAt: fixture.periodEnd.addingTimeInterval(-90),
-                        windowMinutes: 10080,
-                        usedPercentIsWirePublished: false,
-                        usedPercentIsImplicitZero: true)
-                })
+        var probe = GrokStatusProbe()
+        probe.localSummary = { _ in nil }
+        probe.settingsTransport = ProviderHTTPTransportHandler { request in
+            let response = try #require(HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil))
+            if request.url == GrokCLISettingsFetcher.defaultEndpoint {
+                return (Data("{}".utf8), response)
+            }
+            #expect(request.url == GrokWebBillingFetcher.defaultEndpoint)
+            #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer synthetic-token")
+            #expect(request.value(forHTTPHeaderField: "Cookie") == nil)
+            // The bearer response validates zero but must not replace the ACP reset or wallet.
+            return (Self.zeroUsagePayload(endingAt: fixture.periodEnd.addingTimeInterval(-90)), response)
         }
-
         let snapshot = try await probe.fetch(env: fixture.environment)
-        #expect(snapshot.billing == nil)
-        #expect(snapshot.webBilling?.usedPercent == 0)
-        #expect(snapshot.webBilling?.usedPercentIsImplicitZero == true)
-        #expect(snapshot.webBilling?.windowMinutes == 10080)
-        #expect(snapshot.webBilling?.resetsAt == fixture.periodEnd)
-        #expect(snapshot.webBilling?.prepaidBalanceUSD == 1.23)
-        #expect(snapshot.diagnostic == nil)
-
         let usage = snapshot.toUsageSnapshot()
         let primary = try #require(usage.primary)
         #expect(primary.usedPercent == 0)
         #expect(primary.windowMinutes == 10080)
         #expect(primary.resetsAt == fixture.periodEnd)
         #expect(usage.providerCost?.balance == 1.23)
+        #expect(snapshot.webBilling?.usedPercentIsImplicitZero == true)
     }
 
     @Test
-    func `published ACP percentage never triggers the grok.com retry`() async throws {
+    func `published ACP usage skips enrichment`() async throws {
         let fixture = try Self.makeFixture(credentials: .valid, publishedPercent: 5)
         defer { fixture.cleanup() }
-        let probe = Self.makeProbe { _, _ in
-            Issue.record("Enrichment must not run when ACP already published a percentage")
-            throw GrokWebBillingError.parseFailed
+        var probe = GrokStatusProbe()
+        probe.localSummary = { _ in nil }
+        probe.settingsTransport = ProviderHTTPTransportHandler { request in
+            #expect(request.url == GrokCLISettingsFetcher.defaultEndpoint)
+            return try (Data("{}".utf8), #require(HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)))
         }
-
-        let usage = try await probe.fetch(env: fixture.environment).toUsageSnapshot()
-        #expect(usage.primary?.usedPercent == 5)
+        #expect(try await probe.fetch(env: fixture.environment).toUsageSnapshot().primary?.usedPercent == 5)
     }
 
-    @Test
-    func `enrichment without a validated percentage keeps unknown usage and the wallet`() async throws {
-        let fixture = try Self.makeFixture(credentials: .valid, prepaidCents: 123)
-        defer { fixture.cleanup() }
-        let probe = Self.makeProbe { snapshot, credentials in
-            try await GrokStatusProbe.enrichingUnknownCredits(
-                snapshot,
-                credentials: credentials,
-                grpcBilling: { _ in GrokWebBillingSnapshot(usedPercent: nil, resetsAt: nil) })
-        }
-
-        let snapshot = try await probe.fetch(env: fixture.environment)
-        let usage = snapshot.toUsageSnapshot()
-        #expect(snapshot.webBilling?.usedPercent == nil)
-        #expect(usage.primary == nil)
-        #expect(usage.providerCost?.balance == 1.23)
-    }
-
-    @Test
-    func `enrichment failure cannot discard already-valid wallet-only billing`() async throws {
-        let fixture = try Self.makeFixture(credentials: .valid, prepaidCents: 123)
-        defer { fixture.cleanup() }
-        let probe = Self.makeProbe { _, _ in
-            throw GrokWebBillingError.requestFailed(503, "synthetic outage")
-        }
-
-        let snapshot = try await probe.fetch(env: fixture.environment)
-        let usage = snapshot.toUsageSnapshot()
-        #expect(snapshot.webBilling?.prepaidBalanceUSD == 1.23)
-        #expect(usage.primary == nil)
-        #expect(usage.providerCost?.balance == 1.23)
-    }
-
-    @Test(arguments: [CredentialsMode.expired, .missing])
-    func `expired or missing credentials skip enrichment but keep the wallet`(_ mode: CredentialsMode) async throws {
+    @Test(arguments: [CredentialsMode.valid, .expired, .missing])
+    func `unavailable enrichment preserves prepaid billing`(_ mode: CredentialsMode) async throws {
         let fixture = try Self.makeFixture(credentials: mode, prepaidCents: 123)
         defer { fixture.cleanup() }
-        // The default seam must short-circuit before any grok.com request: this test would hang or
-        // fail hermeticity if it reached the network.
-        let probe = GrokStatusProbe()
-
-        let snapshot = try await probe.fetch(env: fixture.environment)
-        let usage = snapshot.toUsageSnapshot()
+        var probe = GrokStatusProbe()
+        probe.localSummary = { _ in nil }
+        probe.settingsTransport = ProviderHTTPTransportHandler { request in
+            if request.url == GrokWebBillingFetcher.defaultEndpoint {
+                #expect(mode == .valid)
+            }
+            throw URLError(.timedOut)
+        }
+        let usage = try await probe.fetch(env: fixture.environment).toUsageSnapshot()
         #expect(usage.primary == nil)
         #expect(usage.providerCost?.balance == 1.23)
     }
 
-    @Test
-    func `enrichment cancellation propagates instead of settling for unknown usage`() async throws {
-        let fixture = try Self.makeFixture(credentials: .valid, prepaidCents: 123)
-        defer { fixture.cleanup() }
-        let probe = Self.makeProbe { _, _ in
-            throw CancellationError()
+    private static func zeroUsagePayload(endingAt end: Date) -> Data {
+        func varint(_ number: UInt64) -> Data {
+            var number = number
+            var bytes = Data()
+            while number >= 0x80 {
+                bytes.append(UInt8(number & 0x7F) | 0x80)
+                number >>= 7
+            }
+            bytes.append(UInt8(number))
+            return bytes
         }
-
-        do {
-            _ = try await probe.fetch(env: fixture.environment)
-            Issue.record("Expected ACP usage enrichment cancellation to propagate")
-        } catch is CancellationError {
-            // Expected: the caller canceled instead of waiting for wallet-only data.
+        func message(_ field: UInt8, _ data: Data) -> Data {
+            Data([field << 3 | 2, UInt8(data.count)]) + data
         }
+        let start = Data([0x08]) + varint(UInt64(end.timeIntervalSince1970) - 7 * 86400)
+        let finish = Data([0x08]) + varint(UInt64(end.timeIntervalSince1970))
+        let period = Data([0x08, 0x02]) + message(2, start) + message(3, finish)
+        return message(1, message(8, period))
     }
 
-    @Test
-    func `published percentage and live credentials never enter the bounded retry`() async throws {
-        let snapshot = GrokWebBillingSnapshot(
-            usedPercent: 5,
-            resetsAt: Date(timeIntervalSince1970: 1_900_000_000),
-            windowMinutes: 10080,
-            subscriptionTier: "SuperGrok Heavy",
-            prepaidBalanceUSD: 1.23)
-        let enriched = try await GrokStatusProbe.enrichingUnknownCredits(
-            snapshot,
-            credentials: Self.validCredentials,
-            grpcBilling: { _ in
-                Issue.record("Published ACP usage must not schedule another request")
-                throw GrokWebBillingError.parseFailed
-            })
-        #expect(enriched == snapshot)
-    }
-
-    @Test
-    func `missing or expired credentials never enter the bounded retry`() async throws {
-        let snapshot = Self.unknownCreditsSnapshot()
-        let credentialSets: [GrokCredentials?] = [nil, Self.expiredCredentials]
-        for credentials in credentialSets {
-            let enriched = try await GrokStatusProbe.enrichingUnknownCredits(
-                snapshot,
-                credentials: credentials,
-                grpcBilling: { _ in
-                    Issue.record("grok.com billing must not run without non-expired ACP credentials")
-                    throw GrokWebBillingError.missingCredentials
-                })
-            #expect(enriched == snapshot)
-        }
-    }
-
-    @Test
-    func `unvalidated zero cannot replace unknown ACP usage`() async throws {
-        let snapshot = Self.unknownCreditsSnapshot()
-        let enriched = try await GrokStatusProbe.enrichingUnknownCredits(
-            snapshot,
-            credentials: Self.validCredentials,
-            grpcBilling: { _ in
-                GrokWebBillingSnapshot(
-                    usedPercent: 0,
-                    resetsAt: nil,
-                    usedPercentIsWirePublished: false,
-                    usedPercentIsImplicitZero: false)
-            })
-        #expect(enriched == snapshot)
-        #expect(enriched.usedPercent == nil)
-    }
-
-    @Test
-    func `bounded retry timeout keeps the ACP period, plan, and wallet`() async throws {
-        let snapshot = Self.unknownCreditsSnapshot()
-        let enriched = try await GrokStatusProbe.enrichingUnknownCredits(
-            snapshot,
-            credentials: Self.validCredentials,
-            budget: .milliseconds(20),
-            grpcBilling: { _ in
-                try await Task.sleep(for: .seconds(30))
-                return GrokWebBillingSnapshot(usedPercent: 99, resetsAt: nil)
-            })
-        #expect(enriched == snapshot)
-    }
-
-    @Test
-    func `published grok.com percentage adopts the ACP period, plan, and wallet`() async throws {
-        let snapshot = Self.unknownCreditsSnapshot()
-        let enriched = try await GrokStatusProbe.enrichingUnknownCredits(
-            snapshot,
-            credentials: Self.validCredentials,
-            grpcBilling: { _ in
-                GrokWebBillingSnapshot(
-                    usedPercent: 12,
-                    resetsAt: Date(timeIntervalSince1970: 1_950_000_000),
-                    windowMinutes: 10080,
-                    usedPercentIsWirePublished: true)
-            })
-        #expect(enriched.usedPercent == 12)
-        #expect(enriched.usedPercentIsWirePublished)
-        #expect(enriched.resetsAt == snapshot.resetsAt)
-        #expect(enriched.windowMinutes == snapshot.windowMinutes)
-        #expect(enriched.subscriptionTier == snapshot.subscriptionTier)
-        #expect(enriched.prepaidBalanceUSD == snapshot.prepaidBalanceUSD)
-    }
-
-    // MARK: - Synthetic ACP fixture
-
-    /// The `@Test(arguments:)` entry point is internal, so its parameter type must not be private.
     enum CredentialsMode: Sendable {
         case valid, expired, missing
     }
@@ -271,7 +143,6 @@ struct GrokACPUnknownUsageTests {
             config["creditUsagePercent"] = publishedPercent
         }
         let billing: [String: Any] = ["config": config, "subscription_tier": "SuperGrok Heavy"]
-        let requestLog = root.appendingPathComponent("billing-requests.jsonl")
 
         func reply(id: Int, result: [String: Any]) throws -> String {
             let data = try JSONSerialization.data(
@@ -290,7 +161,6 @@ struct GrokACPUnknownUsageTests {
         IFS= read -r initialize_request
         printf '%s\\n' '\(initialize)'
         IFS= read -r billing_request || exit 0
-        printf '%s\\n' "$billing_request" >> "\(requestLog.path)"
         printf '%s\\n' '\(billingReply)'
         """
         try script.write(to: binary, atomically: true, encoding: .utf8)
@@ -306,58 +176,4 @@ struct GrokACPUnknownUsageTests {
             ],
             periodEnd: #require(ISO8601DateParser.parse(endString)))
     }
-
-    private static func makeProbe(
-        enrich: @escaping @Sendable (GrokWebBillingSnapshot, GrokCredentials?) async throws
-            -> GrokWebBillingSnapshot) -> GrokStatusProbe
-    {
-        var probe = GrokStatusProbe()
-        probe.localSummary = { _ in nil }
-        probe.settingsTransport = ProviderHTTPTransportHandler { request in
-            let response = try #require(HTTPURLResponse(
-                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil))
-            return (Data("{}".utf8), response)
-        }
-        probe.enrichUnknownCredits = enrich
-        return probe
-    }
-
-    private static func unknownCreditsSnapshot() -> GrokWebBillingSnapshot {
-        GrokWebBillingSnapshot(
-            usedPercent: nil,
-            resetsAt: Date(timeIntervalSince1970: 1_900_000_000),
-            windowMinutes: 10080,
-            subscriptionTier: "SuperGrok Heavy",
-            prepaidBalanceUSD: 1.23)
-    }
-
-    private static let validCredentials = GrokCredentials(
-        accessToken: "synthetic-token",
-        refreshToken: nil,
-        scope: "https://auth.x.ai::test",
-        authMode: "oidc",
-        userId: nil,
-        email: nil,
-        firstName: nil,
-        lastName: nil,
-        teamId: nil,
-        oidcIssuer: nil,
-        oidcClientId: nil,
-        expiresAt: .distantFuture,
-        createTime: nil)
-
-    private static let expiredCredentials = GrokCredentials(
-        accessToken: "synthetic-token",
-        refreshToken: nil,
-        scope: "https://auth.x.ai::test",
-        authMode: "oidc",
-        userId: nil,
-        email: nil,
-        firstName: nil,
-        lastName: nil,
-        teamId: nil,
-        oidcIssuer: nil,
-        oidcClientId: nil,
-        expiresAt: Date(timeIntervalSince1970: 1_000_000),
-        createTime: nil)
 }

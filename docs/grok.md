@@ -38,8 +38,8 @@ The grok.com billing gRPC-web endpoint remains a best-effort fallback.
      periods, product usage, and prepaid balance. The RPC wrapper's `subscription_tier` supplies the plan.
      Older `monthlyLimit` / `usage.totalUsed` payloads remain supported. A prepaid balance remains
      useful without a quota percentage; results with neither are unavailable instead of empty snapshots.
-   - An active period plus prepaid balance without `creditUsagePercent` is a zero-usage week, not
-     data to forget: the ACP snapshot alone has no percentage, so the fetch applies the same bounded
+   - An active period plus prepaid balance can omit `creditUsagePercent` at the start of a week.
+     The ACP snapshot alone has unknown usage, so the fetch applies the same bounded
      grok.com bearer retry described for the CLI-proxy credits path (step 3) before accepting the
      wallet-only answer. Only a wire-published percentage or a parser-validated implicit zero for an
      active period can restore the weekly Credits window; the ACP period, plan, and prepaid balance
