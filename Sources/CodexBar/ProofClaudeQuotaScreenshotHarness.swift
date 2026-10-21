@@ -204,6 +204,9 @@ enum ProofClaudeQuotaScreenshotHarness {
         let maxOffset = self.maximumScrollOffset(for: detail)
 
         for step in 0..<self.stepCount {
+            // Re-assert the scenario right before capture: a config update/reload during window
+            // opening can otherwise reset the forced enabled presentation.
+            settings.providerEnablement[UsageProvider.claude.instanceID] = true
             let snapshot = self.injectQuotaLessClaudeSnapshot(store: store)
             if step == 1 {
                 self.applyScroll(detail, offset: min(260, maxOffset))
