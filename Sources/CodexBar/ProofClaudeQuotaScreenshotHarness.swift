@@ -1,6 +1,7 @@
 #if DEBUG
 import AppKit
 import CodexBarCore
+import CoreGraphics
 import SwiftUI
 
 /// FORK-ONLY PROOF HARNESS — not intended for upstream.
@@ -186,7 +187,7 @@ enum ProofClaudeQuotaScreenshotHarness {
 
         // Let any launch-time Claude refresh settle, then re-assert the successful quota-less state.
         for _ in 0..<40 {
-            if !store.refreshingProviders.contains(.claude.instanceID) { break }
+            if !store.refreshingProviders.contains(UsageProvider.claude.instanceID) { break }
             try? await Task.sleep(for: .milliseconds(500))
         }
 
