@@ -1,9 +1,16 @@
 name: proof-grok-4674
 
 # Fork-only proof for steipete/CodexBar#4679 (issue #4674). This workflow is not
-# part of the fix branch and must never be merged upstream. It demonstrates a
-# red/green cycle for the shipped ACP unknown-usage enrichment on GitHub-hosted
-# Linux runners, which are available to forks.
+# part of the fix branch and must never be merged upstream. It runs on
+# GitHub-hosted Linux runners, which are available to forks, and demonstrates a
+# red/green cycle for the shipped ACP unknown-usage enrichment:
+#
+#   1. focused regression on the fixed tree -> must pass
+#   2. shipped `CodexBarCLI usage --provider grok` on the fixed tree against a
+#      local TLS stub for grok.com -> must gain the weekly 0% window
+#   3. same CLI with the billing stub stopped -> wallet retained, usage unknown
+#   4. only the fetch() enrichment wiring reverted -> focused regression and
+#      CLI must both lose the window again (the #4674 before state)
 
 on:
   push:
@@ -17,6 +24,10 @@ permissions:
 concurrency:
   group: proof-grok-4674-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  PROOF_TLS_DIR: /tmp/proof-tls
+  PROOF_FIXTURE: /tmp/proof-4674-fixture
 
 jobs:
   red-green:
@@ -54,6 +65,78 @@ jobs:
           swift test --filter GrokACPUnknownUsageLinuxTests 2>&1 | tee head-test.log
           echo "HEAD_PASS_CONFIRMED: focused #4674 regression passed with the fix"
 
+      - name: HEAD tree - build shipped CodexBarCLI, start local grok.com TLS billing stub
+        run: |
+          set -euo pipefail
+          TLS="${PROOF_TLS_DIR}"
+          mkdir -p "${TLS}"
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout "${TLS}/ca.key" -out "${TLS}/ca.pem" -days 2 \
+            -subj "/CN=CodexBar 4674 proof CA" >/dev/null 2>&1
+          openssl req -newkey rsa:2048 -nodes \
+            -keyout "${TLS}/server.key" -out "${TLS}/server.csr" \
+            -subj "/CN=grok.com" >/dev/null 2>&1
+          printf 'subjectAltName=DNS:grok.com,DNS:cli-chat-proxy.grok.com\n' > "${TLS}/server.ext"
+          openssl x509 -req -in "${TLS}/server.csr" -CA "${TLS}/ca.pem" -CAkey "${TLS}/ca.key" \
+            -CAcreateserial -out "${TLS}/server.pem" -days 2 -extfile "${TLS}/server.ext" >/dev/null 2>&1
+          cat /etc/ssl/certs/ca-certificates.crt "${TLS}/ca.pem" > "${TLS}/bundle.pem"
+          sudo sh -c 'grep -q "127.0.0.1 grok.com" /etc/hosts || printf "127.0.0.1 grok.com\n127.0.0.1 cli-chat-proxy.grok.com\n" >> /etc/hosts'
+          python3 .github/proof-4674/make_fixture.py "${PROOF_FIXTURE}"
+          sudo sh -c "PROOF_TLS_DIR='${TLS}' python3 .github/proof-4674/grpc_stub.py 443 > '${TLS}/stub.log' 2>&1 & echo \$! > '${TLS}/stub.pid'"
+          ready=0
+          for _ in $(seq 1 30); do
+            if curl -s --cacert "${TLS}/bundle.pem" https://grok.com/v1/settings >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "${ready}" -ne 1 ]; then
+            cat "${TLS}/stub.log" || true
+            exit 1
+          fi
+          echo "local grok.com TLS billing stub ready"
+          swift build --product CodexBarCLI
+          BIN="$(swift build --product CodexBarCLI --show-bin-path)/CodexBarCLI"
+          echo "PROOF_CLI=${BIN}" >> "${GITHUB_ENV}"
+          echo "SSL_CERT_FILE=${TLS}/bundle.pem" >> "${GITHUB_ENV}"
+          echo "CURL_CA_BUNDLE=${TLS}/bundle.pem" >> "${GITHUB_ENV}"
+
+      - name: HEAD tree - shipped CLI usage must gain the weekly 0% window
+        run: |
+          set -euo pipefail
+          env HOME="${PROOF_FIXTURE}/home" GROK_HOME="${PROOF_FIXTURE}/home/.grok" \
+            GROK_CLI_PATH="${PROOF_FIXTURE}/grok-fixture" PATH="/usr/bin:/bin" \
+            "${PROOF_CLI}" usage --provider grok --source cli --format json \
+            > /tmp/cli-head.json 2>/tmp/cli-head.err
+          echo "--- shipped CLI JSON (head tree) ---"
+          cat /tmp/cli-head.json
+          echo "--- stderr ---"
+          cat /tmp/cli-head.err || true
+          python3 .github/proof-4674/assert_usage.py /tmp/cli-head.json head \
+            2>&1 | tee cli-head-assert.log
+          echo "HEAD_CLI_PROOF_DONE"
+
+      - name: Wallet-only proof - enrichment unavailable keeps prepaid balance without a window
+        run: |
+          set -euo pipefail
+          sudo kill "$(cat "${PROOF_TLS_DIR}/stub.pid")" 2>/dev/null || true
+          sleep 1
+          set +e
+          env HOME="${PROOF_FIXTURE}/home" GROK_HOME="${PROOF_FIXTURE}/home/.grok" \
+            GROK_CLI_PATH="${PROOF_FIXTURE}/grok-fixture" PATH="/usr/bin:/bin" \
+            "${PROOF_CLI}" usage --provider grok --source cli --format json \
+            > /tmp/cli-wallet-only.json 2>/tmp/cli-wallet-only.err
+          status=$?
+          set -e
+          echo "CLI exit status with billing stub stopped: ${status}"
+          echo "--- shipped CLI JSON (enrichment unavailable) ---"
+          cat /tmp/cli-wallet-only.json
+          cat /tmp/cli-wallet-only.err || true
+          python3 .github/proof-4674/assert_usage.py /tmp/cli-wallet-only.json wallet-only \
+            2>&1 | tee cli-wallet-only-assert.log
+          echo "WALLET_ONLY_PROOF_DONE"
+
       - name: Reverted wiring - focused #4674 regression must FAIL (expected red)
         run: |
           set -euo pipefail
@@ -73,3 +156,38 @@ jobs:
           echo "EXPECTED_RED_CONFIRMED: focused #4674 regression fails with ACP enrichment wiring removed"
           grep -nE "GrokACPUnknownUsageLinuxTests|Expectation failed|failed|#expect" reverted-test.log \
             | head -60 || true
+
+      - name: Reverted wiring - shipped CLI usage must lose the weekly window (before state)
+        run: |
+          set -euo pipefail
+          TLS="${PROOF_TLS_DIR}"
+          sudo sh -c "PROOF_TLS_DIR='${TLS}' python3 .github/proof-4674/grpc_stub.py 443 >> '${TLS}/stub.log' 2>&1 & echo \$! > '${TLS}/stub.pid'"
+          ready=0
+          for _ in $(seq 1 30); do
+            if curl -s --cacert "${TLS}/bundle.pem" https://grok.com/v1/settings >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "${ready}" -ne 1 ]; then
+            cat "${TLS}/stub.log" || true
+            exit 1
+          fi
+          echo "--- rebuild CodexBarCLI with the enrichment wiring reverted ---"
+          swift build --product CodexBarCLI
+          set +e
+          env HOME="${PROOF_FIXTURE}/home" GROK_HOME="${PROOF_FIXTURE}/home/.grok" \
+            GROK_CLI_PATH="${PROOF_FIXTURE}/grok-fixture" PATH="/usr/bin:/bin" \
+            "${PROOF_CLI}" usage --provider grok --source cli --format json \
+            > /tmp/cli-before.json 2>/tmp/cli-before.err
+          status=$?
+          set -e
+          echo "CLI exit status on reverted tree: ${status}"
+          echo "--- shipped CLI JSON (reverted wiring, billing stub running) ---"
+          cat /tmp/cli-before.json
+          cat /tmp/cli-before.err || true
+          python3 .github/proof-4674/assert_usage.py /tmp/cli-before.json before \
+            2>&1 | tee cli-before-assert.log
+          sudo kill "$(cat "${TLS}/stub.pid")" 2>/dev/null || true
+          echo "BEFORE_PROOF_DONE"
