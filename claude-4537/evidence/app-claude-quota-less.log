@@ -1,0 +1,33 @@
+[proof-harness] harness enabled, directory=/tmp/codexbar-proof
+[proof-harness] scenario=successful-claude-web-answer-with-null-quota-windows-issue-4537
+[proof-harness] injected.snapshot.primary=nil
+[proof-harness] injected.snapshot.secondary=nil
+[proof-harness] injected.snapshot.measuredRateWindows=0
+[proof-harness] injected.snapshot.hasRateLimitWindows=false
+[proof-harness] injected.snapshot.providerCost=nil
+[proof-harness] injected.snapshot.updatedAt=2026-10-21T12:45:19Z
+[proof-harness] injected.snapshot.updatedAt.relativeDescription=just now (the value the pre-fix subtitle rendered)
+[proof-harness] store.knownLimitsAvailability.before=nil
+[proof-harness] store.knownLimitsAvailability.afterInjection=nil
+[proof-harness] UsageLimitsAvailability.resolve=unavailable
+[proof-harness] UsageLimitsAvailability.isUnavailable=true
+[proof-harness] store.presentationSnapshot.present=true
+[proof-harness] store.isStale=false
+[proof-harness] settings.providerEnablement.forcedClaudeEnabled=true
+[proof-harness] settings.isProviderEnabled=true
+[proof-harness] store.isEnabled.availabilityBased=true
+[proof-harness] providerDetail.usageSection.placeholder=Limits not available
+[proof-harness] providersPane.providerSubtitle=claude not detected • Limits not available
+[proof-harness] providersPane.providerSidebarSubtitle=claude • Limits not available
+[proof-harness] providersPane.menuCard.placeholder=Limits not available
+[proof-harness] app.version=0.79.1
+[proof-harness] app.build=173
+[proof-harness] app.gitCommit=cbd723a09
+[proof-harness] app.bundleIdentifier=com.steipete.codexbar.debug
+[proof-harness] opening Settings on the Claude provider pane
+[proof-harness] Settings window visible: number=33 frame=(112.0, 124.0, 800.0, 592.0)
+[proof-harness] step 0 window=33 subtitle=claude not detected • Limits not available
+[proof-harness] wrote marker /tmp/codexbar-proof/marker-step0.json
+[proof-harness] step 1 window=33 subtitle=claude not detected • Limits not available
+[proof-harness] wrote marker /tmp/codexbar-proof/marker-step1.json
+[proof-harness] capture sequence complete

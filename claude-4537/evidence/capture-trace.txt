@@ -1,0 +1,204 @@
+=== harness runtime evidence (redacted) ===
+harness enabled, directory=/tmp/codexbar-proof
+scenario=successful-claude-web-answer-with-null-quota-windows-issue-4537
+injected.snapshot.primary=nil
+injected.snapshot.secondary=nil
+injected.snapshot.measuredRateWindows=0
+injected.snapshot.hasRateLimitWindows=false
+injected.snapshot.providerCost=nil
+injected.snapshot.updatedAt=2026-10-21T12:45:19Z
+injected.snapshot.updatedAt.relativeDescription=just now (the value the pre-fix subtitle rendered)
+store.knownLimitsAvailability.before=nil
+store.knownLimitsAvailability.afterInjection=nil
+UsageLimitsAvailability.resolve=unavailable
+UsageLimitsAvailability.isUnavailable=true
+store.presentationSnapshot.present=true
+store.isStale=false
+settings.providerEnablement.forcedClaudeEnabled=true
+settings.isProviderEnabled=true
+store.isEnabled.availabilityBased=true
+providerDetail.usageSection.placeholder=Limits not available
+providersPane.providerSubtitle=claude not detected • Limits not available
+providersPane.providerSidebarSubtitle=claude • Limits not available
+providersPane.menuCard.placeholder=Limits not available
+app.version=0.79.1
+app.build=173
+app.gitCommit=cbd723a09
+app.bundleIdentifier=com.steipete.codexbar.debug
+opening Settings on the Claude provider pane
+Settings window visible: number=33 frame=(112.0, 124.0, 800.0, 592.0)
+step 0 window=33 subtitle=claude not detected • Limits not available
+wrote marker /tmp/codexbar-proof/marker-step0.json
+step 1 window=33 subtitle=claude not detected • Limits not available
+wrote marker /tmp/codexbar-proof/marker-step1.json
+capture sequence complete
+=== markers ===
+--- /Users/runner/work/CodexBar/CodexBar/proof-out/marker-step0.json
+{
+  "activationPolicy" : "regular",
+  "appIsActive" : true,
+  "appLanguage" : "en",
+  "build" : "173",
+  "buildTimestamp" : "2026-10-21T12:45:13Z",
+  "bundleIdentifier" : "com.steipete.codexbar.debug",
+  "bundlePath" : "\/Users\/runner\/work\/CodexBar\/CodexBar\/CodexBar.app",
+  "detailScrollViewFound" : true,
+  "executablePath" : "\/Users\/runner\/work\/CodexBar\/CodexBar\/CodexBar.app\/Contents\/MacOS\/CodexBar",
+  "forcedClaudeEnabledForPresentation" : true,
+  "gitCommit" : "cbd723a09",
+  "injectedSnapshotHasRateLimitWindows" : false,
+  "injectedSnapshotMeasuredRateWindowCount" : 0,
+  "injectedSnapshotPrimaryNil" : true,
+  "injectedSnapshotProviderCostNil" : true,
+  "injectedSnapshotRelativeDescription" : "just now",
+  "injectedSnapshotSecondaryNil" : true,
+  "injectedSnapshotUpdatedAt" : "2026-10-21T12:45:22Z",
+  "knownLimitsAvailabilityAfterInjection" : "nil",
+  "knownLimitsAvailabilityBeforeInjection" : "nil",
+  "menuCardPlaceholder" : "Limits not available",
+  "presentationSnapshotPresent" : true,
+  "processID" : 5034,
+  "providerDetailHeaderSubtitle" : "claude not detected • Limits not available",
+  "providerDetailUsagePlaceholder" : "Limits not available",
+  "providerSidebarSubtitle" : "claude\nLimits not available",
+  "providerSidebarSubtitleInline" : "claude • Limits not available",
+  "providerStale" : false,
+  "providerSubtitle" : "claude not detected\nLimits not available",
+  "refreshFrequency" : "manual",
+  "resolvedLimitsAvailability" : "unavailable",
+  "resolvedLimitsAvailabilityIsUnavailable" : true,
+  "scenario" : "successful-claude-web-answer-with-null-quota-windows-issue-4537",
+  "scrollMaxOffset" : 656,
+  "scrollOffset" : 0,
+  "settingsIsProviderEnabled" : true,
+  "status" : "ready",
+  "step" : 0,
+  "stepCount" : 2,
+  "storeIsEnabledAvailabilityBased" : true,
+  "timestamp" : "2026-10-21T12:45:24Z",
+  "version" : "0.79.1",
+  "windowFrame" : [
+    8,
+    71,
+    1008,
+    658
+  ],
+  "windowIsKey" : true,
+  "windowIsVisible" : true,
+  "windowNumber" : 33,
+  "windowServer" : {
+    "alpha" : 1,
+    "bounds" : "{\n    Height = 658;\n    Width = 1008;\n    X = 8;\n    Y = 39;\n}",
+    "found" : true,
+    "layer" : 0,
+    "number" : 33,
+    "onscreen" : true,
+    "ownerName" : "CodexBar"
+  },
+  "windowTitle" : "Claude"
+}--- /Users/runner/work/CodexBar/CodexBar/proof-out/marker-step1.json
+{
+  "activationPolicy" : "regular",
+  "appIsActive" : true,
+  "appLanguage" : "en",
+  "build" : "173",
+  "buildTimestamp" : "2026-10-21T12:45:13Z",
+  "bundleIdentifier" : "com.steipete.codexbar.debug",
+  "bundlePath" : "\/Users\/runner\/work\/CodexBar\/CodexBar\/CodexBar.app",
+  "detailScrollViewFound" : true,
+  "executablePath" : "\/Users\/runner\/work\/CodexBar\/CodexBar\/CodexBar.app\/Contents\/MacOS\/CodexBar",
+  "forcedClaudeEnabledForPresentation" : true,
+  "gitCommit" : "cbd723a09",
+  "injectedSnapshotHasRateLimitWindows" : false,
+  "injectedSnapshotMeasuredRateWindowCount" : 0,
+  "injectedSnapshotPrimaryNil" : true,
+  "injectedSnapshotProviderCostNil" : true,
+  "injectedSnapshotRelativeDescription" : "just now",
+  "injectedSnapshotSecondaryNil" : true,
+  "injectedSnapshotUpdatedAt" : "2026-10-21T12:45:26Z",
+  "knownLimitsAvailabilityAfterInjection" : "nil",
+  "knownLimitsAvailabilityBeforeInjection" : "nil",
+  "menuCardPlaceholder" : "Limits not available",
+  "presentationSnapshotPresent" : true,
+  "processID" : 5034,
+  "providerDetailHeaderSubtitle" : "claude not detected • Limits not available",
+  "providerDetailUsagePlaceholder" : "Limits not available",
+  "providerSidebarSubtitle" : "claude\nLimits not available",
+  "providerSidebarSubtitleInline" : "claude • Limits not available",
+  "providerStale" : false,
+  "providerSubtitle" : "claude not detected\nLimits not available",
+  "refreshFrequency" : "manual",
+  "resolvedLimitsAvailability" : "unavailable",
+  "resolvedLimitsAvailabilityIsUnavailable" : true,
+  "scenario" : "successful-claude-web-answer-with-null-quota-windows-issue-4537",
+  "scrollMaxOffset" : 656,
+  "scrollOffset" : 260,
+  "settingsIsProviderEnabled" : true,
+  "status" : "ready",
+  "step" : 1,
+  "stepCount" : 2,
+  "storeIsEnabledAvailabilityBased" : true,
+  "timestamp" : "2026-10-21T12:45:27Z",
+  "version" : "0.79.1",
+  "windowFrame" : [
+    8,
+    71,
+    1008,
+    658
+  ],
+  "windowIsKey" : true,
+  "windowIsVisible" : true,
+  "windowNumber" : 33,
+  "windowServer" : {
+    "alpha" : 1,
+    "bounds" : "{\n    Height = 658;\n    Width = 1008;\n    X = 8;\n    Y = 39;\n}",
+    "found" : true,
+    "layer" : 0,
+    "number" : 33,
+    "onscreen" : true,
+    "ownerName" : "CodexBar"
+  },
+  "windowTitle" : "Claude"
+}=== CodexBar windows ===
+owner=CodexBar number=44 layer=101 alpha=1.0 onscreen=false bounds={
+    Height = 237;
+    Width = 312;
+    X = 36;
+    Y = 132;
+}
+owner=CodexBar number=38 layer=0 alpha=1.0 onscreen=false bounds={
+    Height = 30;
+    Width = 1024;
+    X = 0;
+=== app stdout tail ===
+[proof-harness] store.presentationSnapshot.present=true
+[proof-harness] store.isStale=false
+[proof-harness] settings.providerEnablement.forcedClaudeEnabled=true
+[proof-harness] settings.isProviderEnabled=true
+[proof-harness] store.isEnabled.availabilityBased=true
+[proof-harness] providerDetail.usageSection.placeholder=Limits not available
+[proof-harness] providersPane.providerSubtitle=claude not detected • Limits not available
+[proof-harness] providersPane.providerSidebarSubtitle=claude • Limits not available
+[proof-harness] providersPane.menuCard.placeholder=Limits not available
+[proof-harness] app.version=0.79.1
+[proof-harness] app.build=173
+[proof-harness] app.gitCommit=cbd723a09
+[proof-harness] app.bundleIdentifier=com.steipete.codexbar.debug
+[proof-harness] opening Settings on the Claude provider pane
+[proof-harness] Settings window visible: number=33 frame=(112.0, 124.0, 800.0, 592.0)
+[proof-harness] step 0 window=33 subtitle=claude not detected • Limits not available
+[proof-harness] wrote marker /tmp/codexbar-proof/marker-step0.json
+[proof-harness] step 1 window=33 subtitle=claude not detected • Limits not available
+[proof-harness] wrote marker /tmp/codexbar-proof/marker-step1.json
+[proof-harness] capture sequence complete
+/Users/runner/work/_temp/d9305957-13e5-4b07-ac70-e4dd84b82690.sh: line 88:  5034 Terminated: 15          "$APP/Contents/MacOS/CodexBar" > "$LOG" 2>&1
+total 1096
+drwxr-xr-x   8 runner  staff     256 Oct 21 12:45 .
+drwxr-xr-x  37 runner  staff    1184 Oct 21 12:45 ..
+-rw-r--r--   1 runner  staff    2092 Oct 21 12:45 app-claude-quota-less.log
+-rw-r--r--@  1 runner  staff  161516 Oct 21 12:45 claude-quoteless-step0-screen.png
+-rw-r--r--@  1 runner  staff  188027 Oct 21 12:45 claude-quoteless-step0-window.png
+-rw-r--r--@  1 runner  staff  196408 Oct 21 12:45 claude-quoteless-step1-window.png
+-rw-r--r--   1 runner  staff    2277 Oct 21 12:45 marker-step0.json
+-rw-r--r--   1 runner  staff    2279 Oct 21 12:45 marker-step1.json
+PROOF CAPTURE OK
