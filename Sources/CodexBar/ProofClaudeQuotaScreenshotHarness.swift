@@ -49,6 +49,10 @@ enum ProofClaudeQuotaScreenshotHarness {
             provider: .claude,
             metadata: store.metadata(for: .claude),
             enabled: true)
+        // The headless runner has no Claude CLI/credentials, so the provider reports unavailable and
+        // the settings UI would render its disabled placeholder. Force the enabled presentation so the
+        // successful quota-less answer renders the way a configured user sees it.
+        settings.providerEnablement[UsageProvider.claude.instanceID] = true
 
         let availabilityBefore = store.knownLimitsAvailability(for: .claude)
         let snapshot = self.injectQuotaLessClaudeSnapshot(store: store)
@@ -116,6 +120,11 @@ enum ProofClaudeQuotaScreenshotHarness {
             "UsageLimitsAvailability.isUnavailable=\(resolved.isUnavailable)",
             "store.presentationSnapshot.present=\(store.presentationSnapshot(for: .claude) != nil)",
             "store.isStale=\(store.isStale(provider: .claude))",
+            "settings.providerEnablement.forcedClaudeEnabled=true",
+            "settings.isProviderEnabled="
+                + "\(settings.isProviderEnabled(provider: .claude, metadata: store.metadata(for: .claude)))",
+            "store.isEnabled.availabilityBased=\(store.isEnabled(.claude))",
+            "providerDetail.usageSection.placeholder=\(cardModel.placeholder ?? "nil")",
             "providersPane.providerSubtitle=\(pendingLine(providerSubtitle))",
             "providersPane.providerSidebarSubtitle=\(pendingLine(providerSidebarSubtitle))",
             "providersPane.menuCard.placeholder=\(cardModel.placeholder ?? "nil")",
@@ -235,11 +244,17 @@ enum ProofClaudeQuotaScreenshotHarness {
                 "resolvedLimitsAvailabilityIsUnavailable": resolved.isUnavailable,
                 "presentationSnapshotPresent": store.presentationSnapshot(for: .claude) != nil,
                 "providerStale": store.isStale(provider: .claude),
+                "forcedClaudeEnabledForPresentation": true,
+                "settingsIsProviderEnabled": settings.isProviderEnabled(
+                    provider: .claude,
+                    metadata: store.metadata(for: .claude)),
+                "storeIsEnabledAvailabilityBased": store.isEnabled(.claude),
                 "providerSubtitle": providerSubtitle,
                 "providerDetailHeaderSubtitle": pendingLine(providerSubtitle),
                 "providerSidebarSubtitle": providerSidebarSubtitle,
                 "providerSidebarSubtitleInline": pendingLine(providerSidebarSubtitle),
                 "menuCardPlaceholder": cardModel.placeholder ?? "nil",
+                "providerDetailUsagePlaceholder": cardModel.placeholder ?? "nil",
                 "windowNumber": window.windowNumber,
                 "windowTitle": window.title,
                 "windowFrame": windowFrame,
