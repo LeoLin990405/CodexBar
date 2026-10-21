@@ -237,6 +237,7 @@ let package = Package(
                 "CodexBarTests/ProviderPluginParityTests.swift",
                 "CodexBarTests/ProviderPluginRuntimeTests.swift",
                 "CodexBarTests/Sub2APIPluginGoldenTests.swift",
+                "CodexBarTests/MenuBarLayoutThroughputTests.swift",
             ],
             resources: [
                 .copy("CodexBarTests/Fixtures"),
