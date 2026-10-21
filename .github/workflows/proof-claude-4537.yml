@@ -1,0 +1,91 @@
+name: proof-claude-4537
+
+# Fork-only behavior proof for steipete/CodexBar#4687 (issue #4537). This workflow is not part
+# of the fix branch and must never be merged upstream. It runs on GitHub-hosted Linux runners,
+# which are available to forks, and demonstrates a red/green cycle for the shipped availability
+# decision:
+#
+#   1. focused Linux mirror of the Claude availability regression on the fixed tree -> must pass
+#   2. only the new Claude availability branch reverted -> the same regression must fail (the
+#      #4537 before state: a quota-less successful answer was treated as available / "No usage yet")
+
+on:
+  push:
+    branches:
+      - "proof/claude-4537*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proof-claude-4537-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  red-green:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev libcurl4-openssl-dev
+
+      - name: Install Swift 6.2 toolchain
+        run: |
+          set -euo pipefail
+          SWIFT_VERSION="6.2"
+          TARBALL="swift-${SWIFT_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          curl -fL --retry 3 \
+            "https://download.swift.org/swift-${SWIFT_VERSION}-release/ubuntu2404/swift-${SWIFT_VERSION}-RELEASE/${TARBALL}" \
+            -o "/tmp/${TARBALL}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${TARBALL}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "${GITHUB_PATH}"
+
+      - name: Show toolchain
+        run: |
+          swift --version
+          git log --oneline -3
+
+      - name: HEAD tree - focused Claude availability regression must PASS (green)
+        run: |
+          set -euo pipefail
+          echo "=== HEAD tree: quota-less Claude answers report limits unavailable ==="
+          swift test --filter ClaudeEmptyQuotaAvailabilityLinuxTests 2>&1 | tee head-test.log
+          echo "HEAD_PASS_CONFIRMED: quota-less Claude answers report limits unavailable"
+
+      - name: Reverted tree - same regression must FAIL (red)
+        shell: bash
+        run: |
+          set +e
+          git apply .github/proof-4537/revert-availability.patch
+          apply_status=$?
+          if [ "${apply_status}" -ne 0 ]; then
+            echo "REVERT_PATCH_APPLY_FAILED"
+            exit 1
+          fi
+          echo "=== reverted tree: only the new Claude availability branch removed ==="
+          swift test --filter ClaudeEmptyQuotaAvailabilityLinuxTests 2>&1 | tee reverted-test.log
+          test_status=${PIPESTATUS[0]}
+          set -e
+          echo "reverted tree focused-test exit status: ${test_status}"
+          if [ "${test_status}" -eq 0 ]; then
+            echo "EXPECTED_RED_NOT_REPRODUCED"
+            exit 1
+          fi
+          grep -E "Expectation failed|error:" reverted-test.log | head -20 || true
+          echo "EXPECTED_RED_CONFIRMED: quota-less Claude availability regression fails without the fix"
+
+      - name: Upload proof logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-4537-proof-logs
+          path: |
+            head-test.log
+            reverted-test.log
+          if-no-files-found: warn
