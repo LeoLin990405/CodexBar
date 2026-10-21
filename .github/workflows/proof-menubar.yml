@@ -1,0 +1,18 @@
+name: proof-menubar
+
+on:
+  push:
+    branches: ["proof/menubar-4665-proof"]
+
+jobs:
+  probe:
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe runner
+        run: |
+          set -euo pipefail
+          sw_vers
+          /usr/bin/xcodebuild -version
+          swift --version
