@@ -1,0 +1,18 @@
+diff --git a/Sources/CodexBarCore/Providers/Grok/GrokStatusProbe.swift b/Sources/CodexBarCore/Providers/Grok/GrokStatusProbe.swift
+index e3d4bd0ac..d228571b2 100644
+--- a/Sources/CodexBarCore/Providers/Grok/GrokStatusProbe.swift
++++ b/Sources/CodexBarCore/Providers/Grok/GrokStatusProbe.swift
+@@ -181,13 +181,6 @@ public struct GrokStatusProbe: Sendable {
+             rpcError = error
+         }
+ 
+-        // ACP reports an active period and prepaid balance while omitting `creditUsagePercent`
+-        // early in a billing period. Ask the grok.com bearer surface for a validated percentage
+-        // before the wallet-only answer ends the pipeline; keep the ACP answer when it has none.
+-        if let credits = webBilling, credits.usedPercent == nil {
+-            webBilling = try await self.enrichingCredits(credits, credentials: credentials)
+-        }
+-
+         let hasBilling = billing != nil || webBilling != nil
+         let isIdentityOnly = !hasBilling && self.identityOnlyFallback(credentials, billingAttempted, rpcError)
+         // Terminal CLI failures must reach the provider's web fallback without scanning discarded history.

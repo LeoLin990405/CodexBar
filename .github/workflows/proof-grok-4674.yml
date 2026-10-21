@@ -1,0 +1,75 @@
+name: proof-grok-4674
+
+# Fork-only proof for steipete/CodexBar#4679 (issue #4674). This workflow is not
+# part of the fix branch and must never be merged upstream. It demonstrates a
+# red/green cycle for the shipped ACP unknown-usage enrichment on GitHub-hosted
+# Linux runners, which are available to forks.
+
+on:
+  push:
+    branches:
+      - "proof/grok-4674-*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proof-grok-4674-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  red-green:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev libcurl4-openssl-dev
+
+      - name: Install Swift 6.2 toolchain
+        run: |
+          set -euo pipefail
+          SWIFT_VERSION="6.2"
+          TARBALL="swift-${SWIFT_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          curl -fL --retry 3 \
+            "https://download.swift.org/swift-${SWIFT_VERSION}-release/ubuntu2404/swift-${SWIFT_VERSION}-RELEASE/${TARBALL}" \
+            -o "/tmp/${TARBALL}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${TARBALL}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "${GITHUB_PATH}"
+
+      - name: Show toolchain
+        run: |
+          swift --version
+          git log --oneline -3
+
+      - name: HEAD tree - focused #4674 regression must PASS (green)
+        run: |
+          set -euo pipefail
+          echo "=== HEAD tree: ACP unknown-usage enrichment wiring present ==="
+          swift test --filter GrokACPUnknownUsageLinuxTests 2>&1 | tee head-test.log
+          echo "HEAD_PASS_CONFIRMED: focused #4674 regression passed with the fix"
+
+      - name: Reverted wiring - focused #4674 regression must FAIL (expected red)
+        run: |
+          set -euo pipefail
+          echo "=== proof variant: remove only the fetch() ACP enrichment wiring ==="
+          git apply .github/proof-4674/revert-acp-enrichment-wiring.patch
+          git --no-pager diff --stat
+          set +e
+          swift test --filter GrokACPUnknownUsageLinuxTests > reverted-test.log 2>&1
+          status=$?
+          set -e
+          echo "reverted tree focused-test exit status: ${status}"
+          tail -n 150 reverted-test.log || true
+          if [ "${status}" -eq 0 ]; then
+            echo "UNEXPECTED_PASS: regression passed without the fix; the test is not failing-before-fix"
+            exit 1
+          fi
+          echo "EXPECTED_RED_CONFIRMED: focused #4674 regression fails with ACP enrichment wiring removed"
+          grep -nE "GrokACPUnknownUsageLinuxTests|Expectation failed|failed|#expect" reverted-test.log \
+            | head -60 || true
