@@ -715,6 +715,8 @@ public enum UsageLimitsAvailability: Equatable, Sendable {
                 : .available
         }
 
+        // Provider-specific by design: Codex identity and Doubao/Antigravity identities signal whether a
+        // successful payload actually contains subscription limits.
         guard provider == .codex || provider == .doubao || provider == .antigravity else { return .available }
 
         if let snapshot {
