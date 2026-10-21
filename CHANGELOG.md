@@ -9,6 +9,7 @@
 
 - Grok: restore the weekly Credits window on zero-usage weeks when ACP omits the percentage, while preserving prepaid balances and leaving unvalidated usage unknown (#4674, #4679). Thanks @LeoLin990405 and @psl75011!
 - Linux CLI: prevent static musl builds from crashing when scanning non-empty Codex session files, with a regression check for musl and glibc builds (#4672, #4673). Thanks @harjothkhara and @psl75011!
+- Claude: report limits unavailable instead of “No usage yet” when a successful Web usage response carries no quota window, covering the Free-plan null `five_hour`/`seven_day` payload (#4537).
 
 ## 0.79.0 — 2026-10-20
 

@@ -702,8 +702,13 @@ public enum UsageLimitsAvailability: Equatable, Sendable {
         // whether a successful payload actually contains subscription limits.
         if provider == .claude {
             if let snapshot {
-                return snapshot.primary?.isSyntheticPlaceholder == true && snapshot.measuredRateWindows.isEmpty
-                    ? .unavailable : .available
+                guard snapshot.measuredRateWindows.isEmpty else { return .available }
+                if snapshot.primary?.isSyntheticPlaceholder == true { return .unavailable }
+                // A successful Claude usage answer can still report no quota window at all: Free
+                // accounts return null `five_hour`/`seven_day` fields. Report that as an explicit
+                // "limits unavailable" answer instead of leaving the surface on "No usage yet",
+                // while spend-only account surfaces keep their existing presentation.
+                return snapshot.providerCost == nil ? .unavailable : .available
             }
             return ClaudeStatusProbe.isSubscriptionQuotaUnavailableDescription(lastErrorDescription)
                 ? .unavailable
