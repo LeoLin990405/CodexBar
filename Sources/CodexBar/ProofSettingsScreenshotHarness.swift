@@ -36,7 +36,7 @@ enum ProofSettingsScreenshotHarness {
     static func run(
         settings: SettingsStore?,
         openSettings: @MainActor () -> Void,
-        settingsWindow: @MainActor () -> NSWindow?)
+        settingsWindow: @escaping @MainActor () -> NSWindow?)
     {
         guard self.isRequested else { return }
         let directory = self.resolvedDirectory
@@ -250,7 +250,7 @@ enum ProofSettingsScreenshotHarness {
             "layer": info[kCGWindowLayer as String] as? Int ?? -1,
             "onscreen": info[kCGWindowIsOnscreen as String] as? Bool ?? false,
             "alpha": info[kCGWindowAlpha as String] as? Double ?? -1,
-            "bounds": info[kCGWindowBounds as String] ?? "",
+            "bounds": String(describing: info[kCGWindowBounds as String] ?? ""),
         ]
     }
 
