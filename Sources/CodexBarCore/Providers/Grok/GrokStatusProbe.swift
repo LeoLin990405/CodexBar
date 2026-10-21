@@ -181,13 +181,9 @@ public struct GrokStatusProbe: Sendable {
             rpcError = error
         }
 
-        // ACP reports an active period and prepaid balance while omitting `creditUsagePercent`
-        // early in a billing period. Ask the grok.com bearer surface for a validated percentage
-        // before the wallet-only answer ends the pipeline; keep the ACP answer when it has none.
-        if let credits = webBilling, credits.usedPercent == nil {
-            webBilling = try await self.enrichingCredits(credits, credentials: credentials)
-        }
-
+        // PROOF VARIANT (#4674): the ACP unknown-usage enrichment wiring is intentionally reverted
+        // here so the regression in `GrokACPUnknownUsageTests` shows its failing-before-fix state.
+        // The seam and helpers below stay in place; only the call from `fetch()` is removed.
         let hasBilling = billing != nil || webBilling != nil
         let isIdentityOnly = !hasBilling && self.identityOnlyFallback(credentials, billingAttempted, rpcError)
         // Terminal CLI failures must reach the provider's web fallback without scanning discarded history.
