@@ -1,0 +1,48 @@
+# Fork-only workflow: probe whether the hosted macOS runner has a usable GUI/WindowServer session.
+# Not intended for upstream. Lives only on proof/* branches.
+name: proof-app-screens
+
+on:
+  push:
+    branches: ["proof/*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gui-probe:
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report runner fact sheet and probe GUI
+        run: |
+          set +e
+          echo "=== sw_vers ==="; sw_vers
+          echo "=== uname ==="; uname -a
+          echo "=== user ==="; whoami; id
+          echo "=== console user ==="; stat -f%Su /dev/console
+          echo "=== launchctl gui/$(id -u) ==="; launchctl print "gui/$(id -u)" 2>&1 | head -30
+          echo "=== launchctl gui/$(id -u) count ==="; launchctl print "gui/$(id -u)" 2>&1 | grep -c "=>"
+          echo "=== WindowServer ==="; pgrep -lx WindowServer
+          echo "=== GUI processes ==="; ps aux | grep -E "loginwindow|WindowServer|Dock\.app|Finder\.app|SystemUIServer" | grep -v grep
+          echo "=== displays ==="; system_profiler SPDisplaysDataType 2>&1 | head -40
+          echo "=== osascript finder ==="; osascript -e 'tell application "Finder" to get name' 2>&1
+          echo "=== osascript bounds ==="; osascript -e 'tell application "Finder" to get bounds of window of desktop' 2>&1
+          echo "=== screencapture full ==="; time screencapture -x /tmp/desktop.png 2>&1
+          ls -l /tmp/desktop.png 2>/dev/null
+          file /tmp/desktop.png 2>/dev/null
+          sips -g pixelWidth -g pixelHeight /tmp/desktop.png 2>&1
+          echo "=== screencapture region ==="; screencapture -x -R 0,0,400,300 /tmp/region.png 2>&1; ls -l /tmp/region.png 2>/dev/null
+          echo "=== swiftshot probe ==="; swift --version 2>&1 | head -2
+          echo "=== done ==="
+          exit 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gui-probe
+          path: |
+            /tmp/desktop.png
+            /tmp/region.png
+          if-no-files-found: warn
