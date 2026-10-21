@@ -471,6 +471,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         self.ensureStatusController()
         self.observeSettingsApplicationMenuLanguage()
+        #if DEBUG
+        // FORK-ONLY PROOF: real-Settings-window screenshot harness (ProofSettingsScreenshotHarness.swift).
+        self.startProofSettingsScreenshotHarnessIfRequested()
+        #endif
         self.scheduleSettingsApplicationMenuValidation(
             missingItemRetriesRemaining: Self.settingsMenuReadinessRetryCount,
             fallbackVerificationRetriesRemaining: Self.settingsMenuFallbackVerificationRetryCount)
@@ -553,6 +557,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let statusController else { return }
         await statusController.runLoginFlowFromSettings(provider: provider)
     }
+
+    #if DEBUG
+    /// FORK-ONLY PROOF: schedules one run of the screenshot harness after launch has completed.
+    private func startProofSettingsScreenshotHarnessIfRequested() {
+        guard ProofSettingsScreenshotHarness.isRequested else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            ProofSettingsScreenshotHarness.run(
+                settings: self.settings,
+                openSettings: { self.openSettings(pane: .menuBar) },
+                settingsWindow: { self.settingsWindowController?.window })
+        }
+    }
+    #endif
 
     func openSettings(pane: SettingsPane?) {
         // Escape NSMenu's synchronous tracking callback before activating and presenting a window.
