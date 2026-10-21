@@ -2,6 +2,10 @@
 
 ## 0.79.1 — Unreleased
 
+### Fixed
+
+- Grok: restore the weekly Credits window on a zero-usage week when the ACP `_x.ai/billing` answer omits the usage percentage, by enriching wallet-only responses with the bounded, validated grok.com usage reading while keeping the prepaid balance and leaving usage unknown when the retry cannot validate a percent (#4674).
+
 ## 0.79.0 — 2026-10-20
 
 ### Highlights
