@@ -3,7 +3,9 @@
 # Builds the actual CodexBar.app from the PR head on a GitHub-hosted macos-26 runner
 # (which has a real Aqua/WindowServer session), launches it with a file-driven,
 # DEBUG-only proof hook that opens the real Settings window on the Menu Bar pane and
-# applies each MenuBarIconStyle, then captures the live window with `screencapture -l`.
+# applies each MenuBarIconStyle, then walks the pane's scroll offsets and captures the
+# live window with `screencapture -l` at each step so both the selected style and the
+# Layout footer are visible.
 #
 # Never intended for upstream: this file lives only on proof/* branches of the fork.
 name: proof-app-screens
@@ -69,6 +71,7 @@ jobs:
           APP="$PWD/CodexBar.app"
           OUT="$PWD/proof-out"
           PROOF_DIR=/tmp/codexbar-proof
+          STEPS=6
           mkdir -p "$OUT"
           rm -rf "$PROOF_DIR"
           mkdir -p "$PROOF_DIR"
@@ -89,70 +92,67 @@ jobs:
           }
           SWIFT
 
+          window_number_from() {
+            local marker="$1"
+            local number
+            number=$(plutil -extract windowNumber raw -o - "$marker" 2>/dev/null)
+            if [ -z "$number" ]; then
+              number=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("windowNumber",""))' "$marker" 2>/dev/null)
+            fi
+            printf '%s' "$number"
+          }
+
           failures=0
           for style in critters bars iconAndPercent; do
             echo "=================== style=$style ==================="
-            rm -f "$PROOF_DIR"/marker*.json "$PROOF_DIR"/style
+            rm -f "$PROOF_DIR"/marker*.json "$PROOF_DIR"/style "$PROOF_DIR"/next
             printf '%s\n' "$style" > "$PROOF_DIR/style"
             pkill -x CodexBar 2>/dev/null
             sleep 1
 
             LOG="$OUT/app-$style.log"
             "$APP/Contents/MacOS/CodexBar" >"$LOG" 2>&1 &
-            APP_PID=$!
-            echo "direct-exec pid=$APP_PID"
-            MARKER="$PROOF_DIR/marker-$style.json"
-            for i in $(seq 1 120); do
-              [ -f "$MARKER" ] && break
-              sleep 0.5
-            done
-            if [ ! -f "$MARKER" ]; then
-              echo "direct exec produced no marker; retrying via LaunchServices open"
-              pkill -x CodexBar 2>/dev/null
-              sleep 1
-              open -n "$APP"
-              for i in $(seq 1 120); do
+            echo "$(date -u +%H:%M:%S) direct-exec pid=$!"
+            style_ok=1
+            for step in $(seq 0 $((STEPS - 1))); do
+              MARKER="$PROOF_DIR/marker-$style-step$step.json"
+              for i in $(seq 1 540); do
                 [ -f "$MARKER" ] && break
                 sleep 0.5
               done
-            fi
-
-            echo "=== app stdout (tail) ==="; tail -40 "$LOG" 2>/dev/null
-            echo "=== CodexBar windows ==="; swift "$RUNNER_TEMP/dump-windows.swift" 2>&1 | head -20
-            if [ ! -f "$MARKER" ]; then
-              echo "ERROR: no harness marker for style=$style"
-              cp "$LOG" "$OUT/app-$style-no-marker.log" 2>/dev/null
-              pgrep -lx CodexBar
-              pkill -x CodexBar 2>/dev/null
-              failures=$((failures + 1))
-              continue
-            fi
-
-            cat "$MARKER"
-            cp "$MARKER" "$OUT/marker-$style.json"
-            WINDOW_NUMBER=$(plutil -extract windowNumber raw -o - "$MARKER" 2>/dev/null)
-            if [ -z "$WINDOW_NUMBER" ]; then
-              WINDOW_NUMBER=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["windowNumber"])' "$MARKER")
-            fi
-            echo "capturing window number=$WINDOW_NUMBER"
-            sleep 2
-            screencapture -x -l "$WINDOW_NUMBER" "$OUT/settings-$style-window.png"
-            screencapture -x "$OUT/settings-$style-screen.png"
-            sleep 1
-            screencapture -x -l "$WINDOW_NUMBER" "$OUT/settings-$style-window-retry.png"
-            for capture in "$OUT/settings-$style-window.png" "$OUT/settings-$style-screen.png"; do
-              if [ -s "$capture" ]; then
-                echo "captured: $capture $(file -b "$capture")"
-              else
-                echo "ERROR: missing capture $capture"
-                failures=$((failures + 1))
+              if [ ! -f "$MARKER" ]; then
+                echo "ERROR: missing marker for style=$style step=$step"
+                style_ok=0
+                break
               fi
+              cp "$MARKER" "$OUT/marker-$style-step$step.json"
+              WINDOW_NUMBER=$(window_number_from "$MARKER")
+              echo "$(date -u +%H:%M:%S) step=$step windowNumber=$WINDOW_NUMBER"
+              if [ -z "$WINDOW_NUMBER" ]; then
+                echo "ERROR: no window number for style=$style step=$step"
+                cat "$MARKER"
+                style_ok=0
+                break
+              fi
+              sleep 1
+              screencapture -x -l "$WINDOW_NUMBER" "$OUT/settings-$style-step$step-window.png"
+              if [ "$step" = "0" ]; then
+                screencapture -x "$OUT/settings-$style-step0-screen.png"
+              fi
+              if [ ! -s "$OUT/settings-$style-step$step-window.png" ]; then
+                echo "ERROR: empty window capture for style=$style step=$step"
+                style_ok=0
+                break
+              fi
+              touch "$PROOF_DIR/next"
             done
-            cp "$LOG" "$OUT/app-$style.log"
+            echo "$(date -u +%H:%M:%S) === app stdout (tail) ==="; tail -30 "$LOG" 2>/dev/null
+            echo "=== CodexBar windows ==="; swift "$RUNNER_TEMP/dump-windows.swift" 2>&1 | head -20
             pkill -x CodexBar 2>/dev/null
             sleep 2
             pkill -9 -x CodexBar 2>/dev/null
             sleep 1
+            [ "$style_ok" = "1" ] || failures=$((failures + 1))
           done
 
           echo "failures=$failures"
@@ -173,7 +173,7 @@ jobs:
           cp -R /tmp/codexbar-proof proof-out/proof-dir 2>/dev/null
           cp /tmp/desktop-probe.png proof-out/ 2>/dev/null
           echo "=== log show CodexBar ===" > proof-out/codexbar-log.txt
-          log show --last 20m --predicate 'process == "CodexBar"' --style compact 2>/dev/null | tail -200 >> proof-out/codexbar-log.txt
+          log show --last 20m --predicate 'process == "CodexBar"' --style compact 2>/dev/null | tail -150 >> proof-out/codexbar-log.txt
           true
 
       - name: Upload proof artifacts
