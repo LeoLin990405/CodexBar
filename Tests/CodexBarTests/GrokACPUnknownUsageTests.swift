@@ -209,7 +209,8 @@ struct GrokACPUnknownUsageTests {
 
     // MARK: - Synthetic ACP fixture
 
-    private enum CredentialsMode: Sendable {
+    /// The `@Test(arguments:)` entry point is internal, so its parameter type must not be private.
+    enum CredentialsMode: Sendable {
         case valid, expired, missing
     }
 
