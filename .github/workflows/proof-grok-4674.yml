@@ -79,7 +79,9 @@ jobs:
           printf 'subjectAltName=DNS:grok.com,DNS:cli-chat-proxy.grok.com\n' > "${TLS}/server.ext"
           openssl x509 -req -in "${TLS}/server.csr" -CA "${TLS}/ca.pem" -CAkey "${TLS}/ca.key" \
             -CAcreateserial -out "${TLS}/server.pem" -days 2 -extfile "${TLS}/server.ext" >/dev/null 2>&1
-          cat /etc/ssl/certs/ca-certificates.crt "${TLS}/ca.pem" > "${TLS}/bundle.pem"
+          sudo cp "${TLS}/ca.pem" /usr/local/share/ca-certificates/proof-4674-ca.crt
+          sudo update-ca-certificates >/dev/null
+          cat /etc/ssl/certs/ca-certificates.crt > "${TLS}/bundle.pem"
           sudo sh -c 'grep -q "127.0.0.1 grok.com" /etc/hosts || printf "127.0.0.1 grok.com\n127.0.0.1 cli-chat-proxy.grok.com\n" >> /etc/hosts'
           python3 .github/proof-4674/make_fixture.py "${PROOF_FIXTURE}"
           sudo sh -c "PROOF_TLS_DIR='${TLS}' python3 .github/proof-4674/grpc_stub.py 443 > '${TLS}/stub.log' 2>&1 & echo \$! > '${TLS}/stub.pid'"
@@ -96,23 +98,63 @@ jobs:
             exit 1
           fi
           echo "local grok.com TLS billing stub ready"
+          echo "=== stub log after readiness probe ==="
+          cat "${TLS}/stub.log" || true
           swift build --product CodexBarCLI
           BIN="$(swift build --product CodexBarCLI --show-bin-path)/CodexBarCLI"
           echo "PROOF_CLI=${BIN}" >> "${GITHUB_ENV}"
           echo "SSL_CERT_FILE=${TLS}/bundle.pem" >> "${GITHUB_ENV}"
           echo "CURL_CA_BUNDLE=${TLS}/bundle.pem" >> "${GITHUB_ENV}"
 
+      - name: Foundation TLS probe - diagnose URLSession trust for the stub
+        run: |
+          set -euo pipefail
+          cat > /tmp/tlsprobe.swift <<'SWIFT'
+          import Foundation
+          #if canImport(FoundationNetworking)
+          import FoundationNetworking
+          #endif
+
+          let semaphore = DispatchSemaphore(value: 0)
+          var outcome = "PENDING"
+          var request = URLRequest(url: URL(string: "https://grok.com/v1/settings")!)
+          request.httpMethod = "GET"
+          request.timeoutInterval = 10
+          URLSession.shared.dataTask(with: request) { data, response, error in
+              if let error {
+                  outcome = "ERROR: \(error)"
+              } else {
+                  let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+                  let body = String(data: data ?? Data(), encoding: .utf8) ?? "<non-utf8>"
+                  outcome = "OK: status=\(status) body=\(body)"
+              }
+              semaphore.signal()
+          }.resume()
+          semaphore.wait()
+          print("FOUNDATION_TLS_PROBE \(outcome)")
+          SWIFT
+          swiftc -o /tmp/tlsprobe /tmp/tlsprobe.swift
+          /tmp/tlsprobe | tee /tmp/tlsprobe.out
+          echo "=== stub log after Foundation TLS probe ==="
+          cat "${PROOF_TLS_DIR}/stub.log" || true
+
       - name: HEAD tree - shipped CLI usage must gain the weekly 0% window
         run: |
           set -euo pipefail
+          set +e
           env HOME="${PROOF_FIXTURE}/home" GROK_HOME="${PROOF_FIXTURE}/home/.grok" \
             GROK_CLI_PATH="${PROOF_FIXTURE}/grok-fixture" PATH="/usr/bin:/bin" \
-            "${PROOF_CLI}" usage --provider grok --source cli --format json \
+            "${PROOF_CLI}" usage --provider grok --source cli --format json --log-level debug -v \
             > /tmp/cli-head.json 2>/tmp/cli-head.err
+          status=$?
+          set -e
+          echo "CLI exit status: ${status}"
           echo "--- shipped CLI JSON (head tree) ---"
           cat /tmp/cli-head.json
           echo "--- stderr ---"
           cat /tmp/cli-head.err || true
+          echo "=== stub log after shipped CLI ==="
+          cat "${PROOF_TLS_DIR}/stub.log" || true
           python3 .github/proof-4674/assert_usage.py /tmp/cli-head.json head \
             2>&1 | tee cli-head-assert.log
           echo "HEAD_CLI_PROOF_DONE"
