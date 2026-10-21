@@ -1,0 +1,25 @@
+[36;1m  echo "$(date -u +%H:%M:%S) direct-exec pid=$!"[0m
+[36;1m  echo "PROOF CAPTURE INCOMPLETE"[0m
+[36;1mecho "PROOF CAPTURE OK"[0m
+11:37:14 direct-exec pid=13023
+11:37:31 step=0 windowNumber=33
+11:37:34 step=1 windowNumber=33
+11:37:37 step=2 windowNumber=33
+11:37:39 step=3 windowNumber=33
+11:37:42 step=4 windowNumber=33
+11:37:45 step=5 windowNumber=33
+11:37:59 direct-exec pid=14495
+11:38:05 step=0 windowNumber=54
+11:38:07 step=1 windowNumber=54
+11:38:10 step=2 windowNumber=54
+11:38:12 step=3 windowNumber=54
+11:38:14 step=4 windowNumber=54
+11:38:17 step=5 windowNumber=54
+11:38:26 direct-exec pid=15479
+11:38:32 step=0 windowNumber=74
+11:38:34 step=1 windowNumber=74
+11:38:37 step=2 windowNumber=74
+11:38:39 step=3 windowNumber=74
+11:38:42 step=4 windowNumber=74
+11:38:44 step=5 windowNumber=74
+PROOF CAPTURE OK
