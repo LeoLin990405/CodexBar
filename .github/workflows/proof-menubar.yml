@@ -5,14 +5,25 @@ on:
     branches: ["proof/menubar-4665-proof"]
 
 jobs:
-  probe:
+  render:
     runs-on: macos-26
-    timeout-minutes: 10
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - name: Probe runner
+      - name: Toolchain
         run: |
-          set -euo pipefail
           sw_vers
           /usr/bin/xcodebuild -version
           swift --version
+      - name: Build app and test bundle
+        run: swift build --build-tests
+      - name: Render Menu Bar layout footer proof
+        env:
+          CODEXBAR_MENUBAR_FOOTER_PROOF_DIR: ${{ github.workspace }}/proof-out
+        run: swift test --skip-build --filter MenubarFooterProofRenderTests
+      - name: Upload proof images
+        uses: actions/upload-artifact@v4
+        with:
+          name: menubar-footer-proof
+          path: proof-out
+          if-no-files-found: error
