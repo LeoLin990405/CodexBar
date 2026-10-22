@@ -1,0 +1,52 @@
+name: proof-4499-accounts
+
+# Fork-only proof for steipete/CodexBar#4499 diagnostics. This workflow is not part of the feature
+# branch and must never be merged upstream. It runs the macOS-only managed-account tests that a
+# draft upstream PR defers, against the redacted registry-audit branch.
+
+on:
+  push:
+    branches:
+      - "proof/4499-*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proof-4499-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-account-tests:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 27 when available
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Xcode_27.0.app ]; then
+            sudo xcode-select -s /Applications/Xcode_27.0.app/Contents/Developer
+            echo "DEVELOPER_DIR=/Applications/Xcode_27.0.app/Contents/Developer" >> "$GITHUB_ENV"
+          fi
+
+      - name: Toolchain
+        run: |
+          sw_vers
+          /usr/bin/xcodebuild -version
+          swift --version
+          git log --oneline -3
+
+      - name: Build app and test bundles
+        run: swift build --build-tests
+
+      - name: Redacted registry audit metadata tests
+        run: swift test --skip-build --filter ManagedCodexAccountRegistryAuditLinuxTests
+
+      - name: Managed add/re-auth preserves different-email saved rows
+        run: swift test --skip-build --filter ManagedCodexAccountServiceTests
+
+      - name: Managed promotion preserves different-email saved rows
+        run: swift test --skip-build --filter CodexAccountPromotionExecutionTests
