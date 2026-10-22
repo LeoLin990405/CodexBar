@@ -17,6 +17,7 @@ public enum LogCategories {
     public static let configStore = "config-store"
     public static let confetti = "confetti"
     public static let cookieCache = "cookie-cache"
+    public static let codexAccounts = "codex-accounts"
     public static let cookieHeaderStore = "cookie-header-store"
     public static let creditsPurchase = "creditsPurchase"
     public static let hooks = "hooks"
