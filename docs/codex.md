@@ -154,6 +154,10 @@ again immediately before the live replacement. External writers can still race a
 Saved-account removal and import repair retain an old managed home while another saved record references
 the same path. Cleanup still requires the managed-home safety checks and releases the home after its last reference.
 
+Every registry write and managed-home deletion emits a redacted `codex-accounts` log line (operation, row counts,
+hashed account ids and home paths; never emails or raw paths), and each process records the registry row count and
+digest on its first read. Enable file logging in Settings → Debug to capture these lines around a disappearance.
+
 CLI promotion reads local files only and never requests Keychain access or starts login. It leaves
 the app's display selection and running Codex processes alone; `CODEX_HOME` selects the live destination.
 That destination must not alias a managed home, because the swap would overwrite its preserved credentials.

@@ -296,20 +296,25 @@ final class ManagedCodexAccountService {
                 let updatedSnapshot = ManagedCodexAccountSet(
                     version: snapshot.version,
                     accounts: snapshot.accounts.filter { replacedAccountIDs.contains($0.id) == false } + [account])
-                try self.store.storeAccounts(updatedSnapshot)
+                try ManagedCodexAccountRegistryAudit.withOperation(
+                    .addOrReauth,
+                    focusedAccountID: account.id,
+                    operationBody: {
+                        try self.store.storeAccounts(updatedSnapshot)
+                    })
                 return (account, existingHomePathsToDelete)
             }
             account = committed.0
             existingHomePathsToDelete = committed.1
         } catch {
-            try? self.removeManagedHomeIfSafe(atPath: homeURL.path)
+            try? self.removeManagedHomeIfSafe(atPath: homeURL.path, operation: .addOrReauth)
             throw error
         }
 
         try? ManagedCodexAccountLock.withLock(at: self.store.lockURL) {
             let referencedHomes = try Set(self.store.loadAccounts().accounts.map(\.managedHomePath))
             for path in existingHomePathsToDelete where path != homeURL.path && !referencedHomes.contains(path) {
-                try? self.removeManagedHomeIfSafe(atPath: path)
+                try? self.removeManagedHomeIfSafe(atPath: path, operation: .addOrReauth)
             }
         }
         return account
@@ -326,22 +331,30 @@ final class ManagedCodexAccountService {
         guard let account = snapshot.account(id: id) else { return }
 
         let remaining = snapshot.accounts.filter { $0.id != id }
-        try self.store.storeAccounts(ManagedCodexAccountSet(
-            version: snapshot.version,
-            accounts: remaining))
+        try ManagedCodexAccountRegistryAudit.withOperation(
+            .remove,
+            focusedAccountID: account.id,
+            operationBody: {
+                try self.store.storeAccounts(ManagedCodexAccountSet(
+                    version: snapshot.version,
+                    accounts: remaining))
+            })
 
         let homeStillReferenced = remaining.contains { $0.managedHomePath == account.managedHomePath }
         if homeStillReferenced == false {
-            try? self.removeManagedHomeIfSafe(atPath: account.managedHomePath)
+            try? self.removeManagedHomeIfSafe(atPath: account.managedHomePath, operation: .remove)
         }
     }
 
-    private func removeManagedHomeIfSafe(atPath path: String) throws {
+    private func removeManagedHomeIfSafe(
+        atPath path: String,
+        operation: ManagedCodexAccountRegistryAudit.Operation) throws
+    {
         let homeURL = URL(fileURLWithPath: path, isDirectory: true)
         try self.homeFactory.validateManagedHomeForDeletion(homeURL)
-        if self.fileManager.fileExists(atPath: homeURL.path) {
-            try self.fileManager.removeItem(at: homeURL)
-        }
+        guard self.fileManager.fileExists(atPath: homeURL.path) else { return }
+        try self.fileManager.removeItem(at: homeURL)
+        ManagedCodexAccountRegistryAudit.logHomeDeletion(homePath: path, operation: operation)
     }
 
     private func selectedWorkspaceIdentity(

@@ -9,6 +9,7 @@
 - Menu bar: align leading window labels so stacked meters and percentages share a column, including stacked provider rows. (#4581) Thanks @happut!
 - Widgets: explain when the configured provider is unavailable instead of promising refreshed usage data (#4669, #4671). Thanks @vincent-peng!
 - Menu cost charts: preserve zero-usage calendar days for every provider, including Claude and Pi, while keeping incomplete and unpriced history unknown (#4664).
+- Codex accounts: log redacted managed-account registry mutations (operation, row counts, hashed account ids and managed-home paths) and one registry digest line at launch, so a future saved-account loss can be attributed to a specific write (#4499 diagnosis; no behavior change).
 
 ### Fixed
 

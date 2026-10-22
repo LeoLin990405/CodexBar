@@ -29,17 +29,32 @@ public struct FileManagedCodexAccountStore: ManagedCodexAccountStoring, ManagedC
 
     private let fileURL: URL
     private let fileManager: FileManager
+    private let auditLogger: CodexBarLogger?
 
     public init(fileURL: URL = Self.defaultURL(), fileManager: FileManager = .default) {
         self.fileURL = fileURL
         self.fileManager = fileManager
+        self.auditLogger = nil
+    }
+
+    package init(fileURL: URL, fileManager: FileManager, auditLogger: CodexBarLogger?) {
+        self.fileURL = fileURL
+        self.fileManager = fileManager
+        self.auditLogger = auditLogger
     }
 
     public func loadAccounts() throws -> ManagedCodexAccountSet {
-        let accounts = try self.readAccountSet()
-        return accounts.version == Self.currentVersion
-            ? ManagedCodexAccountSet(version: accounts.version, accounts: accounts.accounts)
-            : self.migrateLegacyAccounts(accounts)
+        do {
+            let accounts = try self.readAccountSet()
+            let loaded = accounts.version == Self.currentVersion
+                ? ManagedCodexAccountSet(version: accounts.version, accounts: accounts.accounts)
+                : self.migrateLegacyAccounts(accounts)
+            ManagedCodexAccountRegistryAudit.logLaunchRead(loaded, logger: self.auditLogger)
+            return loaded
+        } catch {
+            ManagedCodexAccountRegistryAudit.logReadFailure(logger: self.auditLogger)
+            throw error
+        }
     }
 
     /// Reads metadata without hydrating legacy fields from credential files or writing migrations.
@@ -73,6 +88,7 @@ public struct FileManagedCodexAccountStore: ManagedCodexAccountStoring, ManagedC
     }
 
     private func storeAccountsLocked(_ accounts: ManagedCodexAccountSet) throws {
+        let priorRegistry = self.readPriorRegistry()
         let normalizedAccounts = ManagedCodexAccountSet(
             version: Self.currentVersion,
             accounts: accounts.accounts)
@@ -86,7 +102,45 @@ public struct FileManagedCodexAccountStore: ManagedCodexAccountStoring, ManagedC
         // Managed account metadata contains account identities and private Codex home paths. Use
         // the same staged 0600 writer as auth.json so a newly-created file is never briefly
         // readable under a permissive umask.
-        try CredentialFileWriter.writePrivate(data, to: self.fileURL)
+        do {
+            try CredentialFileWriter.writePrivate(data, to: self.fileURL)
+        } catch {
+            ManagedCodexAccountRegistryAudit.logWriteFailure(
+                operation: self.resolvedOperation(prior: priorRegistry),
+                requestedCount: accounts.accounts.count,
+                logger: self.auditLogger)
+            throw error
+        }
+        ManagedCodexAccountRegistryAudit.logMutation(
+            operation: self.resolvedOperation(prior: priorRegistry),
+            prior: priorRegistry,
+            requested: accounts.accounts,
+            written: normalizedAccounts,
+            focusedAccountID: ManagedCodexAccountRegistryAudit.currentOperation?.focusedAccountID,
+            logger: self.auditLogger)
+    }
+
+    private func readPriorRegistry() -> ManagedCodexAccountRegistryAudit.PriorRegistry {
+        guard self.fileManager.fileExists(atPath: self.fileURL.path) else {
+            return .missing
+        }
+        guard let prior = try? self.readAccountSet() else {
+            return .unreadable
+        }
+        return .loaded(prior)
+    }
+
+    private func resolvedOperation(
+        prior: ManagedCodexAccountRegistryAudit.PriorRegistry)
+        -> ManagedCodexAccountRegistryAudit.Operation
+    {
+        if let operation = ManagedCodexAccountRegistryAudit.currentOperation?.operation {
+            return operation
+        }
+        if case let .loaded(accounts) = prior, accounts.version != Self.currentVersion {
+            return .migration
+        }
+        return .registryWrite
     }
 
     public func ensureFileExists() throws -> URL {
