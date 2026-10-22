@@ -154,9 +154,12 @@ again immediately before the live replacement. External writers can still race a
 Saved-account removal and import repair retain an old managed home while another saved record references
 the same path. Cleanup still requires the managed-home safety checks and releases the home after its last reference.
 
-Every registry write and managed-home deletion emits a redacted `codex-accounts` log line (operation, row counts,
-hashed account ids and home paths; never emails or raw paths), and each process records the registry row count and
-digest on its first read. Enable file logging in Settings → Debug to capture these lines around a disappearance.
+Registry write attempts under the account lock emit one bounded `codex-accounts` log entry with the operation,
+before/requested/written row counts, and success or failure. Successful managed-home deletions emit the operation
+only. These diagnostics contain no account identifiers, fingerprints, email addresses, home paths, tokens, or
+error descriptions. Enable file logging in Settings → Debug to include app mutations in the existing debug log.
+The logs can help investigate a future disappearance; they do not repair account loss, and missing log lines
+alone do not prove that an external process changed the registry.
 
 CLI promotion reads local files only and never requests Keychain access or starts login. It leaves
 the app's display selection and running Codex processes alone; `CODEX_HOME` selects the live destination.
@@ -529,6 +532,8 @@ unavailable (`costUSD: null`). This opt-in CLI mode does not change ordinary cos
     Priority trace scans resume after ordinary log pruning when enough distributed content anchors still match;
     changed source rows, replaced databases, or insufficient matching anchors require a fresh scan. Temporary
     trace-database failures retain the last validated report pricing and leave scan freshness unchanged for retry.
+    Idle WAL trace databases without sidecars use a read-only immutable fallback when ordinary reads fail.
+    The fallback leaves the database and sidecars untouched; a file change during the read keeps validation pending for retry.
     Successful historical queries update their own pricing window independently of the live scan cursor, including
     results with no priority turns; validated pricing outside that window remains intact.
 - Window: configurable 1-365 day rolling history.

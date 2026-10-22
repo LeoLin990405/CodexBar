@@ -48,26 +48,18 @@ package struct CodexDisplacedLivePreservationExecutor {
                 importedAccount,
                 excludingTargetID: context.target.persisted.id)
 
-        case let .refreshExisting(destination, _):
+        case let .refreshExisting(destination, _),
+             let .repairExisting(destination, _):
             guard destination.persisted.id != context.target.persisted.id else {
                 throw CodexAccountPromotionError.managedStoreCommitFailed
             }
 
-            let refreshed = try self.refreshExistingManagedAccount(
-                destination,
-                from: context,
-                operation: .promotionRefresh)
-            return .alreadyManaged(managedAccountID: refreshed.id)
-
-        case let .repairExisting(destination, _):
-            guard destination.persisted.id != context.target.persisted.id else {
-                throw CodexAccountPromotionError.managedStoreCommitFailed
+            let mutation: FileManagedCodexAccountStore.Mutation = if case .repairExisting = plan {
+                .promotionRepair
+            } else {
+                .promotionRefresh
             }
-
-            let refreshed = try self.refreshExistingManagedAccount(
-                destination,
-                from: context,
-                operation: .promotionRepair)
+            let refreshed = try self.refreshExistingManagedAccount(destination, from: context, mutation: mutation)
             return .alreadyManaged(managedAccountID: refreshed.id)
         }
     }
@@ -125,7 +117,7 @@ package struct CodexDisplacedLivePreservationExecutor {
                     lastAuthenticatedAt: now),
                 homeURL: importedHomeURL)
         } catch {
-            try? self.removeManagedHomeIfSafe(importedHomeURL, operation: .promotionAppend)
+            try? self.removeManagedHomeIfSafe(importedHomeURL, mutation: .promotionAppend)
             throw error as? CodexAccountPromotionError ?? .displacedLiveImportFailed
         }
     }
@@ -137,19 +129,16 @@ package struct CodexDisplacedLivePreservationExecutor {
     {
         do {
             let latestManagedAccounts = try self.store.loadAccounts()
-            try ManagedCodexAccountRegistryAudit.withOperation(
-                .promotionAppend,
-                focusedAccountID: importedAccount.account.id,
-                operationBody: {
-                    try self.store.storeAccounts(ManagedCodexAccountSet(
-                        version: latestManagedAccounts.version,
-                        accounts: latestManagedAccounts.accounts + [importedAccount.account]))
-                })
+            try FileManagedCodexAccountStore.$mutation.withValue(.promotionAppend) {
+                try self.store.storeAccounts(ManagedCodexAccountSet(
+                    version: latestManagedAccounts.version,
+                    accounts: latestManagedAccounts.accounts + [importedAccount.account]))
+            }
             return try self.resolveImportedAccountAfterCommit(
                 importedAccount,
                 excludingTargetID: excludingTargetID)
         } catch {
-            try? self.removeManagedHomeIfSafe(importedAccount.homeURL, operation: .promotionAppend)
+            try? self.removeManagedHomeIfSafe(importedAccount.homeURL, mutation: .promotionAppend)
             throw error as? CodexAccountPromotionError ?? .managedStoreCommitFailed
         }
     }
@@ -191,25 +180,21 @@ package struct CodexDisplacedLivePreservationExecutor {
             createdAt: existingManagedAccount.createdAt,
             updatedAt: importedAccount.account.updatedAt,
             lastAuthenticatedAt: importedAccount.account.lastAuthenticatedAt)
-        try ManagedCodexAccountRegistryAudit.withOperation(
-            .promotionRepair,
-            focusedAccountID: existingManagedAccount.id,
-            operationBody: {
-                try self.store.storeAccounts(ManagedCodexAccountSet(
-                    version: persistedManagedAccounts.version,
-                    accounts: persistedManagedAccounts.accounts.map { account in
-                        guard account.id == existingManagedAccount.id else { return account }
-                        return repairedManagedAccount
-                    }))
-            })
+        try FileManagedCodexAccountStore.$mutation.withValue(.promotionRepair) {
+            try self.store.storeAccounts(ManagedCodexAccountSet(
+                version: persistedManagedAccounts.version,
+                accounts: persistedManagedAccounts.accounts.map { account in
+                    guard account.id == existingManagedAccount.id else { return account }
+                    return repairedManagedAccount
+                }))
+        }
         let replacedHomePath = existingManagedAccount.managedHomePath
         let replacedHomeStillReferenced = persistedManagedAccounts.accounts.contains {
             $0.id != existingManagedAccount.id && $0.managedHomePath == replacedHomePath
         }
         if replacedHomePath != importedAccount.homeURL.path, replacedHomeStillReferenced == false {
             try? self.removeManagedHomeIfSafe(
-                URL(fileURLWithPath: replacedHomePath, isDirectory: true),
-                operation: .promotionRepair)
+                URL(fileURLWithPath: replacedHomePath, isDirectory: true), mutation: .promotionRepair)
         }
 
         return .alreadyManaged(managedAccountID: existingManagedAccount.id)
@@ -218,7 +203,7 @@ package struct CodexDisplacedLivePreservationExecutor {
     private func refreshExistingManagedAccount(
         _ destination: PreparedStoredManagedAccount,
         from context: PreparedPromotionContext,
-        operation: ManagedCodexAccountRegistryAudit.Operation) throws
+        mutation: FileManagedCodexAccountStore.Mutation) throws
         -> ManagedCodexAccount
     {
         guard case let .readable(liveAuthMaterial) = context.live.homeState else {
@@ -277,17 +262,14 @@ package struct CodexDisplacedLivePreservationExecutor {
             else {
                 throw CodexAccountPromotionError.displacedLiveManagedAccountConflict
             }
-            try ManagedCodexAccountRegistryAudit.withOperation(
-                operation,
-                focusedAccountID: persistedManagedAccount.id,
-                operationBody: {
-                    try self.store.storeAccounts(ManagedCodexAccountSet(
-                        version: latestManagedAccounts.version,
-                        accounts: latestManagedAccounts.accounts.map { account in
-                            guard account.id == persistedManagedAccount.id else { return account }
-                            return refreshedManagedAccount
-                        }))
-                })
+            try FileManagedCodexAccountStore.$mutation.withValue(mutation) {
+                try self.store.storeAccounts(ManagedCodexAccountSet(
+                    version: latestManagedAccounts.version,
+                    accounts: latestManagedAccounts.accounts.map { account in
+                        guard account.id == persistedManagedAccount.id else { return account }
+                        return refreshedManagedAccount
+                    }))
+            }
             return refreshedManagedAccount
         } catch let error as CodexAccountPromotionError {
             throw error
@@ -332,15 +314,13 @@ package struct CodexDisplacedLivePreservationExecutor {
         try CredentialFileWriter.writePrivate(data, to: authFileURL)
     }
 
-    private func removeManagedHomeIfSafe(
-        _ homeURL: URL,
-        operation: ManagedCodexAccountRegistryAudit.Operation) throws
-    {
+    private func removeManagedHomeIfSafe(_ homeURL: URL, mutation: FileManagedCodexAccountStore.Mutation) throws {
         guard CodexCredentialFileAccess.permits(CodexAuthFingerprint.authFileURL(homePath: homeURL.path))
         else { return }
         try self.homeFactory.validateManagedHomeForDeletion(homeURL)
-        guard self.fileManager.fileExists(atPath: homeURL.path) else { return }
-        try self.fileManager.removeItem(at: homeURL)
-        ManagedCodexAccountRegistryAudit.logHomeDeletion(homePath: homeURL.path, operation: operation)
+        if self.fileManager.fileExists(atPath: homeURL.path) {
+            try self.fileManager.removeItem(at: homeURL)
+            FileManagedCodexAccountStore.logHomeDeletion(mutation: mutation)
+        }
     }
 }

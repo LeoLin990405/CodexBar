@@ -27,34 +27,31 @@ public struct FileManagedCodexAccountStore: ManagedCodexAccountStoring, ManagedC
 {
     public static let currentVersion = 3
 
+    package enum Mutation: String, Sendable {
+        case addOrReauth = "add-or-reauth"
+        case remove
+        case promotionAppend = "promotion-append"
+        case promotionRepair = "promotion-repair"
+        case promotionRefresh = "promotion-refresh"
+        case registryWrite = "registry-write"
+    }
+
+    @TaskLocal package static var mutation: Mutation = .registryWrite
+    var logger = CodexBarLog.logger(LogCategories.codexAccounts)
+
     private let fileURL: URL
     private let fileManager: FileManager
-    private let auditLogger: CodexBarLogger?
 
     public init(fileURL: URL = Self.defaultURL(), fileManager: FileManager = .default) {
         self.fileURL = fileURL
         self.fileManager = fileManager
-        self.auditLogger = nil
-    }
-
-    package init(fileURL: URL, fileManager: FileManager, auditLogger: CodexBarLogger?) {
-        self.fileURL = fileURL
-        self.fileManager = fileManager
-        self.auditLogger = auditLogger
     }
 
     public func loadAccounts() throws -> ManagedCodexAccountSet {
-        do {
-            let accounts = try self.readAccountSet()
-            let loaded = accounts.version == Self.currentVersion
-                ? ManagedCodexAccountSet(version: accounts.version, accounts: accounts.accounts)
-                : self.migrateLegacyAccounts(accounts)
-            ManagedCodexAccountRegistryAudit.logLaunchRead(loaded, logger: self.auditLogger)
-            return loaded
-        } catch {
-            ManagedCodexAccountRegistryAudit.logReadFailure(logger: self.auditLogger)
-            throw error
-        }
+        let accounts = try self.readAccountSet()
+        return accounts.version == Self.currentVersion
+            ? ManagedCodexAccountSet(version: accounts.version, accounts: accounts.accounts)
+            : self.migrateLegacyAccounts(accounts)
     }
 
     /// Reads metadata without hydrating legacy fields from credential files or writing migrations.
@@ -88,10 +85,25 @@ public struct FileManagedCodexAccountStore: ManagedCodexAccountStoring, ManagedC
     }
 
     private func storeAccountsLocked(_ accounts: ManagedCodexAccountSet) throws {
-        let priorRegistry = self.readPriorRegistry()
+        let previous = try? self.readAccountSet()
         let normalizedAccounts = ManagedCodexAccountSet(
             version: Self.currentVersion,
             accounts: accounts.accounts)
+        var succeeded = false
+        defer {
+            let metadata = [
+                "operation": Self.mutation.rawValue,
+                "rows.before": previous.map { String($0.accounts.count) } ?? "unknown",
+                "rows.requested": String(accounts.accounts.count),
+                "rows.written": succeeded ? String(normalizedAccounts.accounts.count) : "unknown",
+                "result": succeeded ? "success" : "failed",
+            ]
+            if succeeded {
+                self.logger.info("Managed Codex account registry write", metadata: metadata)
+            } else {
+                self.logger.error("Managed Codex account registry write failed", metadata: metadata)
+            }
+        }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(normalizedAccounts)
@@ -102,45 +114,13 @@ public struct FileManagedCodexAccountStore: ManagedCodexAccountStoring, ManagedC
         // Managed account metadata contains account identities and private Codex home paths. Use
         // the same staged 0600 writer as auth.json so a newly-created file is never briefly
         // readable under a permissive umask.
-        do {
-            try CredentialFileWriter.writePrivate(data, to: self.fileURL)
-        } catch {
-            ManagedCodexAccountRegistryAudit.logWriteFailure(
-                operation: self.resolvedOperation(prior: priorRegistry),
-                requestedCount: accounts.accounts.count,
-                logger: self.auditLogger)
-            throw error
-        }
-        ManagedCodexAccountRegistryAudit.logMutation(
-            operation: self.resolvedOperation(prior: priorRegistry),
-            prior: priorRegistry,
-            requested: accounts.accounts,
-            written: normalizedAccounts,
-            focusedAccountID: ManagedCodexAccountRegistryAudit.currentOperation?.focusedAccountID,
-            logger: self.auditLogger)
+        try CredentialFileWriter.writePrivate(data, to: self.fileURL)
+        succeeded = true
     }
 
-    private func readPriorRegistry() -> ManagedCodexAccountRegistryAudit.PriorRegistry {
-        guard self.fileManager.fileExists(atPath: self.fileURL.path) else {
-            return .missing
-        }
-        guard let prior = try? self.readAccountSet() else {
-            return .unreadable
-        }
-        return .loaded(prior)
-    }
-
-    private func resolvedOperation(
-        prior: ManagedCodexAccountRegistryAudit.PriorRegistry)
-        -> ManagedCodexAccountRegistryAudit.Operation
-    {
-        if let operation = ManagedCodexAccountRegistryAudit.currentOperation?.operation {
-            return operation
-        }
-        if case let .loaded(accounts) = prior, accounts.version != Self.currentVersion {
-            return .migration
-        }
-        return .registryWrite
+    package static func logHomeDeletion(mutation: Mutation) {
+        CodexBarLog.logger(LogCategories.codexAccounts).info(
+            "Managed Codex account home deleted", metadata: ["operation": mutation.rawValue])
     }
 
     public func ensureFileExists() throws -> URL {
