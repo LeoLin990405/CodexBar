@@ -1,0 +1,10 @@
+name: trigger-test
+on:
+  push:
+    branches: ["proof/*"]
+jobs:
+  hello:
+    runs-on: macos-26
+    steps:
+      - name: Say hello
+        run: echo "hello from trigger test"
