@@ -413,6 +413,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func _test_configureSettings(_ settings: SettingsStore) {
         self.settings = settings
     }
+
+    /// FORK-ONLY PROOF: opens the production status-item menu (blocks in menu tracking).
+    func _proof_openStatusItemMenu() {
+        self.ensureStatusController()
+        NSApp.activate(ignoringOtherApps: true)
+        self.statusController?.openMenuFromShortcut()
+    }
+
+    /// FORK-ONLY PROOF: describes the live status item so the screenshot job can locate it.
+    func _proof_statusItemDebugDescription() -> String {
+        self.ensureStatusController()
+        guard let controller = self.statusController as? StatusItemController else {
+            return "statusController=unavailable"
+        }
+        let item = controller.statusItem
+        let buttonWindow = item.button?.window
+        return "statusItem.visible=\(item.isVisible) length=\(item.length) "
+            + "buttonWindow=\(buttonWindow?.windowNumber ?? -1) "
+            + "buttonFrame=\(String(describing: buttonWindow?.frame))"
+    }
     #endif
 
     func configure(_ dependencies: Dependencies) {
@@ -471,6 +491,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         self.ensureStatusController()
         self.observeSettingsApplicationMenuLanguage()
+        #if DEBUG
+        // FORK-ONLY PROOF: real status-item menu screenshot harness for the retained plugin card
+        // success→failure scenario (ProofUserPluginStaleErrorHarness.swift).
+        self.startProofUserPluginStaleErrorHarnessIfRequested()
+        #endif
         self.scheduleSettingsApplicationMenuValidation(
             missingItemRetriesRemaining: Self.settingsMenuReadinessRetryCount,
             fallbackVerificationRetriesRemaining: Self.settingsMenuFallbackVerificationRetryCount)
@@ -553,6 +578,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let statusController else { return }
         await statusController.runLoginFlowFromSettings(provider: provider)
     }
+
+    #if DEBUG
+    /// FORK-ONLY PROOF: schedules one run of the retained-plugin-card screenshot harness.
+    private func startProofUserPluginStaleErrorHarnessIfRequested() {
+        guard ProofUserPluginStaleErrorHarness.isRequested else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let store = self.store, let settings = self.settings else { return }
+            ProofUserPluginStaleErrorHarness.run(
+                settings: settings,
+                store: store,
+                appDelegate: self)
+        }
+    }
+    #endif
 
     func openSettings(pane: SettingsPane?) {
         // Escape NSMenu's synchronous tracking callback before activating and presenting a window.
