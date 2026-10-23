@@ -124,7 +124,7 @@ extension StatusItemController {
             id: id ?? "pluginCard:\(plugin.manifest.id.rawValue)",
             width: width,
             heightCacheScope: plugin.manifest.id.rawValue,
-            heightCacheFingerprint: UserPluginMenuCardView.fingerprint(snapshot: snapshot, error: error),
+            heightCacheFingerprint: UserPluginMenuCardContent.fingerprint(snapshot: snapshot, error: error),
             containsInteractiveControls: true,
             onClick: onClick)
     }
@@ -247,6 +247,89 @@ struct UserPluginQuotaPresentation: Equatable {
     }
 }
 
+/// Presentation state for the generic user-plugin menu card.
+///
+/// `UsageStore` keeps the last successful snapshot when a later refresh fails (and clears the
+/// error only on success), so the card receives both values. A retained snapshot must not read
+/// like a current success: it renders the failure plus the capture time of the last-known usage.
+struct UserPluginMenuCardContent: Equatable {
+    enum Usage: String, Equatable {
+        /// No snapshot has been published yet.
+        case none
+        /// The snapshot belongs to the latest successful refresh.
+        case current
+        /// The snapshot is retained from an earlier success after a later failure.
+        case lastKnown
+    }
+
+    let usage: Usage
+    let errorText: String?
+    let lastKnownText: String?
+    let placeholderText: String?
+    let isRefreshing: Bool
+
+    var showsUsageRows: Bool {
+        self.usage != .none
+    }
+
+    var isStale: Bool {
+        self.usage == .lastKnown
+    }
+
+    static func make(
+        snapshot: UsageSnapshot?,
+        error: String?,
+        isRefreshing: Bool,
+        now: Date = .now) -> Self
+    {
+        let errorText = Self.normalizedError(error)
+        guard let snapshot else {
+            return Self(
+                usage: .none,
+                errorText: errorText,
+                lastKnownText: nil,
+                placeholderText: errorText == nil ? L("No usage fetched yet") : nil,
+                isRefreshing: isRefreshing)
+        }
+        guard let errorText else {
+            return Self(
+                usage: .current,
+                errorText: nil,
+                lastKnownText: nil,
+                placeholderText: nil,
+                isRefreshing: isRefreshing)
+        }
+        return Self(
+            usage: .lastKnown,
+            errorText: errorText,
+            lastKnownText: LastKnownUsagePresentation.message(capturedAt: snapshot.updatedAt, now: now),
+            placeholderText: nil,
+            isRefreshing: isRefreshing)
+    }
+
+    /// Height-cache token for the card's measured content. A failure and retained usage add rows,
+    /// so the cached height must be re-measured when either value changes.
+    static func fingerprint(snapshot: UsageSnapshot?, error: String?) -> String {
+        [
+            self.usageState(snapshot: snapshot, error: error).rawValue,
+            snapshot?.updatedAt.timeIntervalSinceReferenceDate.description ?? "none",
+            String(snapshot?.details.count ?? 0),
+            self.normalizedError(error) ?? "",
+        ].joined(separator: "|")
+    }
+
+    private static func usageState(snapshot: UsageSnapshot?, error: String?) -> Usage {
+        guard snapshot != nil else { return .none }
+        return self.normalizedError(error) == nil ? .current : .lastKnown
+    }
+
+    private static func normalizedError(_ error: String?) -> String? {
+        let trimmed = error?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmed, !trimmed.isEmpty else { return nil }
+        return trimmed
+    }
+}
+
 extension ProviderSwitcherView {
     static func pluginSwitcherImage(
         _ plugin: UserProviderPlugin,
@@ -268,6 +351,10 @@ private struct UserPluginMenuCardView: View {
     let onRefresh: () -> Void
 
     var body: some View {
+        let content = UserPluginMenuCardContent.make(
+            snapshot: self.snapshot,
+            error: self.error,
+            isRefreshing: self.isRefreshing)
         VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 8) {
                 Group {
@@ -287,7 +374,7 @@ private struct UserPluginMenuCardView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if self.isRefreshing {
+                if content.isRefreshing {
                     ProgressView().controlSize(.small)
                 } else {
                     Button(action: self.onRefresh) {
@@ -297,7 +384,17 @@ private struct UserPluginMenuCardView: View {
                     .help(L("Refresh"))
                 }
             }
-            if let snapshot {
+            if let errorText = content.errorText {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(errorText).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                    if let lastKnownText = content.lastKnownText {
+                        Text(lastKnownText).font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+            } else if let placeholderText = content.placeholderText {
+                Text(placeholderText).font(.caption).foregroundStyle(.secondary)
+            }
+            if content.showsUsageRows, let snapshot {
                 self.window("Primary", snapshot.primary)
                 self.window("Secondary", snapshot.secondary)
                 self.window("Tertiary", snapshot.tertiary)
@@ -317,10 +414,6 @@ private struct UserPluginMenuCardView: View {
                 if let identity = snapshot.identity(for: self.plugin.manifest.id) {
                     self.identity(identity)
                 }
-            } else if let error {
-                Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
-            } else {
-                Text(L("No usage fetched yet")).font(.caption).foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal, UsageMenuCardLayout.horizontalPadding)
@@ -381,14 +474,6 @@ private struct UserPluginMenuCardView: View {
             red: Double((value >> 16) & 0xFF) / 255,
             green: Double((value >> 8) & 0xFF) / 255,
             blue: Double(value & 0xFF) / 255)
-    }
-
-    static func fingerprint(snapshot: UsageSnapshot?, error: String?) -> String {
-        [
-            snapshot?.updatedAt.timeIntervalSinceReferenceDate.description ?? "none",
-            String(snapshot?.details.count ?? 0),
-            error ?? "",
-        ].joined(separator: "|")
     }
 }
 #endif

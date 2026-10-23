@@ -504,6 +504,8 @@ disabled, all plugins retain appended-card placement regardless of `topLevel`.
 A single plugin works without a redundant switcher, and multiple plugin tabs work even with no built-in providers
 enabled. Refresh and Cmd-R refresh the selected plugin; each card’s refresh button targets that card. Completed
 refreshes update visible plugin cards, and repeated requests for the same plugin share its in-flight refresh.
+When a refresh fails while a previous result exists, the card keeps that last-known usage but shows the error and
+when the retained usage was captured; a later successful refresh clears the warning.
 Overview continues to summarize built-in providers. This setting changes placement only: it grants no additional host
 capabilities and does not change network approval.
 

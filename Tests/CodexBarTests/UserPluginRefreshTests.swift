@@ -144,6 +144,31 @@ struct UserPluginRefreshTests {
         #expect(!fixture.store.refreshingProviders.contains(fixture.id))
     }
 
+    @Test
+    func `failed refresh keeps the published snapshot for last-known card usage`() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let success = Task { await fixture.store.refreshUserPlugin(fixture.id) }
+        try await fixture.transport.waitForRequests(1)
+        await fixture.transport.finish(1, used: 42)
+        await success.value
+        #expect(fixture.store.snapshots[fixture.id]?.primary?.usedPercent == 42)
+        #expect(fixture.store.errors[fixture.id] == nil)
+
+        let failure = Task { await fixture.store.refreshUserPlugin(fixture.id) }
+        try await fixture.transport.waitForRequests(2)
+        await fixture.transport.finish(2, used: 0, failure: true)
+        await failure.value
+
+        let error = try #require(fixture.store.errors[fixture.id])
+        let snapshot = try #require(fixture.store.snapshots[fixture.id])
+        #expect(snapshot.primary?.usedPercent == 42)
+        let content = UserPluginMenuCardContent.make(snapshot: snapshot, error: error, isRefreshing: false)
+        #expect(content.usage == .lastKnown)
+        #expect(content.errorText == error.trimmingCharacters(in: .whitespacesAndNewlines))
+        #expect(content.lastKnownText != nil)
+    }
+
     @MainActor
     private struct Fixture {
         let root: URL
