@@ -117,13 +117,36 @@ struct UserPluginMenuCardContentTests {
 
     @Test
     func `height cache fingerprint separates current, retained, and error-only states`() {
-        let snapshot = self.snapshot(capturedAt: self.now)
-        let empty = UserPluginMenuCardContent.fingerprint(snapshot: nil, error: nil)
-        let current = UserPluginMenuCardContent.fingerprint(snapshot: snapshot, error: nil)
-        let retained = UserPluginMenuCardContent.fingerprint(snapshot: snapshot, error: "Endpoint is offline.")
-        let errorOnly = UserPluginMenuCardContent.fingerprint(snapshot: nil, error: "Endpoint is offline.")
+        let now = self.now
+        let snapshot = self.snapshot(capturedAt: now)
+        let error = "Endpoint is offline."
+        let empty = UserPluginMenuCardContent.fingerprint(snapshot: nil, error: nil, now: now)
+        let current = UserPluginMenuCardContent.fingerprint(snapshot: snapshot, error: nil, now: now)
+        let retained = UserPluginMenuCardContent.fingerprint(snapshot: snapshot, error: error, now: now)
+        let errorOnly = UserPluginMenuCardContent.fingerprint(snapshot: nil, error: error, now: now)
         #expect(Set([empty, current, retained, errorOnly]).count == 4)
-        #expect(UserPluginMenuCardContent.fingerprint(snapshot: snapshot, error: "Endpoint is offline.") == retained)
+        #expect(UserPluginMenuCardContent.fingerprint(snapshot: snapshot, error: error, now: now) == retained)
+    }
+
+    @Test
+    func `height cache fingerprint tracks the relocalized last-known line`() {
+        let capturedAt = self.now.addingTimeInterval(-600)
+        let snapshot = self.snapshot(capturedAt: capturedAt)
+        let error = "Endpoint is offline."
+        let atCapture = UserPluginMenuCardContent.fingerprint(snapshot: snapshot, error: error, now: capturedAt)
+        let anHourLater = UserPluginMenuCardContent.fingerprint(
+            snapshot: snapshot,
+            error: error,
+            now: capturedAt.addingTimeInterval(3600))
+        #expect(atCapture != anHourLater)
+        #expect(atCapture.hasPrefix(codexBarLocalizationSignature() + "|"))
+        #expect(anHourLater.hasPrefix(codexBarLocalizationSignature() + "|"))
+        let currentAtCapture = UserPluginMenuCardContent.fingerprint(snapshot: snapshot, error: nil, now: capturedAt)
+        let currentAnHourLater = UserPluginMenuCardContent.fingerprint(
+            snapshot: snapshot,
+            error: nil,
+            now: capturedAt.addingTimeInterval(3600))
+        #expect(currentAtCapture == currentAnHourLater)
     }
 }
 #endif

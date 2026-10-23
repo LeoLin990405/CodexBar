@@ -308,13 +308,23 @@ struct UserPluginMenuCardContent: Equatable {
     }
 
     /// Height-cache token for the card's measured content. A failure and retained usage add rows,
-    /// so the cached height must be re-measured when either value changes.
-    static func fingerprint(snapshot: UsageSnapshot?, error: String?) -> String {
-        [
-            self.usageState(snapshot: snapshot, error: error).rawValue,
+    /// so the cached height must be re-measured when either value changes. The last-known row also
+    /// embeds the app language and its rendered capture age: an explicit fingerprint is not
+    /// version-scoped, and a relocalized or longer line can wrap differently.
+    static func fingerprint(snapshot: UsageSnapshot?, error: String?, now: Date = .now) -> String {
+        let usage = self.usageState(snapshot: snapshot, error: error)
+        let lastKnownText = if usage == .lastKnown, let snapshot {
+            LastKnownUsagePresentation.message(capturedAt: snapshot.updatedAt, now: now)
+        } else {
+            ""
+        }
+        return [
+            codexBarLocalizationSignature(),
+            usage.rawValue,
             snapshot?.updatedAt.timeIntervalSinceReferenceDate.description ?? "none",
             String(snapshot?.details.count ?? 0),
             self.normalizedError(error) ?? "",
+            lastKnownText,
         ].joined(separator: "|")
     }
 
