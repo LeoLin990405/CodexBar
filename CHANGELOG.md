@@ -2,6 +2,10 @@
 
 ## 0.81.1 — Unreleased
 
+### Fixed
+
+- Settings: hide the Version row for web-only Cursor and Raycast providers instead of showing "not detected" for a detection they do not support (#4769).
+
 ## 0.81.0 — 2026-10-24
 
 ### Highlights
