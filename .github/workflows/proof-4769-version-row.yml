@@ -1,0 +1,107 @@
+# FORK-ONLY PROOF — never merged upstream.
+#
+# Red/green evidence for steipete/CodexBar#4769 / PR #4779:
+# the two production files are reverted to the tests-only commit, the new
+# ProviderSettingsDescriptorTests version-row regressions are expected to FAIL,
+# then the fix is restored and the focused suite is expected to PASS.
+#
+# Branch layout: HEAD = this workflow commit on top of the fix commit;
+# HEAD~1 = fix commit; HEAD~2 = tests-only commit.
+name: proof-4769-version-row
+
+on:
+  push:
+    branches: ["proof/4769*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proof-4769-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  red-green:
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Toolchain fact sheet
+        run: |
+          set -euo pipefail
+          sw_vers
+          xcodebuild -version
+          swift --version
+          git log --oneline -4
+          git status --short
+
+      - name: Restore SwiftPM build cache
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: proof-4769-swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}-v1
+          restore-keys: |
+            proof-4769-swiftpm-${{ runner.os }}-
+
+      - name: BEFORE fix — Cursor and Raycast version-row regressions must FAIL
+        run: |
+          set -uo pipefail
+          source ./Scripts/test_environment.sh
+          echo "=== fix commit under test ==="
+          git log --oneline -1 HEAD~1
+          echo "=== reverting the two production files to the tests-only tree ($(git rev-parse --short HEAD~2)) ==="
+          git diff --stat HEAD~2 HEAD~1 -- \
+            Sources/CodexBar/Providers/Cursor/CursorProviderImplementation.swift \
+            Sources/CodexBarCore/Providers/Raycast/RaycastProviderDescriptor.swift
+          git checkout HEAD~2 -- \
+            Sources/CodexBar/Providers/Cursor/CursorProviderImplementation.swift \
+            Sources/CodexBarCore/Providers/Raycast/RaycastProviderDescriptor.swift
+          echo "=== production tree is pre-fix; regression assertions must fail now ==="
+          set +e
+          swift test --filter ProviderSettingsDescriptorTests 2>&1 | tee before-fix.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "before-fix swift test exit: ${status}"
+          echo "=== failing regression names ==="
+          grep -E "hides the unsupported version row|version-capable providers keep" before-fix.log || true
+          echo "=== expectation failures ==="
+          grep -E "Expectation failed" before-fix.log | head -10 || true
+          if [[ "${status}" -eq 0 ]]; then
+            echo "UNEXPECTED: focused suite passed without the fix; red proof invalid"
+            exit 1
+          fi
+          echo "RED_CONFIRMED: Cursor/Raycast version-row regressions failed without the fix."
+
+      - name: AFTER fix — restore the fix and the focused suite must PASS
+        run: |
+          set -euo pipefail
+          source ./Scripts/test_environment.sh
+          git checkout HEAD -- \
+            Sources/CodexBar/Providers/Cursor/CursorProviderImplementation.swift \
+            Sources/CodexBarCore/Providers/Raycast/RaycastProviderDescriptor.swift
+          git status --short
+          echo "=== production fix restored; focused suite must pass now ==="
+          swift test --filter ProviderSettingsDescriptorTests 2>&1 | tee after-fix.log
+          echo "GREEN_CONFIRMED: focused ProviderSettingsDescriptorTests suite passes with the fix."
+
+      - name: Summarize proof
+        if: ${{ always() }}
+        run: |
+          {
+            printf '### #4769 version-row red/green proof\n\n'
+            printf '| Field | Value |\n| --- | --- |\n'
+            printf '| Runner | `%s` |\n' "${RUNNER_NAME:-unknown}"
+            printf '| Tests-only commit | `%s` |\n' "$(git rev-parse --short HEAD~2)"
+            printf '| Fix commit | `%s` |\n' "$(git rev-parse --short HEAD~1)"
+            printf '| Proof commit (workflow only) | `%s` |\n' "$(git rev-parse --short HEAD)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f before-fix.log ]]; then
+            echo "before-fix tail:"; tail -30 before-fix.log || true
+          fi
+          if [[ -f after-fix.log ]]; then
+            echo "after-fix tail:"; tail -30 after-fix.log || true
+          fi
