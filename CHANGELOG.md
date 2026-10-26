@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- Settings: hide the Version row for web-only Cursor and Raycast providers instead of showing "not detected" for a detection they do not support (#4769).
+- Settings: hide the Version row for web-only Cursor and Raycast providers instead of showing "not detected" for a detection they do not support (#4769, #4779). Thanks @LeoLin990405!
 
 ## 0.81.0 — 2026-10-24
 

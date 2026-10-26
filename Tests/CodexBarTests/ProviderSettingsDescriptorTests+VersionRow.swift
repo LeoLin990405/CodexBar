@@ -41,6 +41,21 @@ extension ProviderSettingsDescriptorTests {
     }
 
     @Test
+    func `cursor account controls remain visible for manual cookies or saved accounts`() throws {
+        let fixture = try self.makeSettingsFixture(suite: "ProviderSettingsDescriptorTests-cursor-accounts")
+        let context = fixture.settingsContext(provider: .cursor)
+        let implementation = CursorProviderImplementation()
+        let support = try #require(TokenAccountSupportCatalog.support(for: .cursor))
+        fixture.settings.cursorCookieSource = .auto
+        #expect(!implementation.tokenAccountsVisibility(context: context, support: support))
+        fixture.settings.cursorCookieSource = .manual
+        #expect(implementation.tokenAccountsVisibility(context: context, support: support))
+        fixture.settings.addTokenAccount(provider: .cursor, label: "Fixture", token: "fixture-cookie")
+        fixture.settings.cursorCookieSource = .auto
+        #expect(implementation.tokenAccountsVisibility(context: context, support: support))
+    }
+
+    @Test
     func `version-capable providers keep the shared version row`() throws {
         let fixture = try self.makeSettingsFixture(suite: "ProviderSettingsDescriptorTests-version-row-control")
         fixture.store.versions[.codex] = "1.2.3"

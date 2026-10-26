@@ -1,5 +1,3 @@
-import Foundation
-
 public enum RaycastProviderDescriptor {
     public static let descriptor: ProviderDescriptor = Self.spec.makeDescriptor()
     public static let spec = PluginProviderSpec(
