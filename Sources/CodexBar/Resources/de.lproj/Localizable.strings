@@ -2706,7 +2706,6 @@
 "Sign in to Trae CN at trae.cn, then refresh CodexBar." = "Melde dich bei Trae CN auf trae.cn an und aktualisiere dann CodexBar.";
 "Trae CN usage response format changed." = "Das Format der Trae-CN-Nutzungsantwort hat sich geändert.";
 "Trae CN request failed. Try refreshing later." = "Die Trae-CN-Anfrage ist fehlgeschlagen. Versuche es später erneut.";
-"Credit breakdown" = "Aufschlüsselung der Credits";
 "Use --provider copilot." = "Verwende --provider copilot.";
 "Config changed during login. Please try again." = "Die Konfiguration wurde während der Anmeldung geändert. Bitte versuche es erneut.";
 

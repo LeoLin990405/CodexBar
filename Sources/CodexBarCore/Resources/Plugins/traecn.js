@@ -81,7 +81,7 @@ defineProvider({
         identity: plan ? { loginMethod: plan } : undefined,
         details: [
           {
-            title: "Credit breakdown",
+            title: "Credits",
             rows: [
               { label: "Used", value: number(used) },
               { label: "Total", value: number(total) },

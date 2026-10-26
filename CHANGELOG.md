@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- Trae CN: label the menu card's used/total/remaining block “Credit breakdown” so Visible usage items no longer shows two indistinguishable “Credits” rows (#4764). Thanks @liuyuplus!
+- Trae CN: distinguish the Usage meter from the Credits details in Visible usage items while preserving hidden choices (#4764, #4780). Thanks @LeoLin990405 and @liuyuplus!
 
 ## 0.81.0 — 2026-10-24
 
