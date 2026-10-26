@@ -2713,6 +2713,7 @@
 "Sign in to Trae CN at trae.cn, then refresh CodexBar." = "Sign in to Trae CN at trae.cn, then refresh CodexBar.";
 "Trae CN usage response format changed." = "Trae CN usage response format changed.";
 "Trae CN request failed. Try refreshing later." = "Trae CN request failed. Try refreshing later.";
+"Credit breakdown" = "Credit breakdown";
 "Use --provider copilot." = "Use --provider copilot.";
 "Config changed during login. Please try again." = "Config changed during login. Please try again.";
 

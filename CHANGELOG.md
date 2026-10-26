@@ -2,6 +2,10 @@
 
 ## 0.81.1 — Unreleased
 
+### Fixed
+
+- Trae CN: label the menu card's used/total/remaining block “Credit breakdown” so Visible usage items no longer shows two indistinguishable “Credits” rows (#4764). Thanks @liuyuplus!
+
 ## 0.81.0 — 2026-10-24
 
 ### Highlights

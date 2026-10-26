@@ -103,6 +103,38 @@ struct TraeCNPluginTests {
     }
 
     @Test(arguments: BundledPluginTestSupport.engines)
+    func `detail section stays distinguishable from the main Credits bar`(
+        engine: ProviderPluginEngineKind) async throws
+    {
+        let usage = try await Self.fetch(engine: engine)
+        let detailTitle = try #require(usage.details.first?.title)
+        // Visible usage items lists both rows, so the breakdown must not repeat the main bar's label.
+        #expect(detailTitle == "Credit breakdown")
+        #expect(TraeCNProviderDescriptor.spec.sessionLabel == "Credits")
+        #expect(detailTitle != TraeCNProviderDescriptor.spec.sessionLabel)
+        #expect(usage.details.first?.rows.map(\.label) == ["Used", "Total", "Remaining"])
+    }
+
+    @Test
+    func `credit breakdown copy is translated in every app catalog`() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let resources = root.appendingPathComponent("Sources/CodexBar/Resources")
+        let catalogs = try FileManager.default.contentsOfDirectory(at: resources, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "lproj" }
+        #expect(catalogs.count == 23)
+        for url in catalogs {
+            let catalog = try #require(NSDictionary(contentsOf: url.appendingPathComponent("Localizable.strings"))
+                as? [String: String])
+            let value = try #require(catalog["Credit breakdown"], "Missing \(url.lastPathComponent): Credit breakdown")
+            #expect(!value.isEmpty)
+            if url.lastPathComponent != "en.lproj" {
+                #expect(value != "Credit breakdown")
+            }
+        }
+    }
+
+    @Test(arguments: BundledPluginTestSupport.engines)
     func `zero credits remain visible without a fabricated quota`(engine: ProviderPluginEngineKind) async throws {
         let body = #"{"is_credits_billing":true,"usage_summary":{"total_amount":0,"consumed_amount":0}}"#
         let usage = try await Self.fetch(body: body, engine: engine)

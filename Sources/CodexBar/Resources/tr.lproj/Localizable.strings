@@ -2711,6 +2711,7 @@
 "Sign in to Trae CN at trae.cn, then refresh CodexBar." = "trae.cn üzerinden Trae CN’ye giriş yapıp CodexBar’ı yenileyin.";
 "Trae CN usage response format changed." = "Trae CN kullanım yanıtının biçimi değişti.";
 "Trae CN request failed. Try refreshing later." = "Trae CN isteği başarısız oldu. Daha sonra yeniden yenileyin.";
+"Credit breakdown" = "Kredi dökümü";
 "Use --provider copilot." = "--provider copilot kullanın.";
 "Config changed during login. Please try again." = "Giriş sırasında yapılandırma değişti. Lütfen tekrar deneyin.";
 

@@ -234,7 +234,9 @@ extension UsageMenuCardView.Model {
 extension SettingsStore {
     func hiddenUsageItemIDs(for provider: UsageProvider) -> Set<ProviderUsageItemID> {
         if let storedIDs = self.providerConfig(for: provider)?.hiddenUsageItemIDs {
-            return Set(storedIDs.map(ProviderUsageItemID.init(rawValue:)))
+            return Self.migratedHiddenUsageItemIDs(
+                Set(storedIDs.map(ProviderUsageItemID.init(rawValue:))),
+                for: provider)
         }
 
         var hiddenIDs = Self.defaultHiddenUsageItemIDs(for: provider)
@@ -255,6 +257,22 @@ extension SettingsStore {
 
     func hasCustomUsageItemVisibility(for provider: UsageProvider) -> Bool {
         self.hiddenUsageItemIDs(for: provider) != Self.defaultHiddenUsageItemIDs(for: provider)
+    }
+
+    /// Provider-specific by design: Trae CN's breakdown section was renamed from "Credits" to
+    /// "Credit breakdown" so the item is distinguishable from the main Credits bar. Move an existing
+    /// hidden choice to the renamed section instead of resurfacing it as an unavailable row.
+    private static func migratedHiddenUsageItemIDs(
+        _ hiddenIDs: Set<ProviderUsageItemID>,
+        for provider: UsageProvider) -> Set<ProviderUsageItemID>
+    {
+        guard provider == .traecn else { return hiddenIDs }
+        let legacyBreakdown = ProviderUsageItemID.detailSection("Credits")
+        guard hiddenIDs.contains(legacyBreakdown) else { return hiddenIDs }
+        var migrated = hiddenIDs
+        migrated.remove(legacyBreakdown)
+        migrated.insert(.detailSection("Credit breakdown"))
+        return migrated
     }
 
     private static func defaultHiddenUsageItemIDs(for provider: UsageProvider) -> Set<ProviderUsageItemID> {

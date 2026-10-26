@@ -306,6 +306,28 @@ struct ProviderUsageItemVisibilityTests {
     }
 
     @Test
+    func `renamed trae cn breakdown keeps an existing hidden choice`() {
+        let settings = Self.settings(
+            defaults: InMemoryUserDefaults(),
+            configStore: testConfigStore(
+                suiteName: "ProviderUsageItemVisibilityTests-traecn-rename-\(UUID().uuidString)"))
+
+        // Simulate a choice stored before the detail section was renamed from "Credits".
+        settings.setUsageItemVisible(false, itemID: .detailSection("Credits"), for: .traecn)
+
+        #expect(settings.hiddenUsageItemIDs(for: .traecn) == [.detailSection("Credit breakdown")])
+        #expect(!settings.isUsageItemVisible(.detailSection("Credit breakdown"), for: .traecn))
+
+        // The next write persists the renamed section, so the legacy title stops being reapplied.
+        settings.setUsageItemVisible(false, itemID: .metric("primary"), for: .traecn)
+
+        #expect(settings.providerConfig(for: .traecn)?.hiddenUsageItemIDs == [
+            "detailSection:Credit breakdown",
+            "metric:primary",
+        ])
+    }
+
+    @Test
     func `unavailable detail labels respect privacy without changing stored identity`() {
         let model = Self.model(provider: .zai, metricIDs: [])
         let item = ProviderUsageItemID.detailSection("Quota for fixture@example.com")
