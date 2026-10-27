@@ -35,6 +35,8 @@ struct CodexUsageFetcherFallbackTests {
         #expect(snapshot?.secondary?.windowMinutes == 10080)
         #expect(snapshot?.accountEmail(for: UsageProvider.codex) == "prolite-test@example.com")
         #expect(snapshot?.loginMethod(for: UsageProvider.codex) == "prolite")
+        #expect(snapshot?.planObservation?.rawPlan == "prolite")
+        #expect(snapshot?.planObservation?.source == .localRPC)
     }
 
     @Test
