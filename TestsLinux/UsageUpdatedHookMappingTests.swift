@@ -122,4 +122,140 @@ struct UsageUpdatedHookMappingTests {
         #expect(first == .attempted)
         #expect(repeated == .rateLimited)
     }
+
+    @Test
+    func `shared mapping surfaces sampled raw plan provenance`() throws {
+        let observedAt = self.now.addingTimeInterval(-30)
+        let plan = try #require(ProviderPlanObservation(
+            rawPlan: "pro",
+            source: .usageResponse,
+            observedAt: observedAt))
+        let event = HookEvent.usageUpdated(
+            provider: "codex",
+            snapshot: self.snapshot.withPlanObservation(plan),
+            account: nil,
+            timestamp: self.now)
+
+        #expect(event.plan == "pro")
+        #expect(event.planSource == .usageResponse)
+        #expect(event.planObservedAt == observedAt)
+
+        let environment = event.environmentVariables()
+        #expect(environment["CODEXBAR_PLAN"] == "pro")
+        #expect(environment["CODEXBAR_PLAN_SOURCE"] == "usage_response")
+        #expect(environment["CODEXBAR_PLAN_OBSERVED_AT"] == "2027-01-15T07:59:30Z")
+
+        let payload = try #require(JSONSerialization.jsonObject(with: event.jsonPayload()) as? [String: Any])
+        #expect(payload["plan"] as? String == "pro")
+        #expect(payload["planSource"] as? String == "usage_response")
+        #expect(payload["planObservedAt"] as? String == "2027-01-15T07:59:30Z")
+    }
+
+    @Test
+    func `shared mapping omits plan fields without an observation`() throws {
+        let event = HookEvent.usageUpdated(
+            provider: "codex",
+            snapshot: self.snapshot,
+            account: nil,
+            timestamp: self.now)
+
+        #expect(event.plan == nil)
+        #expect(event.planSource == nil)
+        #expect(event.planObservedAt == nil)
+
+        let environment = event.environmentVariables()
+        #expect(environment["CODEXBAR_PLAN"] == nil)
+        #expect(environment["CODEXBAR_PLAN_SOURCE"] == nil)
+        #expect(environment["CODEXBAR_PLAN_OBSERVED_AT"] == nil)
+
+        let payload = try #require(JSONSerialization.jsonObject(with: event.jsonPayload()) as? [String: Any])
+        #expect(payload["plan"] == nil)
+        #expect(payload["planSource"] == nil)
+        #expect(payload["planObservedAt"] == nil)
+    }
+
+    @Test
+    func `display label identity is not promoted to plan provenance`() throws {
+        let snapshot = self.snapshot.withIdentity(ProviderIdentitySnapshot(
+            providerID: .codex,
+            accountEmail: nil,
+            accountOrganization: nil,
+            loginMethod: "Pro 20x"))
+        let event = HookEvent.usageUpdated(
+            provider: "codex",
+            snapshot: snapshot,
+            account: nil,
+            timestamp: self.now)
+
+        #expect(event.plan == nil)
+        #expect(event.environmentVariables()["CODEXBAR_PLAN"] == nil)
+    }
+
+    @Test
+    func `plan metadata does not change the sampled account throttle key`() async throws {
+        let firstPlan = try #require(ProviderPlanObservation(
+            rawPlan: "pro",
+            source: .usageResponse,
+            observedAt: self.now))
+        let secondPlan = try #require(ProviderPlanObservation(
+            rawPlan: "team",
+            source: .patWhoami,
+            observedAt: self.now))
+        let first = HookEvent.usageUpdated(
+            provider: "codex",
+            snapshot: self.snapshot.withPlanObservation(firstPlan),
+            account: nil,
+            timestamp: self.now)
+        let second = HookEvent.usageUpdated(
+            provider: "codex",
+            snapshot: self.snapshot.withPlanObservation(secondPlan),
+            account: nil,
+            timestamp: self.now.addingTimeInterval(120))
+        let limiter = HookRateLimiter()
+
+        #expect(await limiter.allow(first, accountDiscriminator: "owner", now: self.now))
+        #expect(await !limiter.allow(
+            second,
+            accountDiscriminator: "owner",
+            now: self.now.addingTimeInterval(120)))
+    }
+
+    @Test
+    func `watch polling carries plan provenance into usage updates`() throws {
+        let plan = try #require(ProviderPlanObservation(
+            rawPlan: "pro",
+            source: .oauthClaims,
+            observedAt: self.now))
+        let snapshot = self.snapshot.withPlanObservation(plan)
+        let observation = HookProviderObservation(
+            provider: "codex",
+            successfulUsage: snapshot,
+            accountDiscriminator: "private-owner")
+        let detector = HookTransitionDetector()
+
+        let dispatches = detector.evaluate(observation: observation, config: self.config(), now: self.now)
+        let dispatch = try #require(dispatches.first)
+
+        #expect(dispatch.event == HookEvent.usageUpdated(
+            provider: "codex",
+            snapshot: snapshot,
+            account: nil,
+            timestamp: self.now))
+        #expect(dispatch.event.plan == "pro")
+        #expect(dispatch.event.planSource == .oauthClaims)
+    }
+
+    @Test
+    func `old hook payloads decode without plan provenance`() throws {
+        let json = #"{"event":"usage_updated","provider":"codex","usagePercent":0.2,"#
+            + #""timestamp":"2026-09-08T12:00:00Z"}"#
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let event = try decoder.decode(HookEvent.self, from: Data(json.utf8))
+
+        #expect(event.plan == nil)
+        #expect(event.planSource == nil)
+        #expect(event.planObservedAt == nil)
+        #expect(event.environmentVariables()["CODEXBAR_PLAN"] == nil)
+    }
 }

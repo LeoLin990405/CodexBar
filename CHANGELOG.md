@@ -2,6 +2,10 @@
 
 ## 0.82.1 — Unreleased
 
+### Added
+
+- Hooks: `usage_updated` events can carry the sampled raw Codex plan identifier, the provider surface that reported it, and the observation time, without inferring allowances from display labels (#4775).
+
 ## 0.82.0 — 2026-10-26
 
 ### Highlights

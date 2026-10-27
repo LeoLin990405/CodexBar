@@ -130,6 +130,31 @@ struct UsageUpdatedHookTests {
     }
 
     @Test
+    func `published usage update carries sampled plan provenance`() async throws {
+        let observedAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let snapshot = UsageSnapshot(
+            primary: RateWindow(
+                usedPercent: 42,
+                windowMinutes: 5 * 60,
+                resetsAt: nil,
+                resetDescription: nil),
+            secondary: nil,
+            updatedAt: observedAt,
+            planObservation: ProviderPlanObservation(
+                rawPlan: "pro",
+                source: .usageResponse,
+                observedAt: observedAt))
+
+        let payload = try await self.capturePayload(provider: .codex, snapshot: snapshot)
+
+        #expect(payload["plan"] as? String == "pro")
+        #expect(payload["planSource"] as? String == "usage_response")
+        let formatter = ISO8601DateFormatter()
+        let observedString = try #require(payload["planObservedAt"] as? String)
+        #expect(formatter.date(from: observedString) == observedAt)
+    }
+
+    @Test
     func `window cadence is available in the hook environment`() throws {
         let json =
             #"{"event":"usage_updated","provider":"codex","windowMinutes":300,"#
