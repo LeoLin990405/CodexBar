@@ -135,7 +135,7 @@ report a raw identifier:
 - `planObservedAt` (`CODEXBAR_PLAN_OBSERVED_AT`): when CodexBar observed the value, not when the plan took effect.
 
 Only Codex currently reports raw plan identifiers. Display labels, pricing, and web-dashboard values are never
-promoted to these fields. `usage_updated` is throttled to one delivery per 600 seconds per account with no trailing
+promoted to these fields. `usage_updated` is throttled to one matching attempt per 600 seconds per account with no trailing
 delivery, so the fields describe a sampled observation rather than a complete plan transition history.
 
 The stdin JSON uses the same camel-case field names without the `CODEXBAR_` prefix. Dates are UTC ISO 8601 strings,

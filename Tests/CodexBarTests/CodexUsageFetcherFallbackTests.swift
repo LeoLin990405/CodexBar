@@ -134,6 +134,8 @@ struct CodexUsageFetcherFallbackTests {
         #expect(snapshot.usage?.secondary == nil)
         #expect(snapshot.usage?.rateLimitsUnavailable(for: .codex) == true)
         #expect(snapshot.credits?.remaining == 21)
+        #expect(snapshot.planObservation?.rawPlan == "pro")
+        #expect(snapshot.usage?.planObservation == snapshot.planObservation)
     }
 
     @Test(arguments: ["pro", "plus", "", "  ", nil] as [String?], [false, true])
@@ -151,6 +153,9 @@ struct CodexUsageFetcherFallbackTests {
 
         let expectedPlan = usagePlan == "pro" ? "pro" : "plus"
         #expect(snapshot.identity?.loginMethod == expectedPlan)
+        #expect(snapshot.planObservation?.rawPlan == expectedPlan)
+        #expect(snapshot.planObservation?.source == .localRPC)
+        #expect(snapshot.usage?.planObservation == snapshot.planObservation)
         #expect(snapshot.usage?.loginMethod(for: .codex) == expectedPlan)
         #expect(snapshot.usage?.accountEmail(for: .codex) == "stub@example.com")
         #expect(snapshot.usage?.primary?.usedPercent == (includeWindows ? 12 : nil))

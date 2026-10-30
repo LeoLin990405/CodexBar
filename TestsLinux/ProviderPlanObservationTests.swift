@@ -28,7 +28,7 @@ struct ProviderPlanObservationTests {
             planObservation: self.observation)
         let data = try JSONEncoder().encode(snapshot)
         let decoded = try JSONDecoder().decode(UsageSnapshot.self, from: data)
-        #expect(decoded.planObservation == observation)
+        #expect(decoded.planObservation == self.observation)
 
         var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
         object.removeValue(forKey: "planObservation")

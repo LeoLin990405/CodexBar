@@ -5,11 +5,12 @@ import Testing
 struct UsageUpdatedHookMappingTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
-    private var snapshot: UsageSnapshot {
+    private func makeSnapshot(planObservation: ProviderPlanObservation? = nil) -> UsageSnapshot {
         UsageSnapshot(
             primary: RateWindow(usedPercent: 0, windowMinutes: 300, resetsAt: self.now, resetDescription: nil),
             secondary: RateWindow(usedPercent: 40, windowMinutes: 10080, resetsAt: self.now, resetDescription: nil),
-            updatedAt: self.now)
+            updatedAt: self.now,
+            planObservation: planObservation)
     }
 
     private func config(executable: String = "/usr/bin/true") -> HooksConfig {
@@ -18,7 +19,11 @@ struct UsageUpdatedHookMappingTests {
 
     @Test
     func `shared mapping preserves genuine zero and omits synthetic windows`() throws {
-        let zero = HookEvent.usageUpdated(provider: "codex", snapshot: self.snapshot, account: nil, timestamp: self.now)
+        let zero = HookEvent.usageUpdated(
+            provider: "codex",
+            snapshot: self.makeSnapshot(),
+            account: nil,
+            timestamp: self.now)
         #expect(zero.usagePercent == 0)
         #expect(zero.secondaryUsagePercent == 0.4)
         #expect(zero.windowMinutes == 300)
@@ -45,14 +50,14 @@ struct UsageUpdatedHookMappingTests {
         let observation = HookProviderObservation(
             provider: "codex",
             accountDisplayName: nil,
-            successfulUsage: self.snapshot,
+            successfulUsage: self.makeSnapshot(),
             accountDiscriminator: "private-owner")
         for instant in [self.now, self.now.addingTimeInterval(60)] {
             let dispatches = detector.evaluate(observation: observation, config: self.config(), now: instant)
             #expect(dispatches.count == 1)
             let dispatch = try #require(dispatches.first)
             #expect(dispatch.event == .usageUpdated(
-                provider: "codex", snapshot: self.snapshot, account: nil, timestamp: instant))
+                provider: "codex", snapshot: self.makeSnapshot(), account: nil, timestamp: instant))
             #expect(dispatch.accountDiscriminator == "private-owner")
             let payload = try String(decoding: dispatch.event.jsonPayload(), as: UTF8.self)
             #expect(!payload.contains("private-owner"))
@@ -66,7 +71,7 @@ struct UsageUpdatedHookMappingTests {
         let failure = HookProviderObservation(
             provider: "codex",
             refreshFailureStatus: "offline",
-            successfulUsage: self.snapshot)
+            successfulUsage: self.makeSnapshot())
         #expect(detector.evaluate(observation: failure, config: self.config()).map(\.event.event) == [.refreshFailed])
         let statusOnly = HookProviderObservation(provider: "codex", status: .none)
         #expect(detector.evaluate(observation: statusOnly, config: self.config()).isEmpty)
@@ -76,7 +81,7 @@ struct UsageUpdatedHookMappingTests {
     func `private account throttles open at exactly 600 seconds and reset on restart`() async {
         let event = HookEvent.usageUpdated(
             provider: "codex",
-            snapshot: self.snapshot,
+            snapshot: self.makeSnapshot(),
             account: nil,
             timestamp: self.now)
         let limiter = HookRateLimiter()
@@ -91,7 +96,7 @@ struct UsageUpdatedHookMappingTests {
     func `dispatch reports attempts without counting unmatched or throttled candidates`() async {
         let event = HookEvent.usageUpdated(
             provider: "codex",
-            snapshot: self.snapshot,
+            snapshot: self.makeSnapshot(),
             account: nil,
             timestamp: self.now)
         let limiter = HookRateLimiter()
@@ -110,7 +115,7 @@ struct UsageUpdatedHookMappingTests {
     func `failed command attempts consume the throttle interval`() async {
         let event = HookEvent.usageUpdated(
             provider: "codex",
-            snapshot: self.snapshot,
+            snapshot: self.makeSnapshot(),
             account: nil,
             timestamp: self.now)
         let limiter = HookRateLimiter()
@@ -132,7 +137,7 @@ struct UsageUpdatedHookMappingTests {
             observedAt: observedAt))
         let event = HookEvent.usageUpdated(
             provider: "codex",
-            snapshot: self.snapshot.withPlanObservation(plan),
+            snapshot: self.makeSnapshot(planObservation: plan),
             account: nil,
             timestamp: self.now)
 
@@ -155,7 +160,7 @@ struct UsageUpdatedHookMappingTests {
     func `shared mapping omits plan fields without an observation`() throws {
         let event = HookEvent.usageUpdated(
             provider: "codex",
-            snapshot: self.snapshot,
+            snapshot: self.makeSnapshot(),
             account: nil,
             timestamp: self.now)
 
@@ -175,8 +180,8 @@ struct UsageUpdatedHookMappingTests {
     }
 
     @Test
-    func `display label identity is not promoted to plan provenance`() throws {
-        let snapshot = self.snapshot.withIdentity(ProviderIdentitySnapshot(
+    func `display label identity is not promoted to plan provenance`() {
+        let snapshot = self.makeSnapshot().withIdentity(ProviderIdentitySnapshot(
             providerID: .codex,
             accountEmail: nil,
             accountOrganization: nil,
@@ -203,12 +208,12 @@ struct UsageUpdatedHookMappingTests {
             observedAt: self.now))
         let first = HookEvent.usageUpdated(
             provider: "codex",
-            snapshot: self.snapshot.withPlanObservation(firstPlan),
+            snapshot: self.makeSnapshot(planObservation: firstPlan),
             account: nil,
             timestamp: self.now)
         let second = HookEvent.usageUpdated(
             provider: "codex",
-            snapshot: self.snapshot.withPlanObservation(secondPlan),
+            snapshot: self.makeSnapshot(planObservation: secondPlan),
             account: nil,
             timestamp: self.now.addingTimeInterval(120))
         let limiter = HookRateLimiter()
@@ -226,7 +231,7 @@ struct UsageUpdatedHookMappingTests {
             rawPlan: "pro",
             source: .oauthClaims,
             observedAt: self.now))
-        let snapshot = self.snapshot.withPlanObservation(plan)
+        let snapshot = self.makeSnapshot(planObservation: plan)
         let observation = HookProviderObservation(
             provider: "codex",
             successfulUsage: snapshot,

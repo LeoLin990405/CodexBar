@@ -51,6 +51,7 @@ struct UsageUpdatedHookTests {
             ])
         let settings = testSettingsStore(
             suiteName: "UsageUpdatedHookTests-private-accounts",
+            userDefaults: InMemoryUserDefaults(),
             config: CodexBarConfig(
                 providers: [ProviderConfig(id: .deepseek, enabled: true)],
                 hooks: hooks))
@@ -312,6 +313,7 @@ struct UsageUpdatedHookTests {
             ])
         let settings = testSettingsStore(
             suiteName: "UsageUpdatedHookTests-capture",
+            userDefaults: InMemoryUserDefaults(),
             config: CodexBarConfig(
                 providers: [ProviderConfig(id: provider.instanceID, enabled: true)],
                 hooks: hooks))
@@ -338,6 +340,7 @@ struct UsageUpdatedHookTests {
             ])
         let settings = testSettingsStore(
             suiteName: "UsageUpdatedHookTests-refresh",
+            userDefaults: InMemoryUserDefaults(),
             config: CodexBarConfig(
                 providers: [ProviderConfig(id: provider.instanceID, enabled: true)],
                 hooks: hooks))

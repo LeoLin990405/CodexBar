@@ -520,10 +520,6 @@ public struct UsageSnapshot: Codable, Sendable {
         self.replacing(identity: .value(identity))
     }
 
-    public func withPlanObservation(_ planObservation: ProviderPlanObservation?) -> UsageSnapshot {
-        self.replacing(planObservation: .value(planObservation))
-    }
-
     public func withDataConfidence(_ dataConfidence: UsageDataConfidence) -> UsageSnapshot {
         self.replacing(dataConfidence: .value(dataConfidence))
     }
@@ -633,7 +629,6 @@ public struct UsageSnapshot: Codable, Sendable {
         subscriptionRenewsAtIsDateOnly: Replacement<Bool> = .unchanged,
         subscriptionExpiresAtIsDateOnly: Replacement<Bool> = .unchanged,
         identity: Replacement<ProviderIdentitySnapshot?> = .unchanged,
-        planObservation: Replacement<ProviderPlanObservation?> = .unchanged,
         dataConfidence: Replacement<UsageDataConfidence> = .unchanged) -> UsageSnapshot
     {
         UsageSnapshot(
@@ -667,7 +662,7 @@ public struct UsageSnapshot: Codable, Sendable {
                 .resolving(self.subscriptionExpiresAtIsDateOnly),
             updatedAt: self.updatedAt,
             identity: identity.resolving(self.identity),
-            planObservation: planObservation.resolving(self.planObservation),
+            planObservation: self.planObservation,
             dataConfidence: dataConfidence.resolving(self.dataConfidence))
     }
 }
@@ -1565,28 +1560,17 @@ extension UsageFetcher {
         secondary: (usedPercent: Double, windowMinutes: Int, resetsAt: Int?)?,
         planType: String? = nil) throws -> UsageSnapshot
     {
-        let observedAt = Date()
-        let rawPlan = self.normalizedCodexAccountField(planType)
         let identity = ProviderIdentitySnapshot(
             providerID: .codex,
             accountEmail: nil,
             accountOrganization: nil,
-            loginMethod: rawPlan)
-        let planObservation = ProviderPlanObservation(
-            rawPlan: rawPlan,
-            source: .localRPC,
-            observedAt: observedAt)
+            loginMethod: self.normalizedCodexAccountField(planType))
         guard let state = CodexReconciledState.fromCLI(
             primary: primary.map(self.makeTestingWindow),
             secondary: secondary.map(self.makeTestingWindow),
-            identity: identity,
-            planObservation: planObservation,
-            updatedAt: observedAt)
+            identity: identity)
         else {
-            if let usage = self.emptyCodexUsageSnapshotIfIdentified(
-                identity: identity,
-                planObservation: planObservation)
-            {
+            if let usage = self.emptyCodexUsageSnapshotIfIdentified(identity: identity) {
                 return usage
             }
             throw UsageError.noRateLimitsFound

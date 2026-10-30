@@ -224,31 +224,3 @@ struct CodexCLIWindowNormalizationTests {
         }
     }
 }
-
-extension CodexCLIWindowNormalizationTests {
-    @Test
-    func `RPC plan reports local app server provenance`() throws {
-        let snapshot = try UsageFetcher._mapCodexRPCLimitsForTesting(
-            primary: (usedPercent: 31, windowMinutes: 300, resetsAt: nil),
-            secondary: nil,
-            planType: "pro")
-        let observation = try #require(snapshot.planObservation)
-
-        #expect(observation.rawPlan == "pro")
-        #expect(observation.source == .localRPC)
-        #expect(snapshot.loginMethod(for: .codex) == "pro")
-    }
-
-    @Test
-    func `RPC plan only snapshot retains plan provenance`() throws {
-        let snapshot = try UsageFetcher._mapCodexRPCLimitsForTesting(
-            primary: nil,
-            secondary: nil,
-            planType: "pro")
-        let observation = try #require(snapshot.planObservation)
-
-        #expect(observation.rawPlan == "pro")
-        #expect(observation.source == .localRPC)
-        #expect(snapshot.rateLimitsUnavailable(for: .codex))
-    }
-}
